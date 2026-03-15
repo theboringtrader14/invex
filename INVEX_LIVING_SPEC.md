@@ -533,3 +533,11 @@ Auth:     POST http://localhost:8000/api/v1/login (shared STAAX endpoint)
 - Added: expanded AI context (momentum, earnings growth, diversification score)
 - SIP confirmed simple — no conditional logic, goals handled in FINEX
 - MF transaction history deferred to Phase 4/5 (FINEX goals)
+
+
+## Design Principles
+
+### SVG Icons
+Always use proper SVG icons throughout INVEX — never Unicode characters or emoji for functional UI elements.
+All icons should be consistent size (18px default), use `stroke="currentColor"`, `strokeWidth="1.8"`,
+`strokeLinecap="round"`, `strokeLinejoin="round"`. This matches STAAX icon standards.

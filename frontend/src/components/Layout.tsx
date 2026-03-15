@@ -181,7 +181,7 @@ export default function Layout() {
           gap: "8px", flexShrink: 0 }}>
 
           {/* Left — welcome + IST */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, paddingLeft: "4px" }}>
             <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
               Welcome, <strong style={{ color: "var(--text)", fontWeight: 600 }}>Karthikeyan</strong>
             </span>
