@@ -68,3 +68,22 @@ async def get_snapshots(db: AsyncSession = Depends(get_db), user = Depends(get_c
     rows = result.scalars().all()
     return [{"date": str(r.snapshot_date), "value": r.portfolio_value,
              "invested": r.invested_value, "pnl": r.day_pnl} for r in rows]
+
+@router.post("/refresh")
+async def refresh_holdings(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+    """Trigger a full holdings refresh from all brokers."""
+    from app.data_ingestion.zerodha_loader import load_zerodha_holdings
+    from app.data_ingestion.angel_loader import load_angel_holdings
+    from app.core.config import settings
+    results = {}
+    try:
+        z = await load_zerodha_holdings(db, settings.zerodha_api_key)
+        results["zerodha"] = z
+    except Exception as e:
+        results["zerodha"] = {"error": str(e)}
+    try:
+        a = await load_angel_holdings(db)
+        results["angel"] = a
+    except Exception as e:
+        results["angel"] = {"error": str(e)}
+    return {"status": "refreshed", "results": results}

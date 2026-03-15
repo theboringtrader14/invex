@@ -43,6 +43,20 @@ export default function PortfolioPage() {
   const [activeAccount, setActiveAccount] = useState("all")
   const [activeTab, setActiveTab] = useState<"equity" | "mf">("equity")
 
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await portfolioAPI.refresh()
+      const [s, h, m] = await Promise.all([
+        portfolioAPI.summary(), portfolioAPI.holdings(), portfolioAPI.mf()
+      ])
+      setSummary(s.data); setHoldings(h.data || []); setMF(m.data || [])
+    } catch(e) { console.error(e) }
+    finally { setRefreshing(false) }
+  }
+
   useEffect(() => {
     Promise.all([
       portfolioAPI.summary().then(r => setSummary(r.data)),
@@ -73,7 +87,12 @@ export default function PortfolioPage() {
             {holdings.length} stocks · {mf.length} funds across all accounts
           </div>
         </div>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button className="btn btn-ghost" onClick={handleRefresh} disabled={refreshing}
+            style={{ fontSize: "11px", gap: "6px" }}>
+            <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>↻</span>
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
           {ACCOUNTS.map(a => (
             <button key={a} onClick={() => setActiveAccount(a)}
               style={{ padding: "5px 12px", borderRadius: "20px", border: "none", cursor: "pointer",
