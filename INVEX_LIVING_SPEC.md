@@ -1,5 +1,5 @@
 # INVEX — Living Engineering Spec
-**Version:** 1.1 | **Last Updated:** 15 March 2026 — Architecture improvements incorporated | **PRD Reference:** v1.1
+**Version:** 1.2 | **Last Updated:** 15 March 2026 — Phase 1 complete — real Zerodha portfolio live | **PRD Reference:** v1.1
 
 This document is the single engineering source of truth for INVEX. Read this at the start of every session — do not re-read transcripts for context.
 
