@@ -162,7 +162,7 @@ export default function PortfolioPage() {
                     <td style={{ fontSize: "11px" }}>
                       <span style={{ padding: "1px 7px", borderRadius: "20px", fontSize: "10px",
                         background: "var(--accent-blue-dim)", color: "var(--accent-blue)", fontWeight: 600 }}>
-                        {h.account_id}
+                        Karthik
                       </span>
                     </td>
                     <td style={{ textAlign: "right", fontFamily: "'DM Mono', monospace" }}>{h.qty}</td>
