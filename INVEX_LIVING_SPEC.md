@@ -1,5 +1,5 @@
 # INVEX — Living Engineering Spec
-**Version:** 1.3 | **Last Updated:** 15 March 2026 — Phase 1 complete — all 3 accounts live (Zerodha + Angel One Mom/Wife) | **PRD Reference:** v1.1
+**Version:** 1.4 | **Last Updated:** 15 March 2026 — Phase 1 complete — all 3 accounts live, Angel One auto-TOTP, account filter working | **PRD Reference:** v1.1
 
 This document is the single engineering source of truth for INVEX. Read this at the start of every session — do not re-read transcripts for context.
 
@@ -541,3 +541,13 @@ Auth:     POST http://localhost:8000/api/v1/login (shared STAAX endpoint)
 Always use proper SVG icons throughout INVEX — never Unicode characters or emoji for functional UI elements.
 All icons should be consistent size (18px default), use `stroke="currentColor"`, `strokeWidth="1.8"`,
 `strokeLinecap="round"`, `strokeLinejoin="round"`. This matches STAAX icon standards.
+
+
+## Session Notes — 15 March 2026 (continued)
+- Angel One direct login implemented with pyotp auto-TOTP — fully headless
+- All 3 accounts loading: Karthik (5 equity + 9 MF), Mom (31 equity), Wife (1 equity)
+- Account filter working for both equity and MF tabs
+- Total family portfolio: ₹48,80,947 live in INVEX
+- Design note: INVEX UI feel to be backported to STAAX post-QA
+- SVG icon principle documented: always proper SVG, never unicode/emoji
+- Phase 2 (SIP Engine) starts Monday
