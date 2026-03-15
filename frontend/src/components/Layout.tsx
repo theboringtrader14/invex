@@ -185,13 +185,13 @@ export default function Layout() {
             <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
               Welcome, <strong style={{ color: "var(--text)", fontWeight: 600 }}>Karthikeyan</strong>
             </span>
-            <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>|</span>
+            <span style={{ color: "var(--text-dim)", padding: "0 2px" }}>|</span>
             <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "'DM Mono', monospace" }}>
               IST {istTime}
             </span>
             {portfolioValue != null && (
               <>
-                <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>|</span>
+                <span style={{ color: "var(--text-dim)", padding: "0 2px" }}>|</span>
                 <span style={{ fontSize: "12px", fontWeight: 700,
                   color: portfolioValue >= 0 ? "var(--green)" : "var(--red)",
                   fontFamily: "'DM Mono', monospace" }}>

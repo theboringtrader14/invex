@@ -78,11 +78,11 @@ export default function PortfolioPage() {
   )
 
   return (
-    <div style={{ padding: "24px", animation: "fadeIn 0.3s ease" }}>
+    <div style={{ padding: "20px 24px", animation: "fadeIn 0.3s ease" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
         <div>
-          <h1 style={{ fontFamily: "'ADLaM Display', serif", fontSize: "24px", fontWeight: 400, marginBottom: "2px" }}>
+          <h1 style={{ fontFamily: "'ADLaM Display', serif", fontSize: "22px", fontWeight: 400, marginBottom: "2px" }}>
             Portfolio
           </h1>
           <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
@@ -90,8 +90,13 @@ export default function PortfolioPage() {
           </div>
         </div>
         <button className="btn btn-ghost" onClick={handleRefresh} disabled={refreshing}
-            style={{ fontSize: "11px" }}>
-            <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>↻</span>
+            style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "5px" }}>
+            <svg style={{ animation: refreshing ? "spin 1s linear infinite" : "none", flexShrink: 0 }}
+              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
       </div>
