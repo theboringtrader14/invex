@@ -28,16 +28,11 @@ const IconWatchlist = () => (
   </svg>
 )
 
-const nav = [
-  { path: "/portfolio", label: "Portfolio",   Icon: IconPortfolio },
-  { path: "/sips",      label: "SIP Engine",  Icon: IconSIP },
-  { path: "/ipo-bots",  label: "IPO Bots",    Icon: IconIPO },
-  { path: "/watchlist", label: "Watchlist",   Icon: IconWatchlist },
-]
+const NOTIF_TYPES: Record<string, string> = {
+  success: "var(--green)", error: "var(--red)", warn: "var(--amber)", info: "var(--accent-blue)"
+}
 
-const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
-
-function InvexLogo({ size = 28 }: { size?: number }) {
+function InvexLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
       <rect width="32" height="32" rx="8" fill="rgba(0,176,240,0.12)"/>
@@ -48,15 +43,52 @@ function InvexLogo({ size = 28 }: { size?: number }) {
   )
 }
 
+const nav = [
+  { path: "/portfolio", label: "Portfolio",   Icon: IconPortfolio },
+  { path: "/sips",      label: "SIP Engine",  Icon: IconSIP },
+  { path: "/ipo-bots",  label: "IPO Bots",    Icon: IconIPO },
+  { path: "/watchlist", label: "Watchlist",   Icon: IconWatchlist },
+]
+
+const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
+
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("invex_sidebar") === "true")
-  const [theme, setTheme] = useState(localStorage.getItem("invex_theme") || "dark")
+  const [theme, setTheme]         = useState(localStorage.getItem("invex_theme") || "dark")
   const [activeAccount, setActiveAccount] = useState("All")
+  const [istTime, setIstTime]     = useState("")
+  const [portfolioValue, setPortfolioValue] = useState<number | null>(null)
+  const [notifications, setNotifications]   = useState<any[]>([])
+  const [showNotif, setShowNotif] = useState(false)
+  const [unread, setUnread]       = useState(0)
 
-  const portfolioPages = ["/portfolio"]
-  const showAccountChips = portfolioPages.some(p => location.pathname.startsWith(p))
+  // IST clock
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      setIstTime(now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }))
+    }
+    tick(); const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Portfolio value polling
+  useEffect(() => {
+    const token = localStorage.getItem("invex_token")
+    if (!token) return
+    const fetchValue = () => {
+      fetch("http://localhost:8001/api/v1/portfolio/summary", {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json()).then(d => {
+        if (d.total_portfolio_value != null) setPortfolioValue(d.total_portfolio_value)
+      }).catch(() => {})
+    }
+    fetchValue(); const id = setInterval(fetchValue, 30000)
+    return () => clearInterval(id)
+  }, [])
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark"
@@ -69,32 +101,42 @@ export default function Layout() {
   }
   const logout = () => { localStorage.removeItem("invex_token"); navigate("/login") }
 
-  const W = collapsed ? "56px" : "200px"
+  const W = collapsed ? "56px" : "216px"
+
+  const addNotification = (n: any) => {
+    setNotifications(prev => [{ ...n, id: Date.now(), time: new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" }) }, ...prev.slice(0, 49)])
+    setUnread(u => u + 1)
+  }
+
+  // Expose addNotification globally for INVEX engines
+  ;(window as any).__invex_notify = addNotification
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* Sidebar */}
       <nav style={{ width: W, minWidth: W, background: "var(--bg-secondary)",
         borderRight: "1px solid var(--bg-border)", display: "flex", flexDirection: "column",
-        transition: "width 0.18s ease, min-width 0.18s ease", overflow: "hidden" }}>
-        {/* Logo row — click to collapse */}
+        transition: "width 0.18s ease, min-width 0.18s ease", overflow: "hidden",
+        fontSize: "13px" }}>
+
+        {/* Logo — click to collapse */}
         <div onClick={toggleSidebar} style={{ height: "52px", display: "flex", alignItems: "center",
           padding: collapsed ? "0" : "0 14px", justifyContent: collapsed ? "center" : "space-between",
           borderBottom: "1px solid var(--bg-border)", cursor: "pointer", userSelect: "none", flexShrink: 0 }}>
           {collapsed
-            ? <InvexLogo size={26} />
+            ? <InvexLogo size={28} />
             : <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <InvexLogo size={26} />
+                <InvexLogo size={28} />
                 <div>
-                  <div style={{ fontFamily: "'ADLaM Display', serif", fontSize: "18px",
+                  <div style={{ fontFamily: "'ADLaM Display', serif", fontSize: "20px",
                     color: "var(--accent-blue)", lineHeight: 1 }}>INVEX</div>
-                  <div style={{ fontSize: "9px", color: "var(--text-muted)", letterSpacing: "0.12em" }}>PORTFOLIO</div>
+                  <div style={{ fontSize: "9px", color: "var(--text-muted)", letterSpacing: "0.14em", marginTop: "1px" }}>PORTFOLIO</div>
                 </div>
               </div>
           }
         </div>
 
-        {/* Nav */}
+        {/* Nav links */}
         <div style={{ flex: 1, paddingTop: "6px" }}>
           {nav.map(({ path, label, Icon }) => (
             <NavLink key={path} to={path} title={collapsed ? label : undefined}
@@ -106,12 +148,14 @@ export default function Layout() {
                 background: isActive ? "rgba(0,176,240,0.08)" : "transparent",
                 borderLeft: isActive && !collapsed ? "2px solid var(--accent-blue)" : "2px solid transparent",
                 fontSize: "13px", fontWeight: isActive ? 600 : 400, whiteSpace: "nowrap",
+                transition: "all 0.12s",
               })}>
-              <span style={{ width: "44px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ width: "44px", display: "flex", alignItems: "center",
+                justifyContent: "center", flexShrink: 0 }}>
                 <Icon />
               </span>
               <span style={{ maxWidth: collapsed ? 0 : "160px", opacity: collapsed ? 0 : 1,
-                overflow: "hidden", whiteSpace: "nowrap",
+                overflow: "hidden", whiteSpace: "nowrap", paddingRight: collapsed ? 0 : "16px",
                 transition: "opacity 0.15s ease, max-width 0.18s ease" }}>
                 {label}
               </span>
@@ -119,41 +163,75 @@ export default function Layout() {
           ))}
         </div>
 
-        {/* Version */}
-        <div style={{ padding: collapsed ? "10px 0" : "10px 16px", borderTop: "1px solid var(--bg-border)",
-          display: "flex", justifyContent: collapsed ? "center" : "flex-start" }}>
+        {/* Version footer */}
+        <div style={{ padding: collapsed ? "10px 0" : "10px 20px",
+          borderTop: "1px solid var(--bg-border)",
+          display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start" }}>
           <div style={{ fontSize: "10px", color: "var(--text-dim)", opacity: collapsed ? 0 : 1,
             transition: "opacity 0.12s", whiteSpace: "nowrap" }}>v1.0 · Phase 1</div>
         </div>
       </nav>
 
-      {/* Right side */}
+      {/* Right panel */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* TopBar */}
+        {/* TopBar — matches STAAX */}
         <header style={{ height: "52px", background: "var(--bg-secondary)",
-          borderBottom: "1px solid var(--bg-border)", display: "flex", alignItems: "center",
-          padding: "0 20px", gap: "12px", flexShrink: 0 }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "12px" }}>
+          borderBottom: "1px solid var(--bg-border)",
+          display: "flex", alignItems: "center", padding: "0 20px",
+          gap: "16px", flexShrink: 0 }}>
+
+          {/* Left — welcome + IST */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1 }}>
             <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-              Welcome, <strong style={{ color: "var(--text)" }}>Karthikeyan</strong>
+              Welcome, <strong style={{ color: "var(--text)", fontWeight: 600 }}>Karthikeyan</strong>
             </span>
+            <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>|</span>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "'DM Mono', monospace" }}>
+              IST {istTime}
+            </span>
+            {portfolioValue != null && (
+              <>
+                <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>|</span>
+                <span style={{ fontSize: "12px", fontWeight: 700,
+                  color: portfolioValue >= 0 ? "var(--green)" : "var(--red)",
+                  fontFamily: "'DM Mono', monospace" }}>
+                  ₹{portfolioValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </span>
+              </>
+            )}
           </div>
 
-          {/* Account chips — only on portfolio page */}
-          {showAccountChips && (
-            <div style={{ display: "flex", gap: "5px" }}>
+          {/* Account chips — only on portfolio pages */}
+          {["/portfolio"].some(p => location.pathname.startsWith(p)) && (
+            <div style={{ display: "flex", gap: "4px" }}>
               {ACCOUNTS.map(a => (
                 <button key={a} onClick={() => setActiveAccount(a)}
-                  style={{ padding: "3px 12px", borderRadius: "20px", border: "none", cursor: "pointer",
-                    fontSize: "11px", fontWeight: 600,
-                    background: activeAccount === a ? "var(--accent-blue)" : "var(--bg-surface)",
+                  style={{ padding: "4px 12px", borderRadius: "20px",
+                    border: `1px solid ${activeAccount === a ? "var(--accent-blue)" : "var(--bg-border)"}`,
+                    background: activeAccount === a ? "var(--accent-blue)" : "transparent",
                     color: activeAccount === a ? "#000" : "var(--text-muted)",
-                    transition: "all 0.12s" }}>
+                    fontSize: "11px", fontWeight: 600, cursor: "pointer", transition: "all 0.12s" }}>
                   {a}
                 </button>
               ))}
             </div>
           )}
+
+          {/* Bell */}
+          <button onClick={() => { setShowNotif(!showNotif); if (!showNotif) setUnread(0) }}
+            style={{ height: "32px", width: "32px", borderRadius: "5px",
+              border: `1px solid ${showNotif ? "var(--accent-blue)" : "var(--bg-border)"}`,
+              background: showNotif ? "var(--accent-blue-dim)" : "var(--bg-surface)",
+              cursor: "pointer", color: "var(--text-muted)", fontSize: "15px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              position: "relative" }}>
+            🔔
+            {unread > 0 && (
+              <span style={{ position: "absolute", top: "5px", right: "5px",
+                width: "7px", height: "7px", borderRadius: "50%",
+                background: "var(--red)" }} />
+            )}
+          </button>
 
           {/* Theme toggle */}
           <button onClick={toggleTheme}
@@ -169,14 +247,54 @@ export default function Layout() {
             style={{ height: "32px", padding: "0 14px", borderRadius: "5px",
               border: "1px solid var(--bg-border)", background: "transparent",
               cursor: "pointer", color: "var(--text-muted)", fontSize: "11px",
-              fontWeight: 600, letterSpacing: "0.04em" }}>
+              fontWeight: 600, letterSpacing: "0.04em",
+              transition: "all 0.12s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--text-dim)" }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--bg-border)" }}>
             Logout
           </button>
         </header>
 
+        {/* Notification panel */}
+        {showNotif && (
+          <div style={{ position: "fixed", top: "52px", right: 0, width: "340px",
+            height: "calc(100vh - 52px)", background: "var(--bg-elevated)",
+            borderLeft: "1px solid var(--bg-border)", zIndex: 900,
+            overflow: "auto", boxShadow: "var(--shadow-lg)" }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--bg-border)",
+              display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 700, fontSize: "13px" }}>Notifications</span>
+              <button onClick={() => setShowNotif(false)}
+                style={{ background: "none", border: "none", cursor: "pointer",
+                  color: "var(--text-muted)", fontSize: "16px" }}>×</button>
+            </div>
+            <div style={{ padding: "8px 0" }}>
+              {notifications.length === 0
+                ? <div style={{ padding: "24px 16px", color: "var(--text-dim)",
+                    fontSize: "12px", textAlign: "center" }}>No notifications yet</div>
+                : notifications.map(n => (
+                  <div key={n.id} style={{ padding: "10px 16px",
+                    borderBottom: "1px solid rgba(63,65,67,0.4)",
+                    borderLeft: `3px solid ${NOTIF_TYPES[n.type] || "var(--accent-blue)"}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between",
+                      marginBottom: "3px" }}>
+                      <span style={{ fontSize: "10px", fontWeight: 700,
+                        color: NOTIF_TYPES[n.type], textTransform: "uppercase" }}>
+                        {n.type}
+                      </span>
+                      <span style={{ fontSize: "10px", color: "var(--text-dim)" }}>{n.time}</span>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "var(--text)" }}>{n.message}</div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )}
+
         {/* Page content */}
         <main style={{ flex: 1, overflow: "auto", background: "var(--bg-primary)" }}>
-          <Outlet context={{ activeAccount }} />
+          <Outlet context={{ activeAccount, addNotification }} />
         </main>
       </div>
     </div>
