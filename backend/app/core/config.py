@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str
     redis_url: str = "redis://localhost:6379"
-    jwt_secret: str
+    jwt_secret_key: str = "dev-jwt-secret"
     jwt_algorithm: str = "HS256"
     anthropic_api_key: str = ""
     zerodha_api_key: str = ""

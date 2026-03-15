@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 async def get_angel_accounts(db: AsyncSession) -> List[dict]:
     """Fetch all Angel One accounts + tokens from STAAX accounts table."""
     result = await db.execute(text(
-        "SELECT id, nickname, api_token FROM accounts WHERE broker='angelone' AND is_active=true"
+        "SELECT id, nickname, access_token FROM accounts WHERE broker='angelone' AND is_active=true"
     ))
     rows = result.fetchall()
     return [{"account_id": str(r[0]), "nickname": r[1], "token": r[2]} for r in rows if r[2]]

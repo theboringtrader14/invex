@@ -16,13 +16,16 @@ KITE_BASE = "https://api.kite.trade"
 async def get_zerodha_token(db: AsyncSession) -> Optional[dict]:
     """Fetch Zerodha account + access token from STAAX accounts table."""
     result = await db.execute(text(
-        "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' AND is_active=true LIMIT 1"
+        "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' LIMIT 1"
     ))
     row = result.fetchone()
-    if not row or not row[1]:
+    if not row or not row[2]:
         logger.warning("[ZERODHA] No active token found")
         return None
-    return {"account_id": str(row[0]), "api_key": row[1], "token": row[2]}
+    # Use api_key from .env if DB has null api_key
+    from app.core.config import settings
+    api_key = row[1] or settings.zerodha_api_key
+    return {"account_id": str(row[0]), "api_key": api_key, "token": row[2]}
 
 async def fetch_holdings(api_key: str, access_token: str) -> List[dict]:
     """Fetch equity holdings from Zerodha API."""
