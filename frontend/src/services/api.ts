@@ -15,6 +15,7 @@ export const portfolioAPI = {
   mf:        () => axios.get(`${API}/portfolio/mf`, auth()),
   summary:   () => axios.get(`${API}/portfolio/summary`, auth()),
   snapshots: () => axios.get(`${API}/portfolio/snapshots`, auth()),
+  refresh:   () => axios.post(`${API}/portfolio/refresh`, {}, auth()),
 }
 
 // SIPs

@@ -16,13 +16,13 @@ KITE_BASE = "https://api.kite.trade"
 async def get_zerodha_token(db: AsyncSession) -> Optional[dict]:
     """Fetch Zerodha account + access token from STAAX accounts table."""
     result = await db.execute(text(
-        "SELECT id, api_token FROM accounts WHERE broker='zerodha' AND is_active=true LIMIT 1"
+        "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' AND is_active=true LIMIT 1"
     ))
     row = result.fetchone()
     if not row or not row[1]:
         logger.warning("[ZERODHA] No active token found")
         return None
-    return {"account_id": str(row[0]), "token": row[1]}
+    return {"account_id": str(row[0]), "api_key": row[1], "token": row[2]}
 
 async def fetch_holdings(api_key: str, access_token: str) -> List[dict]:
     """Fetch equity holdings from Zerodha API."""
@@ -69,7 +69,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
     account_id = account_info["account_id"]
 
     # ── Equity holdings ────────────────────────────────────────────────────────
-    raw_holdings = await fetch_holdings(api_key, token)
+    raw_holdings = await fetch_holdings(account_info["api_key"] or api_key, token)
     if raw_holdings:
         # Clear existing holdings for this account
         await db.execute(
@@ -97,7 +97,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
         logger.info(f"[ZERODHA] Loaded {len(raw_holdings)} equity holdings")
 
     # ── MF holdings ────────────────────────────────────────────────────────────
-    raw_mf = await fetch_mf_holdings(api_key, token)
+    raw_mf = await fetch_mf_holdings(account_info["api_key"] or api_key, token)
     if raw_mf:
         await db.execute(delete(MFHoldings).where(MFHoldings.account_id == account_id))
         now = datetime.now(timezone.utc)

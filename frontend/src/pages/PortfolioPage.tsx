@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useOutletContext } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
 
 type Holding = {
@@ -40,7 +41,8 @@ export default function PortfolioPage() {
   const [holdings, setHoldings]   = useState<Holding[]>([])
   const [mf, setMF]               = useState<MFHolding[]>([])
   const [loading, setLoading]     = useState(true)
-  const [activeAccount, setActiveAccount] = useState("all")
+  const { activeAccount: ctxAccount } = (useOutletContext() as any) || {}
+  const activeAccount = (ctxAccount || "All").toLowerCase()
   const [activeTab, setActiveTab] = useState<"equity" | "mf">("equity")
 
   const [refreshing, setRefreshing] = useState(false)
@@ -67,7 +69,7 @@ export default function PortfolioPage() {
 
   const filteredHoldings = activeAccount === "all"
     ? holdings
-    : holdings.filter(h => h.account_id.toLowerCase().includes(activeAccount))
+    : holdings.filter(h => activeAccount === "all" || h.account_id.toLowerCase().includes(activeAccount))
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>
@@ -87,23 +89,11 @@ export default function PortfolioPage() {
             {holdings.length} stocks · {mf.length} funds across all accounts
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button className="btn btn-ghost" onClick={handleRefresh} disabled={refreshing}
-            style={{ fontSize: "11px", gap: "6px" }}>
+        <button className="btn btn-ghost" onClick={handleRefresh} disabled={refreshing}
+            style={{ fontSize: "11px" }}>
             <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>↻</span>
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
-          {ACCOUNTS.map(a => (
-            <button key={a} onClick={() => setActiveAccount(a)}
-              style={{ padding: "5px 12px", borderRadius: "20px", border: "none", cursor: "pointer",
-                fontSize: "11px", fontWeight: 600, textTransform: "capitalize",
-                background: activeAccount === a ? "var(--accent-blue)" : "var(--bg-surface)",
-                color: activeAccount === a ? "#000" : "var(--text-muted)",
-                transition: "all 0.12s" }}>
-              {a === "all" ? "All" : a.charAt(0).toUpperCase() + a.slice(1)}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Hero Cards (Glassmorphism) */}
