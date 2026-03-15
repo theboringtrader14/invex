@@ -1,5 +1,5 @@
 # INVEX — Living Engineering Spec
-**Version:** 1.0 | **Last Updated:** 14 March 2026 — Initial spec | **PRD Reference:** v1.0
+**Version:** 1.1 | **Last Updated:** 15 March 2026 — Architecture improvements incorporated | **PRD Reference:** v1.1
 
 This document is the single engineering source of truth for INVEX. Read this at the start of every session — do not re-read transcripts for context.
 
@@ -18,7 +18,7 @@ INVEX  ──→ (portfolio, SIPs, IPO)  ──┘
 
 ### Design Philosophy
 - **Base:** Same design system as STAAX (CSS variables, DM Sans, dark/light mode toggle)
-- **Accent:** Glassmorphism selectively on hero metric cards (portfolio value, today gain, XIRR)
+- **Accent:** Glassmorphism selectively on hero metric cards (total portfolio value, today gain, XIRR)
 - **Tables and lists:** Sharp, high-density — same as STAAX
 - **Identity:** Premium portfolio-app feel, distinct from STAAX trading terminal aesthetic
 - **Future-ready:** Designed to merge cleanly into FINEX as a module
@@ -31,14 +31,14 @@ INVEX  ──→ (portfolio, SIPs, IPO)  ──┘
 |-------|-----------|
 | Backend | FastAPI + Python 3.12 |
 | Database | PostgreSQL (asyncpg) + SQLAlchemy async |
-| Cache | Redis |
+| Cache | Redis (market data cache + session) |
 | Frontend | React + Vite + TypeScript |
 | Auth | Shared JWT with STAAX (same login, same token, same secret key) |
 | Broker APIs | Zerodha KiteConnect (Karthik), Angel One SmartAPI (Mom, Wife) |
-| MF Data | Zerodha Coin via KiteConnect API (view only) |
+| MF Data | Zerodha Coin via KiteConnect (view only) |
 | Market Data | NSE public API + Zerodha instrument dump (daily) |
 | AI | Anthropic claude-sonnet-4-6 via API |
-| Repo | Monorepo — ~/STAXX/invex/ alongside ~/STAXX/staax/ |
+| Repo | Monorepo — ~/STAAX/invex/ alongside ~/STAAX/staax/ |
 | Ports | Backend: 8001 | Frontend: 3001 |
 
 ---
@@ -53,81 +53,100 @@ INVEX  ──→ (portfolio, SIPs, IPO)  ──┘
 
 ---
 
-## 3. Module Map
+## 3. Architecture Layers
 
-INVEX has 5 core modules:
+INVEX follows a strict 4-layer architecture, mirroring STAAX:
+```
+┌─────────────────────────────────────────┐
+│  Portfolio Data Layer                   │  Broker API ingestion, normalization
+│  data_ingestion/                        │  zerodha_loader, angel_loader, mf_loader
+├─────────────────────────────────────────┤
+│  Analytics Layer                        │  XIRR, P&L, metrics computation
+│  engine/analytics_engine.py             │
+│  engine/portfolio_intelligence.py       │  Sector, concentration, momentum
+│  engine/risk_engine.py                  │  Beta, VaR, drawdown
+├─────────────────────────────────────────┤
+│  Investment Intelligence Layer          │  AI analysis, rebalancing, alerts
+│  engine/ai_engine.py                    │
+├─────────────────────────────────────────┤
+│  Execution Layer                        │  SIP orders, IPO Bot orders
+│  engine/sip_engine.py                   │
+│  engine/ipo_engine.py                   │
+│  engine/execution_router.py             │  Routes to Zerodha/Angel One broker
+└─────────────────────────────────────────┘
+```
 
-| # | Module | Description | Status |
-|---|--------|-------------|--------|
-| 1 | **Portfolio Viewer** | Equity + MF holdings, invested vs current, XIRR, day P&L | 🔭 Phase 1 |
-| 2 | **Fundamental + Tech Dashboard** | Per-stock: financials, ratios, technical indicators, AI flagging | 🔭 Phase 4 |
-| 3 | **Stock SIP Engine** | Recurring buy orders — daily/weekly/monthly, set ₹ amount, market order CNC | 🔭 Phase 2 |
-| 4 | **IPO Bot (YTR Strategy)** | Auto-detect new mainboard listings, YTR indicator, CNC delivery trade, 50% SL | 🔭 Phase 3 |
-| 5 | **AI Rebalancing Assistant** | AI-assisted portfolio analysis, sector allocation, rebalancing suggestions | 🔭 Phase 5 |
+### Full engine module structure
+```
+invex/backend/app/
+  data_ingestion/
+    zerodha_loader.py      — normalize Zerodha equity + MF responses
+    angel_loader.py        — normalize Angel One equity responses
+    mf_loader.py           — Zerodha Coin MF holdings
+  engine/
+    portfolio_loader.py    — orchestrate all loaders, cache to DB
+    analytics_engine.py    — XIRR, P&L, day change, metrics
+    portfolio_intelligence.py — sector allocation, concentration, momentum
+    risk_engine.py         — beta, VaR, drawdown, volatility
+    sip_engine.py          — SIP scheduler + order placement
+    ipo_engine.py          — YTR signal + IPO bot orchestration
+    execution_router.py    — routes orders to correct broker client
+    watchlist_monitor.py   — price + technical + earnings alerts
+  api/v1/
+    portfolio.py
+    analysis.py
+    sips.py
+    ipo_bots.py
+    rebalancing.py
+    watchlist.py
+```
 
 ---
 
-## 4. Module Specifications
+## 4. Module Map
 
-### 4.1 Portfolio Viewer
+| # | Module | Description | Phase |
+|---|--------|-------------|-------|
+| 1 | **Portfolio Viewer** | Equity + MF holdings, invested vs current, XIRR, day P&L, equity curve | Phase 1 |
+| 2 | **Stock SIP Engine** | Recurring buy orders — daily/weekly/monthly, set ₹ amount, market order CNC | Phase 2 |
+| 3 | **IPO Bot (YTR Strategy)** | Auto-detect mainboard listings, YTR signal, CNC delivery trade, 50% SL | Phase 3 |
+| 4 | **Fundamental + Tech Dashboard** | Financials, ratios, technical indicators, AI flagging per stock | Phase 4 |
+| 5 | **AI Rebalancing Assistant** | Sector analysis, concentration risk, rebalancing suggestions | Phase 5 |
+
+---
+
+## 5. Module Specifications
+
+### 5.1 Portfolio Viewer
 
 **Purpose:** Single consolidated view of all equity and MF holdings across all 3 accounts.
 
 **Data sources:**
-- Zerodha: GET /portfolio/holdings — equity holdings with avg price, qty, current value
+- Zerodha: GET /portfolio/holdings — equity with avg price, qty, current value
 - Zerodha Coin: KiteConnect MF holdings — NAV, units, invested amount
 - Angel One: GET /portfolio/allholding — equity for Mom and Wife
 
 **Display:**
-- Hero cards (Glassmorphism): Total Portfolio Value | Today's Gain | Total XIRR | Invested Amount
+- Hero cards (Glassmorphism): Total Portfolio Value | Today's Gain | Total XIRR | Total Invested
 - Holdings table per account: Stock | Qty | Avg Price | LTP | P&L | P&L% | Day Change
 - MF section (Karthik only): Fund Name | Units | NAV | Current Value | XIRR
-- EOD data refresh — LTP polling every 30s during market hours (09:15–15:30 IST) acceptable
-- Consolidated view across all accounts with account filter
+- STAAX trading P&L integration: show realized trading profits from STAAX alongside investment returns
+- Equity curve chart: portfolio value over time (from daily snapshots)
+
+**Data refresh tiers:**
+- Tier 1 (market hours 09:15–15:30): LTP every 30s via Redis cache
+- Tier 2 (daily at 15:35): Holdings update, MF NAV update, fundamental data
+- Tier 3 (weekly Sunday): Sector classifications, AI analysis cache
 
 **Metrics computed:**
 - Absolute P&L = (LTP − Avg Price) × Qty
 - P&L% = ((LTP − Avg Price) / Avg Price) × 100
-- XIRR = computed from buy transaction history and current value
+- XIRR = computed from equity_transactions history + current value
 - Day Change = (LTP − prev_close) × Qty
 
 ---
 
-### 4.2 Fundamental + Technical Analysis Dashboard
-
-**Purpose:** Deep dive into any stock — financials, valuation ratios, technical indicators, and AI-generated insights.
-
-**Fundamental data (free/public sources):**
-- NSE public API + Screener.in (scrape) for:
-  - Revenue, Net Profit, EPS growth (8 quarters)
-  - P/E, P/B, ROE, ROCE, D/E ratio
-  - Promoter holding %, FII/DII holding %
-  - Quarterly results history
-
-**Technical indicators (computed in-engine from EOD OHLC):**
-- RSI (14)
-- MACD (12/26/9)
-- SMA 50 and SMA 200
-- Volume trend (above/below 20-day avg)
-- 52-week high/low position
-- YTR levels (same as IPO Bot — yearly trading range)
-
-**AI Flagging (claude-sonnet-4-6):**
-- On-demand: "Analyse this stock for me"
-- Input: fundamentals + technicals + whether already holding + portfolio context
-- Output: structured analysis with reasoning — BUY / HOLD / WATCH / EXIT with reasoning
-- Framed as analysis, not financial advice
-
-**UI:**
-- Stock search with NSE symbol autocomplete
-- TradingView Advanced Chart widget (same as STAAX ticker modal)
-- Fundamentals panel: key ratios in cards
-- Technical panel: indicator readings, color-coded (bullish/bearish/neutral)
-- AI insight panel: collapsible, on-demand, streaming response
-
----
-
-### 4.3 Stock SIP Engine
+### 5.2 Stock SIP Engine
 
 **Purpose:** Automated recurring buy orders for equity stocks on a defined schedule.
 
@@ -138,103 +157,136 @@ INVEX has 5 core modules:
 | Stock | NSE symbol lookup |
 | Account | Karthik / Mom / Wife |
 | Amount | ₹ per installment (e.g. ₹10,000) |
-| Frequency | Daily / Weekly (Mon–Fri pick day) / Monthly (pick date 1–28) |
-| Order type | Market order, CNC (delivery) |
+| Frequency | Daily / Weekly (pick Mon–Fri) / Monthly (pick date 1–28) |
+| Order type | Market order, CNC delivery |
 | Status | Active / Paused / Archived |
 | Start date | User defined |
 | End date | Optional |
 
-**Execution logic:**
-- Scheduler at 09:20 IST daily — checks if any SIP triggers today
-- Shares to buy = floor(Amount ÷ LTP) — minimum 1 share
-- If Amount < LTP → skip this installment, notify user
-- If market holiday → skip and log
-- Place market order via broker API (same ExecutionManager pattern as STAAX)
+**SIP is simple — no conditional logic.** Goals will be handled in FINEX.
 
-**Dashboard:**
-- SIP cards: stock, amount, frequency, next execution, total invested, total units, current value, XIRR
-- Execution history: date, shares bought, price, amount, order status
-- Pause / Edit / Archive controls per SIP
+**Execution logic:**
+- Scheduler at 09:20 IST daily — checks SIP triggers for today
+- Shares = floor(Amount ÷ LTP), minimum 1
+- If Amount < LTP → skip installment, notify
+- If market holiday → skip and log
+- Place market order via execution_router.py
+
+**Dashboard:** SIP cards with total invested, units, current value, XIRR, next execution, history.
 
 ---
 
-### 4.4 IPO Bot (YTR Strategy)
+### 5.3 IPO Bot (YTR Strategy)
 
-**Purpose:** Auto-detect newly listed mainboard IPO stocks, run YTR indicator, place CNC delivery trade when signal fires, exit on 50% SL.
+**Purpose:** Auto-detect newly listed mainboard IPO stocks, run YTR indicator, place CNC delivery trade, exit on 50% SL.
 
-**YTR Strategy (Yearly Trading Range) — Pine Script translation:**
+**IMPORTANT: Mainboard IPOs only — SME IPOs are excluded.**
+
+**YTR Strategy:**
 ```
-yearly_range = prev_year_high - prev_year_low
+yearly_range = prev_year_high − prev_year_low
 yearly_open  = first trading day open of current year
 
 UPP1 = yearly_open + (yearly_range × 0.5589)
-LPP1 = yearly_open - (yearly_range × 0.5589)
+LPP1 = yearly_open − (yearly_range × 0.5589)
 
-Entry signal:  close crosses above UPP1 → BUY (CNC delivery)
-Stop loss:     price drops 50% from entry price → SELL
-Profit target: none — hold until SL or manual exit
-Direction:     LONG only (no shorting)
+Entry:  close crosses above UPP1 → BUY CNC delivery
+SL:     price drops 50% from entry → SELL
+Target: none — hold until SL or manual exit
 ```
 
-**Special case for newly listed stocks (< 1 year old):**
-- Use listing-day open as yearly_open
-- Use highest high and lowest low since listing as prev_year_high/low
-- Compute UPP1/LPP1 from these values
+**For stocks < 1 year old:**
+- yearly_open = listing day open price
+- prev_year_high/low = all-time high/low since listing
 
-**IPO Auto-Detection (daily job at 07:00 IST):**
-- Fetch new listings from NSE API: /api/initial-offer-detail
-- Cross-reference with Zerodha daily instrument dump to get exchange token
-- If new listing found → auto-create IPO Bot with status WATCHING
-- Compute YTR levels and subscribe to LTP feed
+**IPO Auto-Detection (07:00 IST daily):**
+- Fetch new mainboard listings from NSE API (/api/initial-offer-detail)
+- Filter: exchange = NSE/BSE, listing type = mainboard only (exclude SME)
+- Cross-reference Zerodha instrument dump for token
+- Auto-create IPO Bot entry with status WATCHING
+- Compute YTR levels, subscribe to LTP feed
 
-**Bot lifecycle:**
-```
-WATCHING → (crossover signal) → ACTIVE (position open) → CLOSED (SL hit / manual exit)
-```
-
-**Config:**
-- Trade amount: configurable per bot (default ₹10,000)
-- Max concurrent positions: configurable (default 5)
-- Account: any mapped account (Karthik default)
-
-**Dashboard:**
-- Bot cards: stock, listing date, YTR levels, current price vs UPP1, status, distance to SL
-- Active trades: entry, current P&L, % from SL
-- Closed trades: outcome, P&L, hold duration
+**Bot lifecycle:** WATCHING → ACTIVE → CLOSED
 
 **Risk controls:**
-- All security layers from STAAX apply (kill switch, account-level limits)
+- Max concurrent positions: configurable (default 5)
+- Trade amount: configurable per bot (default ₹10,000)
 - PRACTIX / LIVE mode same as STAAX
+- All security layers from STAAX apply
 
 ---
 
-### 4.5 AI Rebalancing Assistant
+### 5.4 Fundamental + Technical Analysis Dashboard
 
-**Purpose:** AI-assisted portfolio analysis — identify concentration risk, suggest rebalancing, flag underperformers.
+**Purpose:** Deep dive into any stock — financials, technical indicators, and AI insights.
 
-**Inputs to AI (claude-sonnet-4-6):**
-- Current holdings across all accounts (symbol, qty, value, P&L%)
-- Sector allocation breakdown (computed from holdings)
-- SIP schedule (what you're currently accumulating)
-- User's target allocation (optional — configurable)
-- Performance vs Nifty 50 (last 1M, 3M, 1Y)
+**Fundamental data:**
+- NSE public API + Screener.in scrape:
+  - Revenue, Net Profit, EPS (8 quarters)
+  - P/E, P/B, ROE, ROCE, D/E ratio
+  - Promoter %, FII/DII %
+  - Quarterly results history
+
+**Technical indicators (computed from EOD OHLC):**
+- RSI (14), MACD (12/26/9)
+- SMA 50, SMA 200
+- Volume trend (vs 20-day avg)
+- 52-week high/low position
+- YTR levels
+
+**AI Analysis (claude-sonnet-4-6) — expanded inputs:**
+- Holdings context (already owned or not)
+- Price momentum (1M, 3M, 6M returns)
+- Earnings growth trend (last 4 quarters)
+- Relative performance vs Nifty 50
+- Portfolio diversification score impact
+- Sector concentration impact
+- Output: BUY / HOLD / WATCH / EXIT with full reasoning
+
+**UI:** Stock search, TradingView chart, fundamentals panel, technicals panel, AI insight panel (collapsible, streaming).
+
+---
+
+### 5.5 AI Rebalancing Assistant
+
+**Purpose:** AI-assisted portfolio analysis — concentration risk, underperformers, rebalancing suggestions.
+
+**Inputs (expanded):**
+- Current holdings across all accounts
+- Sector allocation breakdown (from sector classification table)
+- Price momentum per holding
+- Earnings growth trends
+- SIP schedule (what currently being accumulated)
+- Relative performance vs Nifty 50
+- Portfolio diversification score
+- User's target allocation (optional, configurable)
 
 **Output:**
-- Sector overweight / underweight analysis
-- Stocks to consider trimming (high allocation + weak fundamentals + poor momentum)
-- Stocks to consider adding (low allocation + strong signals + good fundamentals)
-- SIP adjustments (pause underperforming SIPs, add to strong ones)
-- All framed as analysis — user makes final call
+- Sector overweight/underweight analysis
+- Stocks to trim (high allocation + weak fundamentals + poor momentum)
+- Stocks to add (low allocation + strong signals + good fundamentals)
+- SIP adjustments
+- All framed as analysis — user decides
 
-**UI:**
-- "Run Analysis" button — triggers AI call
-- Results: sector pie chart, suggestion cards, full reasoning
-- Each suggestion links to the stock's analysis dashboard
-- Option to act: create SIP, add to watchlist, or dismiss
+**UI:** Run Analysis button, sector pie, suggestion cards with reasoning, act links (create SIP / add to watchlist / dismiss).
 
 ---
 
-## 5. DB Schema
+### 5.6 Watchlist (Enhanced)
+
+Watchlist is an active monitoring and research tool, not just a static list.
+
+**Features:**
+- Price alerts (above/below threshold)
+- Technical alerts (RSI threshold, breakout above 52W high, etc.)
+- Earnings announcement alerts
+- Per-stock notes (research journal)
+- YTR levels displayed per stock
+- Link to full analysis dashboard per stock
+
+---
+
+## 6. DB Schema
 ```sql
 -- Holdings cache (EOD refresh)
 CREATE TABLE holdings (
@@ -263,6 +315,40 @@ CREATE TABLE mf_holdings (
   updated_at TIMESTAMPTZ
 );
 
+-- Equity transaction history (CRITICAL for XIRR)
+CREATE TABLE equity_transactions (
+  id UUID PRIMARY KEY,
+  account_id UUID NOT NULL,
+  symbol VARCHAR(20) NOT NULL,
+  trade_date DATE NOT NULL,
+  direction VARCHAR(5) NOT NULL,   -- BUY/SELL
+  qty INTEGER NOT NULL,
+  price FLOAT NOT NULL,
+  broker_order_id VARCHAR(50),
+  source VARCHAR(20),              -- manual/sip/ipo_bot/import
+  created_at TIMESTAMPTZ
+);
+
+-- Daily portfolio snapshots (equity curve)
+CREATE TABLE portfolio_snapshots (
+  id UUID PRIMARY KEY,
+  snapshot_date DATE NOT NULL,
+  account_id UUID NOT NULL,
+  portfolio_value FLOAT NOT NULL,
+  invested_value FLOAT NOT NULL,
+  cash_balance FLOAT,
+  day_pnl FLOAT,
+  total_pnl FLOAT
+);
+
+-- Sector classification
+CREATE TABLE sectors (
+  symbol VARCHAR(20) PRIMARY KEY,
+  sector VARCHAR(50) NOT NULL,
+  industry VARCHAR(50),
+  updated_at TIMESTAMPTZ
+);
+
 -- SIPs
 CREATE TABLE sips (
   id UUID PRIMARY KEY,
@@ -270,9 +356,9 @@ CREATE TABLE sips (
   symbol VARCHAR(20) NOT NULL,
   exchange VARCHAR(10) NOT NULL,
   amount FLOAT NOT NULL,
-  frequency VARCHAR(20) NOT NULL,   -- daily/weekly/monthly
-  frequency_day INTEGER,             -- 0=Mon..4=Fri for weekly
-  frequency_date INTEGER,            -- 1-28 for monthly
+  frequency VARCHAR(20) NOT NULL,
+  frequency_day INTEGER,           -- 0=Mon..4=Fri for weekly
+  frequency_date INTEGER,          -- 1-28 for monthly
   status VARCHAR(20) DEFAULT 'active',
   start_date DATE NOT NULL,
   end_date DATE,
@@ -334,80 +420,73 @@ CREATE TABLE watchlist (
   symbol VARCHAR(20) NOT NULL,
   exchange VARCHAR(10) NOT NULL,
   added_at TIMESTAMPTZ,
-  notes TEXT
+  notes TEXT,
+  price_alert_above FLOAT,
+  price_alert_below FLOAT,
+  rsi_alert_threshold INTEGER,
+  earnings_alert BOOLEAN DEFAULT FALSE
 );
 ```
 
 ---
 
-## 6. API Endpoints (planned)
+## 7. API Endpoints (planned)
 ```
 Portfolio
-GET  /api/v1/portfolio/holdings         — all equity holdings across accounts
-GET  /api/v1/portfolio/mf               — MF holdings (Zerodha Coin)
-GET  /api/v1/portfolio/summary          — consolidated hero metrics
+GET  /api/v1/portfolio/holdings         — all equity holdings
+GET  /api/v1/portfolio/mf               — MF holdings (Coin)
+GET  /api/v1/portfolio/summary          — hero metrics + STAAX P&L integration
+GET  /api/v1/portfolio/snapshots        — equity curve data
 POST /api/v1/portfolio/refresh          — trigger EOD refresh
 
 Analysis
 GET  /api/v1/analysis/:symbol           — fundamentals + technicals
-POST /api/v1/analysis/:symbol/ai        — AI stock analysis (streaming)
+POST /api/v1/analysis/:symbol/ai        — AI analysis (streaming)
 
 SIPs
-GET    /api/v1/sips/                    — list all SIPs
-POST   /api/v1/sips/                    — create SIP
-PATCH  /api/v1/sips/:id                 — update/pause SIP
-DELETE /api/v1/sips/:id                 — delete SIP
-GET    /api/v1/sips/:id/executions      — execution history
+GET    /api/v1/sips/
+POST   /api/v1/sips/
+PATCH  /api/v1/sips/:id
+DELETE /api/v1/sips/:id
+GET    /api/v1/sips/:id/executions
 
 IPO Bots
-GET    /api/v1/ipo-bots/                — list all IPO bots
-POST   /api/v1/ipo-bots/               — manually add stock to IPO watch
-PATCH  /api/v1/ipo-bots/:id            — update bot (amount, account, status)
-GET    /api/v1/ipo-bots/:id/orders     — order history
+GET    /api/v1/ipo-bots/
+POST   /api/v1/ipo-bots/
+PATCH  /api/v1/ipo-bots/:id
+GET    /api/v1/ipo-bots/:id/orders
 
 Rebalancing
-POST /api/v1/rebalancing/analyze       — run AI rebalancing (streaming)
+POST /api/v1/rebalancing/analyze        — AI rebalancing (streaming)
 
 Watchlist
-GET    /api/v1/watchlist/              — get watchlist
-POST   /api/v1/watchlist/             — add to watchlist
-DELETE /api/v1/watchlist/:id          — remove from watchlist
+GET    /api/v1/watchlist/
+POST   /api/v1/watchlist/
+PATCH  /api/v1/watchlist/:id
+DELETE /api/v1/watchlist/:id
 ```
 
 ---
 
-## 7. Auth & Security
+## 8. Auth & Security
 
-- Shared JWT with STAAX — same login endpoint, same token, same secret key
-- INVEX backend: separate FastAPI app on port 8001, validates JWT with shared secret
-- All order placement goes through the same broker clients already built in STAAX
+- Shared JWT with STAAX — same login, same secret key
+- INVEX backend: FastAPI on port 8001, validates same JWT
 - PRACTIX / LIVE mode applies to all SIP and IPO Bot orders
 - Kill switch from STAAX applies platform-wide
+- SME IPOs hard-filtered out of IPO Bot
 
 ---
 
-## 8. Build Phases
+## 9. Build Phases
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **Phase 1** | Project setup + Portfolio Viewer (equity + MF holdings, hero metrics) | 🔭 Next |
+| **Phase 1** | Project scaffold + Portfolio Viewer (equity + MF, hero metrics, equity curve) | 🔄 Next |
 | **Phase 2** | Stock SIP Engine — create, schedule, execute, history | 🔭 Planned |
-| **Phase 3** | IPO Bot — YTR strategy, NSE auto-detection, CNC trading, 50% SL | 🔭 Planned |
+| **Phase 3** | IPO Bot — YTR, NSE auto-detect, mainboard filter, 50% SL | 🔭 Planned |
 | **Phase 4** | Fundamental + Technical Dashboard + AI stock analysis | 🔭 Planned |
-| **Phase 5** | AI Rebalancing Assistant | 🔭 Planned |
-
----
-
-## 9. Open Questions / Decisions Pending
-
-| # | Question | Decision |
-|---|----------|----------|
-| 1 | Fundamental data — Screener.in scrape vs paid API (e.g. Trendlyne, Ticker Tape)? | TBD — start with NSE public + screener scrape |
-| 2 | XIRR — needs full transaction history. Source from Zerodha P&L report CSV or API? | TBD — verify during Phase 1 |
-| 3 | MF via Coin — does KiteConnect API expose Coin MF holdings endpoint? | TBD — verify during Phase 1 |
-| 4 | IPO yearly OHLC — stock < 1 year old: use listing-day open as yearly_open, all-time high/low as range | Decided |
-| 5 | AI rebalancing — user sets target allocation or AI infers from current portfolio? | TBD — make it configurable |
-| 6 | Shared accounts DB — read accounts from STAAX DB or INVEX maintains its own account table? | TBD — likely read from STAAX DB |
+| **Phase 5** | AI Rebalancing + Portfolio Intelligence + Risk Engine | 🔭 Planned |
 
 ---
 
@@ -415,24 +494,42 @@ DELETE /api/v1/watchlist/:id          — remove from watchlist
 ```
 Backend:  http://localhost:8001
 Frontend: http://localhost:3001
-DB:       Same PostgreSQL as STAAX (new schema/tables, same DB instance)
-Auth:     POST http://localhost:8000/api/v1/login (STAAX login endpoint, shared JWT)
+DB:       Same PostgreSQL instance as STAAX (new tables, same DB)
+Redis:    Same Redis instance as STAAX
+Auth:     POST http://localhost:8000/api/v1/login (shared STAAX endpoint)
 ```
 
 ---
 
-## 11. Session Notes
+## 11. Open Questions
+
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | Fundamental data — NSE public + Screener.in scrape or paid API? | Start with NSE + scrape, upgrade later |
+| 2 | XIRR — need full transaction history from Zerodha P&L report CSV or API? | TBD Phase 1 |
+| 3 | MF via Coin — KiteConnect exposes Coin holdings endpoint? | TBD Phase 1 |
+| 4 | IPO yearly OHLC < 1 year old — use listing-day open + all-time H/L | Decided |
+| 5 | Shared accounts — read from STAAX DB or own account table? | Read from STAAX DB |
+| 6 | STAAX P&L integration — read from STAAX DB directly or via API? | TBD Phase 1 |
+| 7 | MF transaction history — needed for FINEX goals, not Phase 1 | Future item (Phase 4/5) |
+
+---
+
+## 12. Session Notes
 
 ### Session 1 — 14 March 2026
-- Full module spec designed and Living Spec created
-- Confirmed: monorepo at ~/STAXX/invex/
-- Confirmed: shared auth with STAAX (same JWT, same secret)
-- Confirmed: same tech stack — FastAPI + React + PostgreSQL
-- Design: STAAX base + Glassmorphism on hero cards only
-- MF: Zerodha Coin only, view only, feeds FINEX goals later
-- SIP: market order CNC, daily/weekly/monthly frequencies
-- IPO Bot: YTR strategy, auto-detection from NSE API, CNC delivery, 50% SL
-- Fundamental + Tech: NSE + Screener.in, RSI/MACD/SMA/YTR, AI via claude-sonnet-4-6
-- AI Rebalancing: sector allocation, suggestions, streaming output
-- Build sequence: Phase 1 → 2 → 3 → 4 → 5
-- STAAX Phase 1F fully complete before INVEX Phase 1 starts
+- Full module spec designed, Living Spec v1.0 created
+- Monorepo at ~/STAAX/invex/, shared auth, same tech stack confirmed
+
+### Session 2 — 15 March 2026
+- Architecture improvements document reviewed and incorporated (v1.1)
+- Added: 4-layer architecture, equity_transactions table, portfolio_snapshots table
+- Added: unified broker ingestion layer (data_ingestion/)
+- Added: Redis market data cache (Tier 1/2/3 refresh strategy)
+- Added: portfolio_intelligence.py, risk_engine.py
+- Added: sector classification table + watchlist enhancements
+- Added: SME IPO filter (mainboard only)
+- Added: STAAX P&L integration in portfolio summary
+- Added: expanded AI context (momentum, earnings growth, diversification score)
+- SIP confirmed simple — no conditional logic, goals handled in FINEX
+- MF transaction history deferred to Phase 4/5 (FINEX goals)
