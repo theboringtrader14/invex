@@ -21,12 +21,12 @@ type Summary = {
 const ACCOUNTS = ["all", "karthik", "mom", "wife"]
 const fmt = (n?: number) => n != null ? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"
 const fmtPct = (n?: number) => n != null ? `${n >= 0 ? "+" : ""}${n.toFixed(2)}%` : "—"
-const pnlColor = (n?: number) => !n ? "var(--text-dim)" : n >= 0 ? "var(--green)" : "var(--red)"
+const pnlColor = (n?: number) => !n ? "var(--text-muted)" : n >= 0 ? "var(--green)" : "var(--red)"
 
 function HeroCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="glass-card" style={{ padding: "20px 24px", minWidth: "180px", flex: 1 }}>
-      <div style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-dim)",
+      <div style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)",
         textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>{label}</div>
       <div style={{ fontSize: "22px", fontWeight: 700, color: color || "var(--text)",
         fontFamily: "'DM Mono', monospace", letterSpacing: "-0.02em" }}>{value}</div>
@@ -130,7 +130,7 @@ export default function PortfolioPage() {
         <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)",
           border: "1px solid var(--bg-border)", overflow: "hidden" }}>
           {filteredHoldings.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)", fontSize: "13px" }}>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
               No holdings found
             </div>
           ) : (
@@ -148,7 +148,7 @@ export default function PortfolioPage() {
                   <tr key={h.id}>
                     <td>
                       <div style={{ fontWeight: 600, fontSize: "13px" }}>{h.symbol}</div>
-                      <div style={{ fontSize: "10px", color: "var(--text-dim)" }}>{h.exchange}</div>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>{h.exchange}</div>
                     </td>
                     <td style={{ fontSize: "11px" }}>
                       <span style={{ padding: "1px 7px", borderRadius: "20px", fontSize: "10px",
@@ -180,7 +180,7 @@ export default function PortfolioPage() {
         <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)",
           border: "1px solid var(--bg-border)", overflow: "hidden" }}>
           {mf.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)", fontSize: "13px" }}>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
               No mutual fund holdings found
             </div>
           ) : (

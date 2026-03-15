@@ -26,13 +26,14 @@ export default function Layout() {
         {/* Logo */}
         <div style={{ height: "52px", display: "flex", alignItems: "center", padding: "0 16px",
           borderBottom: "1px solid var(--bg-border)", gap: "10px" }}>
-          <div style={{ width: "28px", height: "28px", borderRadius: "8px",
-            background: "linear-gradient(135deg, #00B0F0, #0070A0)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "14px", fontWeight: 700, color: "#000" }}>I</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="rgba(0,176,240,0.12)"/>
+            <path d="M8 22 L12 16 L16 19 L20 12 L24 10" stroke="#00B0F0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <circle cx="24" cy="10" r="2.5" fill="#22C55E"/>
+          </svg>
           <div>
             <div style={{ fontFamily: "'ADLaM Display', serif", fontSize: "18px", color: "var(--accent-blue)", lineHeight: 1 }}>INVEX</div>
-            <div style={{ fontSize: "9px", color: "var(--text-dim)", letterSpacing: "0.12em" }}>PORTFOLIO</div>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)", letterSpacing: "0.12em" }}>PORTFOLIO</div>
           </div>
         </div>
         {/* Nav */}
@@ -41,7 +42,7 @@ export default function Layout() {
             <NavLink key={path} to={path} style={({ isActive }) => ({
               display: "flex", alignItems: "center", gap: "10px",
               padding: "10px 0", textDecoration: "none",
-              color: isActive ? "var(--accent-blue)" : "var(--text-muted)",
+              color: isActive ? "var(--accent-blue)" : "var(--text)",
               background: isActive ? "rgba(0,176,240,0.08)" : "transparent",
               borderLeft: isActive ? "2px solid var(--accent-blue)" : "2px solid transparent",
               fontSize: "13px", fontWeight: isActive ? 600 : 400,
@@ -54,10 +55,18 @@ export default function Layout() {
         {/* Footer */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid var(--bg-border)",
           display: "flex", gap: "6px" }}>
-          <button className="btn btn-ghost" style={{ flex: 1, fontSize: "11px" }} onClick={toggleTheme}>
-            {theme === "dark" ? "☀" : "☾"}
+          <button onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"}
+            style={{ flex: 1, height: "32px", borderRadius: "5px", border: "1px solid var(--bg-border)",
+              background: "var(--bg-surface)", cursor: "pointer", fontSize: "15px",
+              display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
-          <button className="btn btn-ghost" style={{ flex: 1, fontSize: "11px" }} onClick={logout}>⏏</button>
+          <button onClick={logout}
+            style={{ flex: 1, height: "32px", borderRadius: "5px", border: "1px solid var(--bg-border)",
+              background: "transparent", cursor: "pointer", color: "var(--text-muted)",
+              fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em" }}>
+            Logout
+          </button>
         </div>
       </nav>
       {/* Main */}
