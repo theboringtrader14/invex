@@ -178,10 +178,10 @@ export default function Layout() {
         <header style={{ height: "52px", background: "var(--bg-secondary)",
           borderBottom: "1px solid var(--bg-border)",
           display: "flex", alignItems: "center", padding: "0 20px",
-          gap: "16px", flexShrink: 0 }}>
+          gap: "8px", flexShrink: 0 }}>
 
           {/* Left — welcome + IST */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
             <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
               Welcome, <strong style={{ color: "var(--text)", fontWeight: 600 }}>Karthikeyan</strong>
             </span>
@@ -201,19 +201,20 @@ export default function Layout() {
             )}
           </div>
 
-          {/* Account chips — only on portfolio pages */}
+          {/* Account dropdown — only on portfolio pages, matches STAAX style */}
           {["/portfolio"].some(p => location.pathname.startsWith(p)) && (
-            <div style={{ display: "flex", gap: "4px" }}>
-              {ACCOUNTS.map(a => (
-                <button key={a} onClick={() => setActiveAccount(a)}
-                  style={{ padding: "4px 12px", borderRadius: "20px",
-                    border: `1px solid ${activeAccount === a ? "var(--accent-blue)" : "var(--bg-border)"}`,
-                    background: activeAccount === a ? "var(--accent-blue)" : "transparent",
-                    color: activeAccount === a ? "#000" : "var(--text-muted)",
-                    fontSize: "11px", fontWeight: 600, cursor: "pointer", transition: "all 0.12s" }}>
-                  {a}
-                </button>
-              ))}
+            <div style={{ position: "relative", display: "flex", alignItems: "center",
+              background: "var(--bg-surface)", border: "1px solid var(--bg-border)",
+              borderRadius: "5px", height: "32px", padding: "0 10px", gap: "6px" }}>
+              <select value={activeAccount}
+                onChange={e => setActiveAccount(e.target.value)}
+                style={{ background: "transparent", border: "none", color: "var(--text)",
+                  fontSize: "12px", fontWeight: 500, cursor: "pointer",
+                  outline: "none", appearance: "none", paddingRight: "16px",
+                  fontFamily: "inherit" }}>
+                {ACCOUNTS.map(a => <option key={a} value={a}>{a === "All" ? "All Accounts" : a}</option>)}
+              </select>
+              <span style={{ color: "var(--text-dim)", fontSize: "10px", pointerEvents: "none" }}>▾</span>
             </div>
           )}
 
