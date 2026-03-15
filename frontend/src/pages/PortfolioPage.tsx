@@ -61,11 +61,25 @@ export default function PortfolioPage() {
   }
 
   useEffect(() => {
-    Promise.all([
-      portfolioAPI.summary().then(r => setSummary(r.data)),
-      portfolioAPI.holdings().then(r => setHoldings(r.data || [])),
-      portfolioAPI.mf().then(r => setMF(r.data || [])),
-    ]).catch(() => {}).finally(() => setLoading(false))
+    const token = localStorage.getItem('invex_token')
+    // Step 1: load account map first
+    fetch('http://localhost:8000/api/v1/accounts/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(r => r.json())
+    .then((accts: any[]) => {
+      const map: Record<string, string> = {}
+      accts.forEach((a: any) => { map[a.id] = a.nickname })
+      setAccountMap(map)
+      // Step 2: load portfolio data after map is ready
+      return Promise.all([
+        portfolioAPI.summary().then(r => setSummary(r.data)),
+        portfolioAPI.holdings().then(r => setHoldings(r.data || [])),
+        portfolioAPI.mf().then(r => setMF(r.data || [])),
+      ])
+    })
+    .catch(() => {})
+    .finally(() => setLoading(false))
   }, [])
 
   const filteredHoldings = (activeAccount === "All" || activeAccount === "all")
