@@ -8,7 +8,16 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     zerodha_api_key: str = ""
     zerodha_api_secret: str = ""
-    angel_one_api_key: str = ""
+    # Angel One — Mom
+    angelone_mom_client_id: str = ""
+    angelone_mom_password: str = ""
+    angelone_mom_api_key: str = ""
+    angelone_mom_totp_secret: str = ""
+    # Angel One — Wife
+    angelone_wife_client_id: str = ""
+    angelone_wife_password: str = ""
+    angelone_wife_api_key: str = ""
+    angelone_wife_totp_secret: str = ""
     port: int = 8001
 
     class Config:
