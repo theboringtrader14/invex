@@ -41,6 +41,7 @@ export default function PortfolioPage() {
   const [holdings, setHoldings]   = useState<Holding[]>([])
   const [mf, setMF]               = useState<MFHolding[]>([])
   const [loading, setLoading]     = useState(true)
+  const [accountMap, setAccountMap] = useState<Record<string, string>>({})
   const { activeAccount: ctxAccount } = (useOutletContext() as any) || {}
   const activeAccount = (ctxAccount || "All").toLowerCase()
   const [activeTab, setActiveTab] = useState<"equity" | "mf">("equity")
@@ -67,9 +68,9 @@ export default function PortfolioPage() {
     ]).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  const filteredHoldings = activeAccount === "all"
+  const filteredHoldings = (activeAccount === "All" || activeAccount === "all")
     ? holdings
-    : holdings.filter(h => activeAccount === "all" || h.account_id.toLowerCase().includes(activeAccount))
+    : holdings.filter(h => (accountMap[h.account_id] || "").toLowerCase() === activeAccount.toLowerCase())
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>
@@ -167,7 +168,7 @@ export default function PortfolioPage() {
                     <td style={{ fontSize: "11px" }}>
                       <span style={{ padding: "1px 7px", borderRadius: "20px", fontSize: "10px",
                         background: "var(--accent-blue-dim)", color: "var(--accent-blue)", fontWeight: 600 }}>
-                        Karthik
+                        {accountMap[h.account_id] || h.account_id.slice(0, 8)}
                       </span>
                     </td>
                     <td style={{ textAlign: "right", fontFamily: "'DM Mono', monospace" }}>{h.qty}</td>
