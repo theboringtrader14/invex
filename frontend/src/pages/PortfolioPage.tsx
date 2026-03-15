@@ -72,6 +72,10 @@ export default function PortfolioPage() {
     ? holdings
     : holdings.filter(h => (accountMap[h.account_id] || "").toLowerCase() === activeAccount.toLowerCase())
 
+  const filteredMF = (activeAccount === "All" || activeAccount === "all")
+    ? mf
+    : mf.filter(f => (accountMap[f.account_id] || "").toLowerCase() === activeAccount.toLowerCase())
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>
       Loading portfolio...
@@ -87,7 +91,7 @@ export default function PortfolioPage() {
             Portfolio
           </h1>
           <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            {holdings.length} stocks · {mf.length} funds across all accounts
+            {filteredHoldings.length} stocks · {filteredMF.length} funds · {activeAccount === "All" ? "all accounts" : activeAccount}
           </div>
         </div>
         <button className="btn btn-ghost" onClick={handleRefresh} disabled={refreshing}
@@ -194,7 +198,7 @@ export default function PortfolioPage() {
       {activeTab === "mf" && (
         <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)",
           border: "1px solid var(--bg-border)", overflow: "hidden" }}>
-          {mf.length === 0 ? (
+          {filteredMF.length === 0 ? (
             <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
               No mutual fund holdings found
             </div>
@@ -210,7 +214,7 @@ export default function PortfolioPage() {
                 </tr>
               </thead>
               <tbody>
-                {mf.map(f => (
+                {filteredMF.map(f => (
                   <tr key={f.id}>
                     <td style={{ fontWeight: 600, maxWidth: "280px" }}>
                       <div style={{ fontSize: "12px" }}>{f.fund_name}</div>
