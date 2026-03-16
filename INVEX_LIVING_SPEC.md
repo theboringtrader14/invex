@@ -1,5 +1,5 @@
 # INVEX — Living Engineering Spec
-**Version:** 1.4 | **Last Updated:** 15 March 2026 — Phase 1 complete — all 3 accounts live, Angel One auto-TOTP, account filter working | **PRD Reference:** v1.1
+**Version:** 1.5 | **Last Updated:** 15 March 2026 — Phase 1 complete — all 3 accounts live, Angel One auto-TOTP, account filter working | **PRD Reference:** v1.1
 
 This document is the single engineering source of truth for INVEX. Read this at the start of every session — do not re-read transcripts for context.
 
@@ -551,3 +551,48 @@ All icons should be consistent size (18px default), use `stroke="currentColor"`,
 - Design note: INVEX UI feel to be backported to STAAX post-QA
 - SVG icon principle documented: always proper SVG, never unicode/emoji
 - Phase 2 (SIP Engine) starts Monday
+
+
+## Session Notes — 16 March 2026
+
+### Phase 1 fully complete ✅
+- INVEX running on port 3001 (frontend), 8001 (backend)
+- All 3 accounts loading real data:
+  - Karthik (Zerodha): 5 equity + 9 MF — uses access_token from STAAX accounts table
+  - Mom (Angel One KRAH1029): 31 equity — auto-login via pyotp TOTP
+  - Wife (Angel One KRAH1008): 1 equity — auto-login via pyotp TOTP
+- Total family portfolio: ₹48,80,947 live
+- Account filter working for both Equity and MF tabs
+- Account names resolve from STAAX accounts table (sequential fetch — accounts loaded before holdings)
+
+### Daily operation
+- Zerodha token expires daily — login to Zerodha in STAAX Dashboard each morning
+- INVEX Refresh button calls /api/v1/portfolio/refresh which:
+  1. Reads Zerodha token from STAAX accounts table
+  2. Auto-logins Angel One with pyotp for Mom and Wife
+  3. Loads all holdings into invex_holdings / invex_mf_holdings tables
+
+### Key credentials (in /Users/bjkarthi/STAXX/invex/backend/.env — gitignored)
+- Zerodha API key: tan5x9oc8y2gd1pi (also stored in STAAX .env)
+- Angel One Mom: API dt2aDQm4, Client KRAH1029
+- Angel One Wife: API CAXbaPcv, Client KRAH1008
+- JWT: shares STAAX JWT_SECRET_KEY from STAAX .env
+
+### Architecture
+- Shares same PostgreSQL DB as STAAX (same instance, separate invex_ tables)
+- Shares same JWT secret as STAAX — INVEX validates tokens issued by STAAX login endpoint
+- Angel One loader: /Users/bjkarthi/STAXX/invex/backend/app/data_ingestion/angel_loader.py
+- Zerodha loader: /Users/bjkarthi/STAXX/invex/backend/app/data_ingestion/zerodha_loader.py
+
+### To start INVEX each session
+```
+cd ~/STAXX/invex/backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8001 &
+cd ~/STAXX/invex/frontend && npm run dev
+```
+Then login at http://localhost:3001 with karthikeyan/staax2024
+
+### Phase 2 — SIP Engine (next session)
+- Tables ready: invex_sips, invex_sip_executions
+- API routes ready: /api/v1/sips/
+- Need to build: SIP frontend page, scheduler job at 09:20 IST, order execution via Angel/Zerodha
+- SIP is simple — daily/weekly/monthly, market order CNC, no conditional logic
