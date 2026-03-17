@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     zerodha_api_key: str = ""
     zerodha_api_secret: str = ""
+    # Angel One — Karthik
+    angelone_karthik_client_id: str = ""
+    angelone_karthik_password: str = ""
+    angelone_karthik_api_key: str = ""
+    angelone_karthik_totp_secret: str = ""
     # Angel One — Mom
     angelone_mom_client_id: str = ""
     angelone_mom_password: str = ""

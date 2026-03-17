@@ -16,6 +16,13 @@ ANGEL_BASE = "https://apiconnect.angelbroking.com"
 
 ANGEL_ACCOUNTS = [
     {
+        "nickname": "Karthik AO",
+        "client_id": lambda: settings.angelone_karthik_client_id,
+        "password":  lambda: settings.angelone_karthik_password,
+        "api_key":   lambda: settings.angelone_karthik_api_key,
+        "totp_secret": lambda: settings.angelone_karthik_totp_secret,
+    },
+    {
         "nickname": "Mom",
         "client_id": lambda: settings.angelone_mom_client_id,
         "password":  lambda: settings.angelone_mom_password,
