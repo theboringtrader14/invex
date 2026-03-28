@@ -77,7 +77,7 @@ export default function Layout() {
 
   // Portfolio value polling
   useEffect(() => {
-    const token = localStorage.getItem("invex_token")
+    const token = localStorage.getItem("staax_token")
     if (!token) return
     const fetchValue = () => {
       fetch("http://localhost:8001/api/v1/portfolio/summary", {
@@ -99,7 +99,7 @@ export default function Layout() {
     const next = !collapsed
     setCollapsed(next); localStorage.setItem("invex_sidebar", String(next))
   }
-  const logout = () => { localStorage.removeItem("invex_token"); navigate("/login") }
+  const logout = () => { localStorage.removeItem("staax_token"); navigate("/login") }
 
   const W = collapsed ? "56px" : "216px"
 
@@ -163,11 +163,28 @@ export default function Layout() {
           ))}
         </div>
 
-        {/* Version footer */}
-        <div style={{ padding: collapsed ? "10px 0" : "10px 20px",
-          borderTop: "1px solid var(--bg-border)",
-          display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start" }}>
-          <div style={{ fontSize: "10px", color: "var(--text-dim)", opacity: collapsed ? 0 : 1,
+        {/* Logout + Version footer */}
+        <div style={{ borderTop: "1px solid var(--bg-border)" }}>
+          <button onClick={logout} title="Logout" style={{
+            width: "100%", display: "flex", alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            gap: "10px", padding: collapsed ? "10px 0" : "10px 20px",
+            background: "transparent", border: "none", cursor: "pointer",
+            color: "var(--text-muted)", fontSize: "13px", fontWeight: 500,
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.06)" }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            {!collapsed && <span>Logout</span>}
+          </button>
+          <div style={{ padding: collapsed ? "4px 0 8px" : "0 20px 8px", fontSize: "10px",
+            color: "var(--text-dim)", opacity: collapsed ? 0 : 1,
             transition: "opacity 0.12s", whiteSpace: "nowrap" }}>v1.0 · Phase 1</div>
         </div>
       </nav>
@@ -243,17 +260,6 @@ export default function Layout() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          {/* Logout */}
-          <button onClick={logout}
-            style={{ height: "32px", padding: "0 14px", borderRadius: "5px",
-              border: "1px solid var(--bg-border)", background: "transparent",
-              cursor: "pointer", color: "var(--text-muted)", fontSize: "11px",
-              fontWeight: 600, letterSpacing: "0.04em",
-              transition: "all 0.12s" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--text-dim)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--bg-border)" }}>
-            Logout
-          </button>
         </header>
 
         {/* Notification panel */}

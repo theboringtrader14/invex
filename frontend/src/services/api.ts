@@ -3,7 +3,7 @@ import axios from 'axios'
 const API = 'http://localhost:8001/api/v1'
 const STAAX_API = 'http://localhost:8000/api/v1'
 
-const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('invex_token')}` } })
+const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('staax_token')}` } })
 
 // Auth — shared with STAAX
 export const login = (username: string, password: string) =>
@@ -20,11 +20,12 @@ export const portfolioAPI = {
 
 // SIPs
 export const sipsAPI = {
-  list:       () => axios.get(`${API}/sips/`, auth()),
-  create:     (d: any) => axios.post(`${API}/sips/`, d, auth()),
-  update:     (id: string, d: any) => axios.patch(`${API}/sips/${id}`, d, auth()),
-  delete:     (id: string) => axios.delete(`${API}/sips/${id}`, auth()),
-  executions: (id: string) => axios.get(`${API}/sips/${id}/executions`, auth()),
+  list:          () => axios.get(`${API}/sips/`, auth()),
+  create:        (d: any) => axios.post(`${API}/sips/`, d, auth()),
+  update:        (id: string, d: any) => axios.patch(`${API}/sips/${id}`, d, auth()),
+  delete:        (id: string) => axios.delete(`${API}/sips/${id}`, auth()),
+  executions:    (id: string) => axios.get(`${API}/sips/${id}/executions`, auth()),
+  allExecutions: () => axios.get(`${API}/sips/executions`, auth()),
 }
 
 // IPO Bots

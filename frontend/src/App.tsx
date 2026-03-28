@@ -8,7 +8,7 @@ import IPOBotsPage from "./pages/IPOBotsPage"
 import WatchlistPage from "./pages/WatchlistPage"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem("invex_token")
+  const token = localStorage.getItem("staax_token")
   return token ? <>{children}</> : <Navigate to="/login" replace />
 }
 

@@ -14,7 +14,7 @@ export default function LoginPage() {
     setLoading(true); setError("")
     try {
       const res = await login(username, password)
-      localStorage.setItem("invex_token", res.data.access_token)
+      localStorage.setItem("staax_token", res.data.access_token)
       navigate("/portfolio")
     } catch {
       setError("Invalid credentials")

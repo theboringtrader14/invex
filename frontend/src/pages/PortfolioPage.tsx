@@ -9,7 +9,7 @@ type Holding = {
   day_change?: number
 }
 type MFHolding = {
-  id: string; fund_name: string; units: number; nav?: number
+  id: string; account_id?: string; fund_name: string; units: number; nav?: number
   invested_amount?: number; current_value?: number; pnl?: number
 }
 type Summary = {
@@ -61,7 +61,7 @@ export default function PortfolioPage() {
   }
 
   useEffect(() => {
-    const token = localStorage.getItem('invex_token')
+    const token = localStorage.getItem('staax_token')
     // Step 1: load account map first
     fetch('http://localhost:8000/api/v1/accounts/', {
       headers: { Authorization: `Bearer ${token}` }
@@ -88,7 +88,7 @@ export default function PortfolioPage() {
 
   const filteredMF = (activeAccount === "All" || activeAccount === "all")
     ? mf
-    : mf.filter(f => (accountMap[f.account_id] || "").toLowerCase() === activeAccount.toLowerCase())
+    : mf.filter(f => (accountMap[f.account_id ?? ""] || "").toLowerCase() === activeAccount.toLowerCase())
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>
