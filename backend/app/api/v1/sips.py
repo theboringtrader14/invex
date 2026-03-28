@@ -63,8 +63,24 @@ async def delete_sip(sip_id: str, db: AsyncSession = Depends(get_db), user = Dep
     await db.delete(sip); await db.commit()
     return {"status": "deleted"}
 
+@router.get("/executions")
+async def all_executions(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+    result = await db.execute(
+        select(SIPExecution, SIP.symbol)
+        .join(SIP, SIPExecution.sip_id == SIP.id)
+        .order_by(desc(SIPExecution.executed_at))
+        .limit(10)
+    )
+    rows = result.all()
+    return [{"id": str(e.id), "sip_id": str(e.sip_id), "symbol": symbol,
+             "executed_at": e.executed_at.isoformat() if e.executed_at else None,
+             "shares": e.shares, "price": e.price, "amount": e.amount,
+             "broker_order_id": e.broker_order_id, "status": e.status}
+            for e, symbol in rows]
+
 @router.get("/{sip_id}/executions")
 async def sip_executions(sip_id: str, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
     result = await db.execute(select(SIPExecution).where(SIPExecution.sip_id == sip_id).order_by(desc(SIPExecution.executed_at)))
     return [{"id": str(e.id), "executed_at": e.executed_at.isoformat() if e.executed_at else None,
-             "shares": e.shares, "price": e.price, "amount": e.amount, "status": e.status} for e in result.scalars().all()]
+             "shares": e.shares, "price": e.price, "amount": e.amount,
+             "broker_order_id": e.broker_order_id, "status": e.status} for e in result.scalars().all()]

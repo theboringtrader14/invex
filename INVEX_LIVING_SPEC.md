@@ -596,3 +596,32 @@ Then login at http://localhost:3001 with karthikeyan/staax2024
 - API routes ready: /api/v1/sips/
 - Need to build: SIP frontend page, scheduler job at 09:20 IST, order execution via Angel/Zerodha
 - SIP is simple — daily/weekly/monthly, market order CNC, no conditional logic
+
+
+## Session Update — 2026-03-28
+
+### Completed
+- ✅ SIP Engine page built (stats, table, add modal, executions)
+- ✅ JWT: all files use staax_token (shared auth with STAAX)
+- ✅ Logout moved to sidebar bottom
+- ✅ Page transition animations unified across all pages
+- ✅ SIP page design matches Portfolio page
+- ✅ Header alignment fixed (ADLaM Display font, weight 400)
+
+### Pending
+- ❌ Portfolio data not loading — JWT secret mismatch between STAAX login and INVEX verify
+- ❌ SIP scheduler job (09:20 IST daily execution)
+- ❌ IPO Bot implementation
+- ❌ Fundamental + Tech analysis dashboard
+
+### JWT Issue
+STAAX login signs tokens with APP_SECRET_KEY.
+INVEX verifies with jwt_secret_key.
+Both set to 'change-this-to-a-random-secret-key' but verification still fails.
+Need to investigate INVEX auth.py more carefully.
+
+### Start Commands
+```bash
+cd ~/STAXX/invex/backend && uvicorn app.main:app --host 0.0.0.0 --port 8001 &
+cd ~/STAXX/invex/frontend && npm run dev
+```
