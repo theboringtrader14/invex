@@ -4,6 +4,7 @@ import { portfolioAPI } from "../services/api"
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
   id: string; account_id: string; symbol: string; exchange: string
+  sector?: string
   qty: number; avg_price: number; ltp?: number
   pnl?: number; pnl_pct?: number; current_value?: number
   invested_value: number; day_change?: number
@@ -24,13 +25,14 @@ type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
 
-/* ─── Formatters ─────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────── */
+// Strip broker suffixes for display
+const displaySym = (s: string) => s.replace(/-EQ$/i, "").replace(/-BE$/i, "")
+
 const fmt = (n?: number) =>
   n != null ? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"
 const fmtPct = (n?: number) =>
   n != null ? `${n >= 0 ? "+" : ""}${n.toFixed(2)}%` : "—"
-const pnlClx = (n?: number) =>
-  !n ? "td-num" : n >= 0 ? "td-pos" : "td-neg"
 const pnlColor = (n?: number) =>
   !n ? "var(--gs-muted)" : n >= 0 ? "var(--sem-long)" : "var(--sem-short)"
 
@@ -48,10 +50,10 @@ function MetricCard({
         textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "10px",
       }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-display)",
-        fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 800,
+        fontFamily: "var(--font-mono)",
+        fontSize: "20px", fontWeight: 700,
         color: valueColor || "var(--ix-vivid)",
-        letterSpacing: "-1px", lineHeight: 1,
+        letterSpacing: "-0.5px", lineHeight: 1,
       }}>{value}</div>
       {sub && (
         <div style={{ fontSize: "11px", color: "var(--gs-muted)", marginTop: "5px" }}>{sub}</div>
@@ -83,19 +85,24 @@ function MiniSparkline({ data }: { data: number[] }) {
 }
 
 /* ─── SectorAllocation ───────────────────────────── */
-const SECTOR_COLORS: Record<string, string> = {
-  NSE: "#00C9A7", BSE: "#007A67", OTHER: "#5A5A61",
-}
+const SECTOR_PALETTE = [
+  "#00C9A7", "#4488FF", "#FFD700", "#FF6B6B", "#A78BFA",
+  "#34D399", "#FB923C", "#38BDF8", "#F472B6", "#5A5A61",
+]
 
 function SectorAllocation({ holdings }: { holdings: Holding[] }) {
   const grouped: Record<string, number> = {}
   let total = 0
   for (const h of holdings) {
-    const key = h.exchange.toUpperCase()
+    const key = h.sector || "Others"
     const val = h.current_value ?? h.invested_value
     grouped[key] = (grouped[key] ?? 0) + val
     total += val
   }
+  const allKeys = Object.keys(grouped).sort()
+  const colorMap: Record<string, string> = {}
+  allKeys.forEach((k, i) => { colorMap[k] = SECTOR_PALETTE[i % SECTOR_PALETTE.length] })
+
   const entries = Object.entries(grouped)
     .map(([k, v]) => ({ key: k, value: v, pct: total > 0 ? (v / total) * 100 : 0 }))
     .sort((a, b) => b.pct - a.pct)
@@ -105,7 +112,7 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
       <div className="panel-hdr">
         <div className="panel-title">Sector Allocation</div>
       </div>
-      <div style={{ padding: "14px 18px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ padding: "14px 18px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {entries.length === 0 ? (
           <div style={{ fontSize: "12px", color: "var(--gs-light)", textAlign: "center", padding: "20px 0" }}>
             No holdings data
@@ -114,23 +121,17 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
           <div key={key} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
               width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
-              background: SECTOR_COLORS[key] ?? SECTOR_COLORS.OTHER,
+              background: colorMap[key],
             }} />
             <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "12px", color: "var(--gs-muted)" }}>{key}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+                <span style={{ fontSize: "11px", color: "var(--gs-muted)" }}>{key}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--ix-glow)" }}>
                   {pct.toFixed(1)}%
                 </span>
               </div>
               <div className="sector-bar-track">
-                <div
-                  className="sector-bar-fill"
-                  style={{
-                    width: `${pct}%`,
-                    background: SECTOR_COLORS[key] ?? SECTOR_COLORS.OTHER,
-                  }}
-                />
+                <div className="sector-bar-fill" style={{ width: `${pct}%`, background: colorMap[key] }} />
               </div>
             </div>
           </div>
@@ -168,16 +169,14 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
     return `${x},${y}`
   })
   const ptsStr = pts.join(" ")
-  const fillStr = pts.length
-    ? `${ptsStr} ${W},${H} 0,${H}`
-    : `0,${H} ${W},${H}`
+  const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
 
   return (
     <div className="glass" style={{ overflow: "hidden" }}>
+      {/* No borderBottom on header — task 2h */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 10px",
-        borderBottom: "0.5px solid rgba(0,201,167,0.08)",
       }}>
         <div className="panel-title">Equity Curve</div>
         <div style={{ display: "flex", gap: "4px" }}>
@@ -196,7 +195,7 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
           ))}
         </div>
       </div>
-      <div style={{ padding: "14px 18px 16px" }}>
+      <div style={{ padding: "10px 18px 16px" }}>
         {data.length < 2 ? (
           <div style={{ height: "100px", display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "12px", color: "var(--gs-light)" }}>
@@ -210,10 +209,8 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
                 <stop offset="100%" stopColor="rgba(0,201,167,0)" />
               </linearGradient>
             </defs>
-            {/* Grid lines */}
             {[0.25, 0.5, 0.75].map(f => (
-              <line key={f}
-                x1="0" y1={H * f} x2={W} y2={H * f}
+              <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
                 stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
             ))}
             <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
@@ -269,9 +266,11 @@ function HoldingsTable({
       <table className="holdings-table">
         <thead>
           <tr>
-            <th onClick={() => toggleSort("symbol")} style={{ cursor: "pointer" }}>
+            {/* Stock — left aligned */}
+            <th onClick={() => toggleSort("symbol")} style={{ cursor: "pointer", textAlign: "left" }}>
               Stock <SortIcon k="symbol" />
             </th>
+            {/* Numeric columns — right aligned (CSS handles th:not(:first-child)) */}
             <th>Qty</th>
             <th>Avg Price</th>
             <th>LTP</th>
@@ -286,25 +285,51 @@ function HoldingsTable({
           </tr>
         </thead>
         <tbody>
-          {sorted.map(h => (
-            <tr key={h.id}>
-              <td>
-                <div className="td-sym">{h.symbol}</div>
-                <div className="td-sub">{h.exchange} · {accountMap[h.account_id] ?? h.account_id.slice(0, 8)}</div>
-              </td>
-              <td className="td-num">{h.qty}</td>
-              <td className="td-num">₹{h.avg_price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-              <td className="td-num">{h.ltp ? `₹${h.ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
-              <td className={pnlClx(h.pnl)}>
-                {h.pnl != null ? `${h.pnl >= 0 ? "+" : ""}${fmt(h.pnl)}` : "—"}
-              </td>
-              <td className={pnlClx(h.pnl_pct)}>{fmtPct(h.pnl_pct)}</td>
-              <td className={pnlClx(h.day_change)}>
-                {h.day_change != null ? `${h.day_change >= 0 ? "+" : ""}${fmt(h.day_change)}` : "—"}
-              </td>
-              <td className="td-acct">{accountMap[h.account_id] ?? h.account_id.slice(0, 8)}</td>
-            </tr>
-          ))}
+          {sorted.map(h => {
+            const sym = displaySym(h.symbol)
+            const acct = accountMap[h.account_id] ?? h.account_id.slice(0, 8)
+            return (
+              <tr key={h.id}>
+                {/* Stock name — no sub-label (task 2b) */}
+                <td style={{ textAlign: "left" }}>
+                  <span className="td-sym">{sym}</span>
+                </td>
+                {/* Qty */}
+                <td className="td-num">{h.qty}</td>
+                {/* Avg Price */}
+                <td className="td-num">
+                  ₹{h.avg_price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </td>
+                {/* LTP — white (neutral current price, task 2d) */}
+                <td className="td-ltp">
+                  {h.ltp ? `₹${h.ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}
+                </td>
+                {/* P&L — green/red (task 2d) */}
+                <td style={{
+                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  color: h.pnl != null ? (h.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                }}>
+                  {h.pnl != null ? `${h.pnl >= 0 ? "+" : ""}${fmt(h.pnl)}` : "—"}
+                </td>
+                {/* P&L% — green/red (task 2d) */}
+                <td style={{
+                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  color: h.pnl_pct != null ? (h.pnl_pct >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                }}>
+                  {fmtPct(h.pnl_pct)}
+                </td>
+                {/* Day Chg — green/red (task 2d) */}
+                <td style={{
+                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  color: h.day_change != null ? (h.day_change >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                }}>
+                  {h.day_change != null ? `${h.day_change >= 0 ? "+" : ""}${fmt(h.day_change)}` : "—"}
+                </td>
+                {/* Account */}
+                <td className="td-acct">{acct}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -325,7 +350,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
       <table className="holdings-table">
         <thead>
           <tr>
-            <th>Fund</th>
+            <th style={{ textAlign: "left" }}>Fund</th>
             <th>Units</th>
             <th>NAV</th>
             <th>Invested</th>
@@ -336,14 +361,17 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
         <tbody>
           {mf.map(f => (
             <tr key={f.id}>
-              <td>
-                <div className="td-sym" style={{ fontSize: "12px" }}>{f.fund_name}</div>
+              <td style={{ textAlign: "left" }}>
+                <span className="td-sym" style={{ fontSize: "12px" }}>{f.fund_name}</span>
               </td>
               <td className="td-num">{f.units.toFixed(3)}</td>
               <td className="td-num">{f.nav ? `₹${f.nav.toFixed(2)}` : "—"}</td>
               <td className="td-num">{fmt(f.invested_amount)}</td>
               <td className="td-num">{fmt(f.current_value)}</td>
-              <td className={pnlClx(f.pnl)}>
+              <td style={{
+                fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                color: f.pnl != null ? (f.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+              }}>
                 {f.pnl != null ? `${f.pnl >= 0 ? "+" : ""}${fmt(f.pnl)}` : "—"}
               </td>
             </tr>
@@ -370,7 +398,6 @@ export default function PortfolioPage() {
 
   const load = useCallback(async () => {
     try {
-      // Load account map from STAAX API (token optional — STAAX may or may not require it)
       const token = localStorage.getItem("staax_token")
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
       const acctRes = await fetch("http://localhost:8000/api/v1/accounts/", { headers })
@@ -409,7 +436,6 @@ export default function PortfolioPage() {
     finally { setRefreshing(false) }
   }
 
-  /* Filter by account */
   const filteredHoldings = activeAccount === "All"
     ? holdings
     : holdings.filter(h =>
@@ -422,7 +448,6 @@ export default function PortfolioPage() {
         (accountMap[f.account_id ?? ""] || "").toLowerCase() === activeAccount.toLowerCase()
       )
 
-  /* Sparkline data from snapshots */
   const sparkData = snapshots.slice(-20).map(s => s.total_value)
 
   if (loading) {
@@ -439,10 +464,17 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div style={{ padding: "24px 28px", animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
+    <div style={{
+      padding: "20px 28px",
+      animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both",
+      height: "100%",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+    }}>
 
       {/* ── Page header ── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px", flexShrink: 0 }}>
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
@@ -485,8 +517,7 @@ export default function PortfolioPage() {
             padding: "8px 16px", borderRadius: "var(--r-md)",
             fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
             background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-            border: "none", cursor: "pointer",
-            transition: "box-shadow 0.2s",
+            border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
           }}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
@@ -500,8 +531,8 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ── 5-column Metric Cards ── */}
-      <div className="grid-5" style={{ marginBottom: "20px" }}>
+      {/* ── 4-column Metric Cards (XIRR removed — task 2e) ── */}
+      <div className="grid-4" style={{ marginBottom: "16px", flexShrink: 0 }}>
         <MetricCard
           label="Total Portfolio"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
@@ -517,14 +548,7 @@ export default function PortfolioPage() {
         <MetricCard
           label="Day P&L"
           value={summary ? `${(summary.day_pnl ?? 0) >= 0 ? "+" : ""}${fmt(summary.day_pnl)}` : "—"}
-          sub={undefined}
           valueColor={pnlColor(summary?.day_pnl)}
-        />
-        <MetricCard
-          label="XIRR"
-          value={summary?.xirr != null ? `${summary.xirr.toFixed(1)}%` : "—"}
-          sub="annualised return"
-          valueColor="var(--ix-ultra)"
         />
         <MetricCard
           label="Invested"
@@ -536,7 +560,7 @@ export default function PortfolioPage() {
       {/* ── Tabs + Account filter ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: "6px",
-        marginBottom: "16px", flexWrap: "wrap",
+        marginBottom: "14px", flexWrap: "wrap", flexShrink: 0,
       }}>
         {(["equity", "mf", "curve"] as ActiveTab[]).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
@@ -551,8 +575,6 @@ export default function PortfolioPage() {
             {tab === "equity" ? "Equity" : tab === "mf" ? "Mutual Funds" : "Equity Curve"}
           </button>
         ))}
-
-        {/* Account filter chips — right aligned */}
         <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
           {ACCOUNTS.map(a => (
             <button key={a} onClick={() => setActiveAccount(a)}
@@ -571,42 +593,44 @@ export default function PortfolioPage() {
 
       {/* ── Equity Curve tab (full width) ── */}
       {activeTab === "curve" && (
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ flex: 1, overflow: "hidden" }}>
           <EquityCurve snapshots={snapshots} />
         </div>
       )}
 
-      {/* ── Holdings Table ── */}
-      {activeTab === "equity" && (
-        <div className="glass" style={{ overflow: "hidden", marginBottom: "20px" }}>
-          <div className="panel-hdr">
-            <div className="panel-title">Equity Holdings · {filteredHoldings.length} stocks</div>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-              <span className="status-chip chip-active">
-                <span className="dot-live" />
-                Live
-              </span>
-            </div>
-          </div>
-          <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
-        </div>
-      )}
-
-      {/* ── MF Table ── */}
-      {activeTab === "mf" && (
-        <div className="glass" style={{ overflow: "hidden", marginBottom: "20px" }}>
-          <div className="panel-hdr">
-            <div className="panel-title">Mutual Funds · {filteredMF.length} funds</div>
-          </div>
-          <MFTable mf={filteredMF} />
-        </div>
-      )}
-
-      {/* ── Bottom 2-col: Sector + Equity Curve ── */}
+      {/* ── Sector + Equity Curve row — ABOVE the table ── */}
       {(activeTab === "equity" || activeTab === "mf") && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px", flexShrink: 0 }}>
           <SectorAllocation holdings={filteredHoldings} />
           <EquityCurve snapshots={snapshots} />
+        </div>
+      )}
+
+      {/* ── Holdings Table (fixed height, internal scroll only) ── */}
+      {activeTab === "equity" && (
+        <div className="glass" style={{ overflow: "hidden", flex: 1, minHeight: 0 }}>
+          <div className="panel-hdr" style={{ flexShrink: 0 }}>
+            <div className="panel-title">Equity Holdings · {filteredHoldings.length} stocks</div>
+            <span className="status-chip chip-active">
+              <span className="dot-live" />
+              Live
+            </span>
+          </div>
+          <div style={{ height: "calc(100% - 41px)", overflowY: "auto", overflowX: "auto" }}>
+            <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+          </div>
+        </div>
+      )}
+
+      {/* ── MF Table (fixed height, internal scroll only) ── */}
+      {activeTab === "mf" && (
+        <div className="glass" style={{ overflow: "hidden", flex: 1, minHeight: 0 }}>
+          <div className="panel-hdr" style={{ flexShrink: 0 }}>
+            <div className="panel-title">Mutual Funds · {filteredMF.length} funds</div>
+          </div>
+          <div style={{ height: "calc(100% - 41px)", overflowY: "auto", overflowX: "auto" }}>
+            <MFTable mf={filteredMF} />
+          </div>
         </div>
       )}
     </div>

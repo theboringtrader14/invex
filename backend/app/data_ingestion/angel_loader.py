@@ -99,6 +99,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
     Uses pyotp for automatic TOTP generation — fully headless.
     """
     from app.models.holdings import Holdings
+    from app.core.sector_map import get_sector
     import uuid
 
     total = 0
@@ -150,6 +151,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
                 qty = int(float(h.get("quantity", 0) or 0))
                 if qty <= 0:
                     continue
+                symbol     = h.get("tradingsymbol", "") or h.get("symbol", "")
                 avg_price  = float(h.get("averageprice", 0) or h.get("average_price", 0) or 0)
                 ltp        = float(h.get("ltp", 0) or 0)
                 close      = float(h.get("close", 0) or h.get("close_price", 0) or 0)
@@ -158,7 +160,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
                 holding = Holdings(
                     id=uuid.uuid4(),
                     account_id=account_id,
-                    symbol=h.get("tradingsymbol", "") or h.get("symbol", ""),
+                    symbol=symbol,
                     exchange=h.get("exchange", "NSE"),
                     isin=h.get("isin"),
                     qty=qty,
@@ -167,6 +169,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
                     day_change=day_change,
                     updated_at=now,
                 )
+                holding.sector = get_sector(symbol)
                 db.add(holding)
                 count += 1
             total += count

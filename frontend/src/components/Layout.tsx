@@ -277,7 +277,7 @@ export default function Layout() {
         )}
 
         {/* Page content */}
-        <main style={{ flex: 1, overflow: "auto" }}>
+        <main style={{ flex: 1, overflow: "hidden", height: 0 }}>
           <Outlet context={{ addNotification }} />
         </main>
       </div>

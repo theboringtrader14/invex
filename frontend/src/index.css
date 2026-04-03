@@ -220,7 +220,7 @@ body {
 .holdings-table th:not(:first-child) { text-align: right; }
 .holdings-table th:hover { color: var(--ix-glow); }
 .holdings-table td {
-  padding: 11px 14px;
+  padding: 8px 12px;
   font-size: 12px;
   color: var(--gs-muted);
   border-bottom: 0.5px solid rgba(255,255,255,0.03);
@@ -230,16 +230,16 @@ body {
 .holdings-table tr:hover td { background: rgba(0,201,167,0.03); }
 .td-sym  { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ix-glow); }
 .td-sub  { font-family: var(--font-display); font-size: 10px; color: var(--gs-light); margin-top: 1px; }
-.td-num  { font-family: var(--font-mono); font-size: 11px; }
-.td-pos  { font-family: var(--font-mono); font-size: 11px; color: var(--sem-long); }
-.td-neg  { font-family: var(--font-mono); font-size: 11px; color: var(--sem-short); }
+.td-num  { font-family: var(--font-mono); font-size: 12px; }
+.td-pos  { font-family: var(--font-mono); font-size: 12px; color: var(--sem-long); }
+.td-neg  { font-family: var(--font-mono); font-size: 12px; color: var(--sem-short); }
+.td-ltp  { font-family: var(--font-mono); font-size: 12px; color: #fff; }
 .td-acct { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--ix-glow); }
 
 /* ═══ PANEL HEADER ═══ */
 .panel-hdr {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px 12px;
-  border-bottom: 0.5px solid rgba(0,201,167,0.08);
 }
 .panel-title {
   font-size: 10px; font-weight: 700;

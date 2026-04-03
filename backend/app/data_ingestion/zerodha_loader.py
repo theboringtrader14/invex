@@ -61,6 +61,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
     Returns summary of what was loaded.
     """
     from app.models.holdings import Holdings, MFHoldings
+    from app.core.sector_map import get_sector
     from sqlalchemy import select, delete
     import uuid
 
@@ -83,10 +84,11 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
             qty = h.get("quantity", 0) + h.get("t1_quantity", 0)
             if qty <= 0:
                 continue
+            symbol = h.get("tradingsymbol", "")
             holding = Holdings(
                 id=uuid.uuid4(),
                 account_id=account_id,
-                symbol=h.get("tradingsymbol", ""),
+                symbol=symbol,
                 exchange=h.get("exchange", "NSE"),
                 isin=h.get("isin"),
                 qty=qty,
@@ -96,6 +98,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
                           if h.get("close_price") else None,
                 updated_at=now,
             )
+            holding.sector = get_sector(symbol)
             db.add(holding)
         logger.info(f"[ZERODHA] Loaded {len(raw_holdings)} equity holdings")
 

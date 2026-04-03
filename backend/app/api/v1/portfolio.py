@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
+from app.core.sector_map import get_sector
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
 import uuid
 from datetime import date
@@ -16,6 +17,7 @@ async def get_holdings(db: AsyncSession = Depends(get_db)):
     return [{
         "id": str(r.id), "account_id": r.account_id,
         "symbol": r.symbol, "exchange": r.exchange, "isin": r.isin,
+        "sector": get_sector(r.symbol),
         "qty": r.qty, "avg_price": r.avg_price, "ltp": r.ltp,
         "day_change": r.day_change,
         "pnl": round((r.ltp - r.avg_price) * r.qty, 2) if r.ltp else None,
