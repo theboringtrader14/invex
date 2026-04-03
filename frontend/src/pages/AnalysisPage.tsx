@@ -1,4 +1,4 @@
-export default function IPOBotsPage() {
+export default function AnalysisPage() {
   return (
     <div style={{ padding: "24px 28px", animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
@@ -7,9 +7,9 @@ export default function IPOBotsPage() {
         <div style={{
           fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
           color: "var(--ix-vivid)", letterSpacing: "-1px", marginBottom: "4px",
-        }}>IPO Bot</div>
+        }}>Analysis</div>
         <div style={{ fontSize: "12px", color: "var(--gs-light)" }}>
-          YTR strategy · Mainboard IPO auto-detector
+          Fundamental + technical dashboard
         </div>
       </div>
 
@@ -27,8 +27,9 @@ export default function IPOBotsPage() {
         }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ix-vivid)"
             strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-            <polyline points="17 6 23 6 23 12"/>
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
           </svg>
         </div>
 
@@ -36,15 +37,15 @@ export default function IPOBotsPage() {
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 700,
             color: "var(--ix-glow)", marginBottom: "6px",
-          }}>Coming in Phase 3</div>
-          <div style={{ fontSize: "13px", color: "var(--gs-light)", maxWidth: "400px", lineHeight: 1.6 }}>
-            Auto-detects mainboard IPO listings, computes YTR signal levels,
-            places CNC delivery trade on breakout, exits on 50% stop-loss.
+          }}>Coming in Phase 4</div>
+          <div style={{ fontSize: "13px", color: "var(--gs-light)", maxWidth: "360px", lineHeight: 1.6 }}>
+            Fundamental + technical analysis dashboard with AI-powered stock insights,
+            RSI, MACD, 52W levels, and rebalancing suggestions.
           </div>
         </div>
 
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center", marginTop: "4px" }}>
-          {["YTR Strategy", "NSE Auto-detect", "Mainboard Only", "50% Stop-Loss"].map(tag => (
+          {["Fundamentals", "Technical Indicators", "AI Analysis", "Rebalancing"].map(tag => (
             <span key={tag} style={{
               padding: "4px 12px", borderRadius: "var(--r-pill)",
               fontSize: "11px", fontWeight: 600,

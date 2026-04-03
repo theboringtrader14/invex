@@ -9,10 +9,10 @@ type SIP = {
   symbol: string
   exchange: string
   amount: number
-  frequency: string        // "daily" | "weekly" | "monthly"
-  frequency_day: number | null   // 0=Mon … 4=Fri
-  frequency_date: number | null  // 1–28
-  status: string           // "active" | "paused" | "archived"
+  frequency: string
+  frequency_day: number | null
+  frequency_date: number | null
+  status: string
   start_date: string
   end_date: string | null
   total_invested: number
@@ -63,7 +63,6 @@ function nextDue(sip: SIP): string {
     return today.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
   }
   if (sip.frequency === "weekly") {
-    // JS day: 0=Sun, 1=Mon … 5=Fri
     const target = (sip.frequency_day ?? 0) + 1
     const diff = (target - today.getDay() + 7) % 7 || 7
     const d = new Date(today)
@@ -97,31 +96,28 @@ function earliestNextDue(sips: SIP[]): string {
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-const sz = 16
+const SZ = 16
 
 const IconPlus = () => (
-  <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 )
-
 const IconPause = () => (
-  <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
   </svg>
 )
-
 const IconPlay = () => (
-  <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="5 3 19 12 5 21 5 3"/>
   </svg>
 )
-
 const IconTrash = () => (
-  <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6"/>
     <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -129,7 +125,6 @@ const IconTrash = () => (
     <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
   </svg>
 )
-
 const IconClose = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -137,55 +132,158 @@ const IconClose = () => (
   </svg>
 )
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// ─── MetricCard — matching PortfolioPage ───────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function MetricCard({ label, value, sub, valueColor }: {
+  label: string; value: string; sub?: string; valueColor?: string
+}) {
   return (
-    <div className="glass-card" style={{ padding: "20px 24px", flex: 1, minWidth: "160px" }}>
-      <div style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)",
-        textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--text)",
-        fontFamily: "'DM Mono', monospace", letterSpacing: "-0.02em" }}>
-        {value}
-      </div>
+    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
+      <div style={{
+        fontSize: "10px", fontWeight: 600, letterSpacing: "2px",
+        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "10px",
+      }}>{label}</div>
+      <div style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 800,
+        color: valueColor || "var(--ix-vivid)",
+        letterSpacing: "-1px", lineHeight: 1,
+      }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>{sub}</div>
+        <div style={{ fontSize: "11px", color: "var(--gs-muted)", marginTop: "5px" }}>{sub}</div>
       )}
     </div>
   )
 }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
+// ─── SIPCard — glass card per SIP ─────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { color: string; bg: string }> = {
-    active:   { color: "var(--green)", bg: "rgba(34,197,94,0.1)" },
-    paused:   { color: "var(--amber, #F59E0B)", bg: "rgba(245,158,11,0.1)" },
-    archived: { color: "var(--text-muted)", bg: "rgba(100,100,100,0.1)" },
-  }
-  const s = map[status] ?? map.archived
+function SIPCard({ sip, accountName, onToggle, onDelete, deleting }: {
+  sip: SIP
+  accountName: string
+  onToggle: () => void
+  onDelete: () => void
+  deleting: boolean
+}) {
+  const isActive = sip.status === "active"
+
   return (
-    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px",
-      fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em",
-      textTransform: "uppercase", color: s.color, background: s.bg }}>
-      {status}
-    </span>
+    <div style={{
+      display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap",
+      padding: "14px 18px",
+      borderBottom: "0.5px solid rgba(255,255,255,0.03)",
+    }}
+      onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,201,167,0.02)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+
+      {/* Symbol + Exchange */}
+      <div style={{ minWidth: "110px" }}>
+        <div style={{
+          fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 700,
+          color: "var(--ix-glow)", letterSpacing: "0.5px",
+        }}>{sip.symbol}</div>
+        <div style={{ marginTop: "3px" }}>
+          <span style={{
+            padding: "1px 6px", borderRadius: "var(--r-pill)",
+            fontSize: "9px", fontWeight: 700, letterSpacing: "1px",
+            background: "rgba(0,201,167,0.12)", color: "var(--ix-ultra)",
+            border: "0.5px solid rgba(0,201,167,0.25)",
+          }}>{sip.exchange}</span>
+        </div>
+      </div>
+
+      {/* Amount */}
+      <div style={{ minWidth: "100px" }}>
+        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Amount</div>
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600,
+          color: "var(--gs-muted)",
+        }}>{fmt(sip.amount)}</div>
+      </div>
+
+      {/* Frequency */}
+      <div style={{ minWidth: "130px" }}>
+        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>Frequency</div>
+        <span style={{
+          padding: "3px 10px", borderRadius: "var(--r-pill)",
+          fontSize: "11px", fontWeight: 600,
+          background: "rgba(68,136,255,0.10)", color: "var(--sem-signal)",
+          border: "0.5px solid rgba(68,136,255,0.25)",
+        }}>{freqLabel(sip)}</span>
+      </div>
+
+      {/* Next Execution */}
+      <div style={{ minWidth: "100px" }}>
+        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Next Run</div>
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: "12px",
+          color: isActive ? "var(--ix-ultra)" : "var(--gs-light)",
+        }}>{nextDue(sip)}</div>
+      </div>
+
+      {/* Account */}
+      <div style={{ minWidth: "90px" }}>
+        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>Account</div>
+        <span style={{
+          padding: "3px 10px", borderRadius: "var(--r-pill)",
+          fontSize: "11px", fontWeight: 600,
+          background: "rgba(42,42,46,0.8)", color: "var(--gs-muted)",
+          border: "0.5px solid var(--gs-border)",
+        }}>{accountName}</span>
+      </div>
+
+      {/* Status pill */}
+      <div style={{ marginLeft: "auto" }}>
+        <span className={isActive ? "status-chip chip-active" : "status-chip chip-paused"}>
+          {isActive && <span className="dot-live" />}
+          {sip.status.toUpperCase()}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <button
+          onClick={onToggle}
+          title={isActive ? "Pause SIP" : "Resume SIP"}
+          style={{
+            width: "32px", height: "32px", borderRadius: "var(--r-sm)",
+            border: "0.5px solid var(--gs-border)",
+            background: "transparent", cursor: "pointer",
+            color: isActive ? "var(--sem-warn)" : "var(--sem-long)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = isActive ? "rgba(255,215,0,0.4)" : "rgba(34,221,136,0.4)")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+          {isActive ? <IconPause /> : <IconPlay />}
+        </button>
+        <button
+          onClick={onDelete}
+          disabled={deleting}
+          title="Delete SIP"
+          style={{
+            width: "32px", height: "32px", borderRadius: "var(--r-sm)",
+            border: "0.5px solid var(--gs-border)",
+            background: "transparent", cursor: deleting ? "not-allowed" : "pointer",
+            color: "var(--sem-short)", opacity: deleting ? 0.4 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,68,68,0.4)")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+          <IconTrash />
+        </button>
+      </div>
+    </div>
   )
 }
 
 // ─── Add SIP Modal ────────────────────────────────────────────────────────────
 
 type FormData = {
-  symbol: string
-  amount: string
-  frequency: string
-  frequency_day: string
-  frequency_date: string
-  account_id: string
-  start_date: string
-  exchange: string
+  symbol: string; amount: string; frequency: string
+  frequency_day: string; frequency_date: string
+  account_id: string; start_date: string; exchange: string
 }
 
 const BLANK_FORM: FormData = {
@@ -195,17 +293,12 @@ const BLANK_FORM: FormData = {
   exchange: "NSE",
 }
 
-function AddSIPModal({
-  accounts, onClose, onSave,
-}: {
+function AddSIPModal({ accounts, onClose, onSave }: {
   accounts: Account[]
   onClose: () => void
   onSave: (data: any) => Promise<void>
 }) {
-  const [form, setForm] = useState<FormData>({
-    ...BLANK_FORM,
-    account_id: accounts[0]?.id ?? "",
-  })
+  const [form, setForm] = useState<FormData>({ ...BLANK_FORM, account_id: accounts[0]?.id ?? "" })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState("")
 
@@ -239,52 +332,67 @@ function AddSIPModal({
 
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
-    background: "var(--bg-primary)", border: "1px solid var(--bg-border)",
-    borderRadius: "6px", color: "var(--text)", fontSize: "13px",
-    padding: "8px 12px", outline: "none", fontFamily: "inherit",
+    background: "rgba(22,22,25,0.80)", border: "0.5px solid var(--gs-border)",
+    borderRadius: "var(--r-sm)", color: "var(--gs-muted)", fontSize: "13px",
+    padding: "9px 12px", outline: "none", fontFamily: "var(--font-display)",
+    transition: "border-color 0.15s",
   }
   const labelStyle: React.CSSProperties = {
     display: "block", fontSize: "10px", fontWeight: 600,
-    color: "var(--text-muted)", textTransform: "uppercase",
-    letterSpacing: "0.08em", marginBottom: "6px",
+    color: "var(--gs-light)", textTransform: "uppercase",
+    letterSpacing: "1.5px", marginBottom: "6px",
   }
-  const rowStyle: React.CSSProperties = { marginBottom: "16px" }
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.6)", display: "flex",
-      alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--bg-border)",
-        borderRadius: "12px", width: "420px", maxHeight: "90vh", overflow: "auto",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
-
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.70)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+      backdropFilter: "blur(4px)",
+    }}>
+      <div style={{
+        background: "var(--bg-deep)", border: "0.5px solid var(--ix-border)",
+        borderRadius: "var(--r-xl)", width: "440px", maxHeight: "90vh", overflow: "auto",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(0,201,167,0.06)",
+      }}>
         {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--bg-border)",
-          display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{
+          padding: "20px 24px 16px",
+          borderBottom: "0.5px solid rgba(0,201,167,0.10)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
           <div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>New SIP</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+            <div style={{
+              fontFamily: "var(--font-display)", fontSize: "16px",
+              fontWeight: 700, color: "var(--ix-vivid)",
+            }}>New SIP</div>
+            <div style={{ fontSize: "11px", color: "var(--gs-light)", marginTop: "2px" }}>
               Recurring investment order
             </div>
           </div>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer",
-              color: "var(--text-muted)", display: "flex", alignItems: "center",
-              padding: "4px" }}>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--gs-muted)", display: "flex", alignItems: "center",
+            padding: "4px", borderRadius: "var(--r-sm)",
+            transition: "color 0.15s",
+          }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--gs-muted)")}
+          >
             <IconClose />
           </button>
         </div>
 
         {/* Body */}
         <div style={{ padding: "20px 24px" }}>
-
-          {/* Symbol + Exchange row */}
+          {/* Symbol + Exchange */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
             <div style={{ flex: 2 }}>
               <label style={labelStyle}>Symbol</label>
               <input style={inputStyle} placeholder="e.g. RELIANCE"
                 value={form.symbol}
-                onChange={e => set("symbol", e.target.value.toUpperCase())} />
+                onChange={e => set("symbol", e.target.value.toUpperCase())}
+                onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
+                onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Exchange</label>
@@ -297,25 +405,30 @@ function AddSIPModal({
           </div>
 
           {/* Amount */}
-          <div style={rowStyle}>
+          <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Amount (₹)</label>
             <input style={inputStyle} type="number" placeholder="10000"
               value={form.amount}
-              onChange={e => set("amount", e.target.value)} />
+              onChange={e => set("amount", e.target.value)}
+              onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
+              onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
           </div>
 
           {/* Frequency */}
-          <div style={rowStyle}>
+          <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Frequency</label>
             <div style={{ display: "flex", gap: "8px" }}>
               {(["daily", "weekly", "monthly"] as const).map(f => (
                 <button key={f} onClick={() => set("frequency", f)}
-                  style={{ flex: 1, padding: "8px 0", borderRadius: "6px",
-                    border: `1px solid ${form.frequency === f ? "var(--accent-blue)" : "var(--bg-border)"}`,
-                    background: form.frequency === f ? "rgba(0,176,240,0.1)" : "transparent",
-                    color: form.frequency === f ? "var(--accent-blue)" : "var(--text-muted)",
+                  style={{
+                    flex: 1, padding: "8px 0", borderRadius: "var(--r-sm)",
+                    border: `0.5px solid ${form.frequency === f ? "var(--ix-border-hi)" : "var(--gs-border)"}`,
+                    background: form.frequency === f ? "rgba(0,201,167,0.12)" : "rgba(22,22,25,0.8)",
+                    color: form.frequency === f ? "var(--ix-vivid)" : "var(--gs-light)",
                     fontSize: "12px", fontWeight: 600, cursor: "pointer",
-                    textTransform: "capitalize", fontFamily: "inherit" }}>
+                    textTransform: "capitalize", fontFamily: "var(--font-display)",
+                    transition: "all 0.15s",
+                  }}>
                   {f}
                 </button>
               ))}
@@ -324,17 +437,19 @@ function AddSIPModal({
 
           {/* Weekly day picker */}
           {form.frequency === "weekly" && (
-            <div style={rowStyle}>
+            <div style={{ marginBottom: "16px" }}>
               <label style={labelStyle}>Day of week</label>
               <div style={{ display: "flex", gap: "6px" }}>
                 {DAY_NAMES.map((d, i) => (
                   <button key={i} onClick={() => set("frequency_day", String(i))}
-                    style={{ flex: 1, padding: "7px 0", borderRadius: "6px",
-                      border: `1px solid ${form.frequency_day === String(i) ? "var(--accent-blue)" : "var(--bg-border)"}`,
-                      background: form.frequency_day === String(i) ? "rgba(0,176,240,0.1)" : "transparent",
-                      color: form.frequency_day === String(i) ? "var(--accent-blue)" : "var(--text-muted)",
+                    style={{
+                      flex: 1, padding: "7px 0", borderRadius: "var(--r-sm)",
+                      border: `0.5px solid ${form.frequency_day === String(i) ? "var(--ix-border-hi)" : "var(--gs-border)"}`,
+                      background: form.frequency_day === String(i) ? "rgba(0,201,167,0.12)" : "rgba(22,22,25,0.8)",
+                      color: form.frequency_day === String(i) ? "var(--ix-vivid)" : "var(--gs-light)",
                       fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                      fontFamily: "inherit" }}>
+                      fontFamily: "var(--font-display)", transition: "all 0.15s",
+                    }}>
                     {d}
                   </button>
                 ))}
@@ -344,7 +459,7 @@ function AddSIPModal({
 
           {/* Monthly date picker */}
           {form.frequency === "monthly" && (
-            <div style={rowStyle}>
+            <div style={{ marginBottom: "16px" }}>
               <label style={labelStyle}>Date of month</label>
               <select style={inputStyle} value={form.frequency_date}
                 onChange={e => set("frequency_date", e.target.value)}>
@@ -358,7 +473,7 @@ function AddSIPModal({
           )}
 
           {/* Account */}
-          <div style={rowStyle}>
+          <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Account</label>
             <select style={inputStyle} value={form.account_id}
               onChange={e => set("account_id", e.target.value)}>
@@ -369,25 +484,36 @@ function AddSIPModal({
           </div>
 
           {/* Start date */}
-          <div style={rowStyle}>
+          <div style={{ marginBottom: "20px" }}>
             <label style={labelStyle}>Start Date</label>
             <input style={inputStyle} type="date" value={form.start_date}
-              onChange={e => set("start_date", e.target.value)} />
+              onChange={e => set("start_date", e.target.value)}
+              onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
+              onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
           </div>
 
           {err && (
-            <div style={{ fontSize: "12px", color: "var(--red)", marginBottom: "12px",
-              background: "rgba(239,68,68,0.08)", padding: "8px 12px",
-              borderRadius: "6px", border: "1px solid rgba(239,68,68,0.2)" }}>
+            <div style={{
+              fontSize: "12px", color: "var(--sem-short)", marginBottom: "14px",
+              background: "rgba(255,68,68,0.08)", padding: "9px 12px",
+              borderRadius: "var(--r-sm)", border: "0.5px solid rgba(255,68,68,0.25)",
+            }}>
               {err}
             </div>
           )}
 
           <button onClick={handleSubmit} disabled={saving}
-            style={{ width: "100%", padding: "10px", borderRadius: "7px",
-              border: "none", background: "var(--accent-blue)", color: "#fff",
-              fontSize: "13px", fontWeight: 700, cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.7 : 1, fontFamily: "inherit", letterSpacing: "0.02em" }}>
+            style={{
+              width: "100%", padding: "11px", borderRadius: "var(--r-md)",
+              border: "none",
+              background: "linear-gradient(135deg, #00C9A7, #007A67)",
+              color: "#fff", fontSize: "13px", fontWeight: 700,
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1, fontFamily: "var(--font-display)",
+              letterSpacing: "0.5px", transition: "box-shadow 0.2s",
+            }}
+            onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)" }}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
             {saving ? "Creating…" : "Create SIP"}
           </button>
         </div>
@@ -417,7 +543,6 @@ export default function SIPsPage() {
         sipsAPI.list(),
         sipsAPI.allExecutions(),
       ])
-
       const accts: Account[] = Array.isArray(acctRes) ? acctRes : []
       setAccounts(accts)
       const map: Record<string, string> = {}
@@ -456,249 +581,161 @@ export default function SIPsPage() {
     }
   }
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
-
   const activeSIPs   = sips.filter(s => s.status === "active")
   const monthlyTotal = sips.reduce((acc, s) => acc + monthlyEquiv(s), 0)
   const nextExec     = earliestNextDue(sips)
 
-  // ── Table header style ────────────────────────────────────────────────────
-
-  const th: React.CSSProperties = {
-    padding: "10px 14px", textAlign: "left", fontSize: "10px",
-    fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase",
-    letterSpacing: "0.08em", borderBottom: "1px solid var(--bg-border)",
-    whiteSpace: "nowrap",
-  }
-  const td: React.CSSProperties = {
-    padding: "12px 14px", fontSize: "13px", color: "var(--text)",
-    borderBottom: "1px solid rgba(42,44,46,0.5)",
-    verticalAlign: "middle",
-  }
-
   if (loading) {
     return (
-      <div style={{ padding: "24px", display: "flex", alignItems: "center",
-        justifyContent: "center", height: "200px", color: "var(--text-muted)",
-        fontSize: "13px" }}>
-        Loading…
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100%", color: "var(--gs-light)", fontFamily: "var(--font-mono)",
+        fontSize: "13px", gap: "10px",
+      }}>
+        <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
+        Loading SIPs…
       </div>
     )
   }
 
   return (
-    <div style={{ padding: "20px 24px", animation: "fadeIn 0.3s ease" }}>
+    <div style={{ padding: "24px 28px", animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
-      {/* ── Header ── */}
-      <div style={{ display: "flex", alignItems: "flex-start",
-        justifyContent: "space-between", marginBottom: "24px" }}>
+      {/* ── Page header ── */}
+      <div style={{
+        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+        marginBottom: "20px",
+      }}>
         <div>
-          <h1 style={{ fontFamily: "'ADLaM Display', serif", fontSize: "22px", fontWeight: 400, marginBottom: "2px" }}>
-            SIP Engine
-          </h1>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div style={{
+            fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
+            color: "var(--ix-vivid)", letterSpacing: "-1px", marginBottom: "4px",
+          }}>SIP Engine</div>
+          <div style={{ fontSize: "12px", color: "var(--gs-light)" }}>
             Recurring investment scheduler
           </div>
         </div>
-        <button onClick={() => setShowModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: "6px",
-            padding: "9px 16px", borderRadius: "7px",
-            border: "1px solid var(--accent-blue)",
-            background: "rgba(0,176,240,0.1)", color: "var(--accent-blue)",
-            fontSize: "13px", fontWeight: 600, cursor: "pointer",
-            fontFamily: "inherit", letterSpacing: "0.02em" }}>
-          <IconPlus /> Add SIP
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            padding: "8px 18px", borderRadius: "var(--r-md)",
+            fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
+            background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
+            border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
+          onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+          <IconPlus /> New SIP
         </button>
       </div>
 
-      {/* ── Stats row ── */}
-      <div style={{ background: "linear-gradient(135deg, rgba(0,176,240,0.08) 0%, rgba(34,197,94,0.05) 100%)",
-        borderRadius: "16px", padding: "20px", marginBottom: "24px" }}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <StatCard
-            label="Active SIPs"
-            value={String(activeSIPs.length)}
-            sub={`${sips.length} total`}
-          />
-          <StatCard
-            label="Monthly Commitment"
-            value={fmt(monthlyTotal)}
-            sub="across active SIPs"
-          />
-          <StatCard
-            label="Next Execution"
-            value={nextExec}
-            sub="earliest active SIP"
-          />
-        </div>
+      {/* ── Stats row — 3 MetricCards ── */}
+      <div className="grid-3" style={{ marginBottom: "20px" }}>
+        <MetricCard
+          label="Active SIPs"
+          value={String(activeSIPs.length)}
+          sub={`${sips.length} total configured`}
+        />
+        <MetricCard
+          label="Monthly Investment"
+          value={fmt(monthlyTotal)}
+          sub="across active SIPs"
+          valueColor="var(--sem-long)"
+        />
+        <MetricCard
+          label="Next Execution"
+          value={nextExec}
+          sub="earliest active SIP"
+          valueColor="var(--ix-ultra)"
+        />
       </div>
 
-      {/* ── SIP Table ── */}
-      <div style={{ background: "var(--bg-secondary)",
-        border: "1px solid var(--bg-border)", borderRadius: "12px",
-        overflow: "hidden", marginBottom: "28px" }}>
-
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--bg-border)",
-          display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>
-            SIP Schedule
-          </span>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-            {sips.length} SIP{sips.length !== 1 ? "s" : ""}
+      {/* ── SIP List ── */}
+      <div className="glass" style={{ overflow: "hidden", marginBottom: "20px" }}>
+        <div className="panel-hdr">
+          <div className="panel-title">SIP Schedule · {sips.length} SIP{sips.length !== 1 ? "s" : ""}</div>
+          <span style={{ fontSize: "10px", color: "var(--gs-light)" }}>
+            Executes at 09:20 IST
           </span>
         </div>
 
         {sips.length === 0 ? (
-          <div style={{ padding: "48px 24px", textAlign: "center",
-            color: "var(--text-muted)", fontSize: "13px" }}>
-            No SIPs configured yet. Click "Add SIP" to create your first one.
+          <div style={{
+            padding: "48px", textAlign: "center",
+            color: "var(--gs-light)", fontSize: "13px",
+          }}>
+            No SIPs configured yet.{" "}
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--ix-vivid)", fontFamily: "inherit", fontSize: "13px",
+                textDecoration: "underline",
+              }}>
+              Create your first SIP →
+            </button>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={th}>Symbol</th>
-                  <th style={{ ...th, textAlign: "right" }}>Amount</th>
-                  <th style={th}>Frequency</th>
-                  <th style={th}>Account</th>
-                  <th style={th}>Next Due</th>
-                  <th style={th}>Status</th>
-                  <th style={{ ...th, textAlign: "center" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sips.map(sip => (
-                  <tr key={sip.id}
-                    style={{ transition: "background 0.1s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <td style={td}>
-                      <div style={{ fontWeight: 700, fontFamily: "'DM Mono', monospace",
-                        color: "var(--accent-blue)", fontSize: "13px" }}>
-                        {sip.symbol}
-                      </div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)",
-                        marginTop: "2px" }}>
-                        {sip.exchange}
-                      </div>
-                    </td>
-                    <td style={{ ...td, textAlign: "right", fontFamily: "'DM Mono', monospace",
-                      fontWeight: 600 }}>
-                      {fmt(sip.amount)}
-                    </td>
-                    <td style={td}>
-                      <span style={{ fontSize: "12px" }}>{freqLabel(sip)}</span>
-                    </td>
-                    <td style={td}>
-                      <span style={{ fontSize: "12px" }}>
-                        {accountMap[sip.account_id] ?? sip.account_id.slice(0, 8) + "…"}
-                      </span>
-                    </td>
-                    <td style={{ ...td, fontFamily: "'DM Mono', monospace",
-                      fontSize: "12px", color: "var(--text-muted)" }}>
-                      {nextDue(sip)}
-                    </td>
-                    <td style={td}>
-                      <StatusBadge status={sip.status} />
-                    </td>
-                    <td style={{ ...td, textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: "6px",
-                        justifyContent: "center" }}>
-                        <button
-                          onClick={() => handleToggle(sip)}
-                          title={sip.status === "active" ? "Pause SIP" : "Resume SIP"}
-                          style={{ padding: "6px", borderRadius: "5px",
-                            border: "1px solid var(--bg-border)",
-                            background: "transparent", cursor: "pointer",
-                            color: sip.status === "active"
-                              ? "var(--amber, #F59E0B)"
-                              : "var(--green)",
-                            display: "flex", alignItems: "center" }}>
-                          {sip.status === "active" ? <IconPause /> : <IconPlay />}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(sip.id)}
-                          disabled={deletingId === sip.id}
-                          title="Delete SIP"
-                          style={{ padding: "6px", borderRadius: "5px",
-                            border: "1px solid var(--bg-border)",
-                            background: "transparent", cursor: "pointer",
-                            color: "var(--red, #EF4444)",
-                            display: "flex", alignItems: "center",
-                            opacity: deletingId === sip.id ? 0.5 : 1 }}>
-                          <IconTrash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          sips.map(sip => (
+            <SIPCard
+              key={sip.id}
+              sip={sip}
+              accountName={accountMap[sip.account_id] ?? sip.account_id.slice(0, 8) + "…"}
+              onToggle={() => handleToggle(sip)}
+              onDelete={() => handleDelete(sip.id)}
+              deleting={deletingId === sip.id}
+            />
+          ))
         )}
       </div>
 
       {/* ── Recent Executions ── */}
-      <div style={{ background: "var(--bg-secondary)",
-        border: "1px solid var(--bg-border)", borderRadius: "12px",
-        overflow: "hidden" }}>
-
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--bg-border)" }}>
-          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>
-            Recent Executions
-          </span>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)",
-            marginLeft: "10px" }}>
-            last 10
-          </span>
+      <div className="glass" style={{ overflow: "hidden" }}>
+        <div className="panel-hdr">
+          <div className="panel-title">Recent Executions</div>
+          <span style={{ fontSize: "10px", color: "var(--gs-light)" }}>last 10</span>
         </div>
 
         {executions.length === 0 ? (
-          <div style={{ padding: "36px 24px", textAlign: "center",
-            color: "var(--text-muted)", fontSize: "13px" }}>
+          <div style={{
+            padding: "36px", textAlign: "center",
+            color: "var(--gs-light)", fontSize: "13px",
+          }}>
             No executions recorded yet.
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="holdings-table">
               <thead>
                 <tr>
-                  <th style={th}>Date</th>
-                  <th style={th}>Symbol</th>
-                  <th style={{ ...th, textAlign: "right" }}>Amount</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Broker Order ID</th>
+                  <th style={{ textAlign: "left" }}>Date</th>
+                  <th style={{ textAlign: "left" }}>Symbol</th>
+                  <th>Amount</th>
+                  <th style={{ textAlign: "left" }}>Status</th>
+                  <th style={{ textAlign: "left" }}>Broker Order</th>
                 </tr>
               </thead>
               <tbody>
                 {executions.map(ex => (
-                  <tr key={ex.id}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <td style={{ ...td, fontFamily: "'DM Mono', monospace",
-                      fontSize: "12px", color: "var(--text-muted)" }}>
+                  <tr key={ex.id}>
+                    <td className="td-num" style={{ textAlign: "left" }}>
                       {ex.executed_at
                         ? new Date(ex.executed_at).toLocaleDateString("en-IN", {
                             day: "2-digit", month: "short", year: "numeric",
                           })
                         : "—"}
                     </td>
-                    <td style={td}>
-                      <span style={{ fontWeight: 700, fontFamily: "'DM Mono', monospace",
-                        color: "var(--accent-blue)", fontSize: "13px" }}>
-                        {ex.symbol}
+                    <td>
+                      <div className="td-sym">{ex.symbol}</div>
+                    </td>
+                    <td className="td-num">{fmt(ex.amount)}</td>
+                    <td style={{ textAlign: "left" }}>
+                      <span className={ex.status === "placed" ? "status-chip chip-active" : "status-chip chip-paused"}>
+                        {ex.status}
                       </span>
                     </td>
-                    <td style={{ ...td, textAlign: "right",
-                      fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>
-                      {fmt(ex.amount)}
-                    </td>
-                    <td style={td}>
-                      <StatusBadge status={ex.status} />
-                    </td>
-                    <td style={{ ...td, fontFamily: "'DM Mono', monospace",
-                      fontSize: "11px", color: "var(--text-muted)" }}>
+                    <td className="td-num" style={{ textAlign: "left", fontSize: "11px" }}>
                       {ex.broker_order_id ?? "—"}
                     </td>
                   </tr>
