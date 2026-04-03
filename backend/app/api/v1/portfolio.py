@@ -1,16 +1,16 @@
 """Portfolio API — holdings, MF, summary."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select
 from app.core.database import get_db
-from app.core.auth import get_current_user
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
-import httpx
+import uuid
+from datetime import date
 
 router = APIRouter()
 
 @router.get("/holdings")
-async def get_holdings(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def get_holdings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Holdings).order_by(Holdings.account_id, Holdings.symbol))
     rows = result.scalars().all()
     return [{
@@ -25,7 +25,7 @@ async def get_holdings(db: AsyncSession = Depends(get_db), user = Depends(get_cu
     } for r in rows]
 
 @router.get("/mf")
-async def get_mf(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def get_mf(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MFHoldings).order_by(MFHoldings.fund_name))
     rows = result.scalars().all()
     return [{
@@ -38,21 +38,22 @@ async def get_mf(db: AsyncSession = Depends(get_db), user = Depends(get_current_
     } for r in rows]
 
 @router.get("/summary")
-async def get_summary(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def get_summary(db: AsyncSession = Depends(get_db)):
     holdings = (await db.execute(select(Holdings))).scalars().all()
     mf = (await db.execute(select(MFHoldings))).scalars().all()
-    equity_current = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
+    equity_current  = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
     equity_invested = sum(r.avg_price * r.qty for r in holdings)
-    mf_current = sum(r.current_value or 0 for r in mf)
-    mf_invested = sum(r.invested_amount or 0 for r in mf)
-    total_current = equity_current + mf_current
-    total_invested = equity_invested + mf_invested
-    day_pnl = sum((r.day_change or 0) * r.qty for r in holdings)
+    mf_current      = sum(r.current_value or 0 for r in mf)
+    mf_invested     = sum(r.invested_amount or 0 for r in mf)
+    total_current   = equity_current + mf_current
+    total_invested  = equity_invested + mf_invested
+    # day_change on holdings is already (ltp - prev_close) * qty from loaders
+    day_pnl = sum((r.day_change or 0) for r in holdings)
     return {
         "total_portfolio_value": round(total_current, 2),
         "total_invested": round(total_invested, 2),
         "total_pnl": round(total_current - total_invested, 2),
-        "total_pnl_pct": round(((total_current - total_invested) / total_invested * 100), 2) if total_invested else 0,
+        "total_pnl_pct": round((total_current - total_invested) / total_invested * 100, 2) if total_invested else 0,
         "day_pnl": round(day_pnl, 2),
         "equity_value": round(equity_current, 2),
         "mf_value": round(mf_current, 2),
@@ -61,29 +62,70 @@ async def get_summary(db: AsyncSession = Depends(get_db), user = Depends(get_cur
     }
 
 @router.get("/snapshots")
-async def get_snapshots(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def get_snapshots(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(PortfolioSnapshot).order_by(PortfolioSnapshot.snapshot_date).limit(365)
     )
     rows = result.scalars().all()
-    return [{"date": str(r.snapshot_date), "value": r.portfolio_value,
+    return [{"date": str(r.snapshot_date), "total_value": r.portfolio_value,
              "invested": r.invested_value, "pnl": r.day_pnl} for r in rows]
 
 @router.post("/refresh")
-async def refresh_holdings(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
-    """Trigger a full holdings refresh from all brokers."""
+async def refresh_holdings(db: AsyncSession = Depends(get_db)):
+    """Trigger a full holdings refresh from all brokers, then write today's snapshot."""
     from app.data_ingestion.zerodha_loader import load_zerodha_holdings
     from app.data_ingestion.angel_loader import load_angel_holdings
     from app.core.config import settings
     results = {}
+
     try:
         z = await load_zerodha_holdings(db, settings.zerodha_api_key)
         results["zerodha"] = z
     except Exception as e:
         results["zerodha"] = {"error": str(e)}
+
     try:
         a = await load_angel_holdings(db)
         results["angel"] = a
     except Exception as e:
         results["angel"] = {"error": str(e)}
+
+    # Write today's portfolio snapshot for the equity curve
+    try:
+        await _write_snapshot(db)
+        results["snapshot"] = "written"
+    except Exception as e:
+        results["snapshot"] = {"error": str(e)}
+
     return {"status": "refreshed", "results": results}
+
+async def _write_snapshot(db: AsyncSession) -> None:
+    """Compute total portfolio value and upsert a snapshot row for today."""
+    from sqlalchemy import delete as sa_delete
+    holdings = (await db.execute(select(Holdings))).scalars().all()
+    mf       = (await db.execute(select(MFHoldings))).scalars().all()
+
+    equity_current  = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
+    equity_invested = sum(r.avg_price * r.qty for r in holdings)
+    mf_current      = sum(r.current_value or 0 for r in mf)
+    mf_invested     = sum(r.invested_amount or 0 for r in mf)
+    total_current   = equity_current + mf_current
+    total_invested  = equity_invested + mf_invested
+    day_pnl         = sum((r.day_change or 0) for r in holdings)
+
+    today = date.today()
+    # Remove existing row for today (upsert via delete + insert)
+    await db.execute(
+        sa_delete(PortfolioSnapshot).where(PortfolioSnapshot.snapshot_date == today)
+    )
+    snap = PortfolioSnapshot(
+        id=uuid.uuid4(),
+        snapshot_date=today,
+        account_id="all",          # aggregate row
+        portfolio_value=round(total_current, 2),
+        invested_value=round(total_invested, 2),
+        day_pnl=round(day_pnl, 2),
+        total_pnl=round(total_current - total_invested, 2),
+    )
+    db.add(snap)
+    await db.commit()

@@ -150,8 +150,11 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
                 qty = int(float(h.get("quantity", 0) or 0))
                 if qty <= 0:
                     continue
-                avg_price = float(h.get("averageprice", 0) or h.get("average_price", 0) or 0)
-                ltp = float(h.get("ltp", 0) or h.get("close", 0) or 0)
+                avg_price  = float(h.get("averageprice", 0) or h.get("average_price", 0) or 0)
+                ltp        = float(h.get("ltp", 0) or 0)
+                close      = float(h.get("close", 0) or h.get("close_price", 0) or 0)
+                # day_change = (LTP − prev_close) × qty, same formula as Zerodha loader
+                day_change = round((ltp - close) * qty, 2) if ltp > 0 and close > 0 else None
                 holding = Holdings(
                     id=uuid.uuid4(),
                     account_id=account_id,
@@ -161,7 +164,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
                     qty=qty,
                     avg_price=avg_price,
                     ltp=ltp if ltp > 0 else None,
-                    day_change=None,
+                    day_change=day_change,
                     updated_at=now,
                 )
                 db.add(holding)

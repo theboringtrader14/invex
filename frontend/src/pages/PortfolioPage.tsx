@@ -19,7 +19,7 @@ type Summary = {
   day_pnl: number; equity_value: number; mf_value: number
   xirr?: number; holdings_count: number; mf_count: number
 }
-type Snapshot = { date: string; total_value: number }
+type Snapshot = { date: string; total_value: number; invested?: number; pnl?: number }
 type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
@@ -369,12 +369,11 @@ export default function PortfolioPage() {
   const [activeAccount, setActiveAccount] = useState("All")
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem("staax_token")
     try {
-      // Load account map from STAAX API
-      const acctRes = await fetch("http://localhost:8000/api/v1/accounts/", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      // Load account map from STAAX API (token optional — STAAX may or may not require it)
+      const token = localStorage.getItem("staax_token")
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+      const acctRes = await fetch("http://localhost:8000/api/v1/accounts/", { headers })
       if (acctRes.ok) {
         const accts: Array<{ id: string; nickname: string }> = await acctRes.json()
         const map: Record<string, string> = {}

@@ -4,18 +4,45 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, AsyncSessionLocal
 from app.models import holdings, sips, ipo_bots, watchlist  # noqa
 from app.api.v1 import portfolio, sips as sips_api, ipo_bots as ipo_api, watchlist as watchlist_api
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+async def _startup_refresh() -> None:
+    """Auto-load all holdings at startup so the portfolio page is never blank."""
+    from app.data_ingestion.zerodha_loader import load_zerodha_holdings
+    from app.data_ingestion.angel_loader import load_angel_holdings
+    from app.api.v1.portfolio import _write_snapshot
+
+    async with AsyncSessionLocal() as db:
+        try:
+            z = await load_zerodha_holdings(db, settings.zerodha_api_key)
+            logger.info(f"[STARTUP] Zerodha: {z}")
+        except Exception as e:
+            logger.warning(f"[STARTUP] Zerodha load failed: {e}")
+
+        try:
+            a = await load_angel_holdings(db)
+            logger.info(f"[STARTUP] Angel One: {a}")
+        except Exception as e:
+            logger.warning(f"[STARTUP] Angel One load failed: {e}")
+
+        try:
+            await _write_snapshot(db)
+            logger.info("[STARTUP] Portfolio snapshot written")
+        except Exception as e:
+            logger.warning(f"[STARTUP] Snapshot write failed: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("INVEX starting up...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    logger.info("Tables ready — loading holdings from brokers...")
+    await _startup_refresh()
     logger.info("✅ INVEX ready on port 8001")
     yield
     logger.info("INVEX shutting down")

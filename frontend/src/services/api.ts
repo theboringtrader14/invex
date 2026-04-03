@@ -3,19 +3,20 @@ import axios from 'axios'
 const API = 'http://localhost:8001/api/v1'
 const STAAX_API = 'http://localhost:8000/api/v1'
 
+// Auth still used for SIPs/IPO/Watchlist (write endpoints — kept for future)
 const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('staax_token')}` } })
 
 // Auth — shared with STAAX
 export const login = (username: string, password: string) =>
   axios.post(`${STAAX_API}/login`, { username, password })
 
-// Portfolio
+// Portfolio — open endpoints (no auth required)
 export const portfolioAPI = {
-  holdings:  () => axios.get(`${API}/portfolio/holdings`, auth()),
-  mf:        () => axios.get(`${API}/portfolio/mf`, auth()),
-  summary:   () => axios.get(`${API}/portfolio/summary`, auth()),
-  snapshots: () => axios.get(`${API}/portfolio/snapshots`, auth()),
-  refresh:   () => axios.post(`${API}/portfolio/refresh`, {}, auth()),
+  holdings:  () => axios.get(`${API}/portfolio/holdings`),
+  mf:        () => axios.get(`${API}/portfolio/mf`),
+  summary:   () => axios.get(`${API}/portfolio/summary`),
+  snapshots: () => axios.get(`${API}/portfolio/snapshots`),
+  refresh:   () => axios.post(`${API}/portfolio/refresh`, {}),
 }
 
 // SIPs
