@@ -1,0 +1,146 @@
+/* ═══════════════════════════════════════════════════
+   INVEX — Design Token Overrides
+   Import this AFTER globals.css in INVEX layout.tsx
+   
+   This single file is the complete delta from STAAX.
+   All STAAX components automatically render in teal.
+═══════════════════════════════════════════════════ */
+
+:root {
+  /* ── INVEX Teal Primary Scale ── */
+  --ix-vivid:     #00C9A7;   /* PRIMARY — headlines, CTAs, active states */
+  --ix-glow:      #00B396;   /* subheadings, secondary text */
+  --ix-deep:      #007A67;   /* gradient partner, chart fills */
+  --ix-ultra:     #5EECD8;   /* lightest — XIRR, hover tint */
+  --ix-ember:     #009E84;   /* dual-tone partner */
+  --ix-ghost:     rgba(0,201,167,0.10);
+  --ix-border:    rgba(0,201,167,0.20);
+  --ix-border-hi: rgba(0,201,167,0.45);
+
+  /* ── Remap STAAX orange aliases → teal ──
+     This means every shared component (Button, GlassCard, Chip,
+     MetricCard, Sidebar, TopBar, BgOrbs) renders in teal
+     with zero component code changes.
+  ── */
+  --ox-radiant:   var(--ix-vivid);
+  --ox-glow:      var(--ix-glow);
+  --ox-ember:     var(--ix-deep);
+  --ox-ultra:     var(--ix-ultra);
+  --ox-ghost:     var(--ix-ghost);
+  --ox-border:    var(--ix-border);
+  --ox-border-hi: var(--ix-border-hi);
+
+  /* ── Cloud fill — teal variant ──
+     Override the cloud animation orb colours.
+     Paste this into BgOrbs.module.css for INVEX.
+  ── */
+  /* orb1: rgba(0,201,167,0.07)   instead of rgba(255,107,0,0.07) */
+  /* orb2: rgba(0,154,132,0.06)   instead of rgba(204,68,0,0.06)  */
+}
+
+/* ── Cloud fill override for GlassCard in INVEX ──
+   Add this to your INVEX-specific GlassCard override or 
+   directly to GlassCard.module.css when building INVEX.
+── */
+.cloud::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 22%, rgba(0,201,167,0.15) 0%, transparent 56%),
+    radial-gradient(ellipse 55% 70% at 80% 75%, rgba(0,154,132,0.12) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 50% at 55%  8%, rgba(0,179,150,0.08) 0%, transparent 48%),
+    radial-gradient(ellipse 60% 35% at 90% 18%, rgba(0,122,103,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 35% 50% at 28% 88%, rgba(0,201,167,0.06) 0%, transparent 45%);
+}
+
+/* ── INVEX-specific chip variants ── */
+.chip_ix_active {
+  background: rgba(0,201,167,0.15);
+  color: #00C9A7;
+  border: 0.5px solid rgba(0,201,167,0.40);
+}
+
+.chip_watching {
+  background: rgba(68,136,255,0.12);
+  color: var(--sem-signal);
+  border: 0.5px solid rgba(68,136,255,0.30);
+}
+
+.chip_triggered {
+  background: rgba(0,201,167,0.15);
+  color: #00C9A7;
+  border: 0.5px solid rgba(0,201,167,0.35);
+}
+
+.chip_exited {
+  background: rgba(255,68,68,0.12);
+  color: var(--sem-short);
+  border: 0.5px solid rgba(255,68,68,0.30);
+}
+
+/* ── BETA pill (TopBar — replaces PRACTIX broker badge) ── */
+.invex-beta-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: rgba(0,201,167,0.12);
+  border: 0.5px solid var(--ix-border);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ix-vivid);
+  letter-spacing: 0.5px;
+}
+
+/* ── Holdings table — INVEX-specific cell colours ── */
+.cell-symbol-ix {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ix-glow);
+}
+
+.cell-account-ix {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ix-vivid);
+}
+
+/* Table row hover — teal tint instead of orange */
+.data-table tr:hover td {
+  background: rgba(0,201,167,0.03);
+}
+
+/* ── Sector bar fills ── */
+.sector-bar-fill {
+  height: 4px;
+  border-radius: 2px;
+  transition: width 0.5s var(--ease-spring);
+}
+
+/* ── Equity curve chart colours (use in recharts config) ──
+   areaColor: '#00C9A7'
+   areaFill gradient:  rgba(0,201,167,0.20) → rgba(0,201,167,0)
+   gridColor: rgba(255,255,255,0.04)
+   axisColor: var(--gs-light)
+── */
+
+/* ── SIP card add button (dashed state) ── */
+.sip-add-card {
+  border-style: dashed !important;
+  border-color: rgba(0,201,167,0.20) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  min-height: 160px;
+  transition: border-color var(--dur-mid), background var(--dur-mid);
+}
+
+.sip-add-card:hover {
+  border-color: rgba(0,201,167,0.45) !important;
+  background: rgba(0,201,167,0.04);
+}

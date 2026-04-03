@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ix-vivid:   #00C9A7;
+  --ix-glow:    #00B396;
+  --ix-deep:    #007A67;
+  --ix-ultra:   #5EECD8;
+  --ix-ember:   #009E84;
+  --ix-ghost:   rgba(0,201,167,0.10);
+  --ix-border:  rgba(0,201,167,0.20);
+  --ix-hi:      rgba(0,201,167,0.45);
+  --bg-void:    #0A0A0B;
+  --gs-muted:   #8A8A94;
+  --gs-light:   #5A5A61;
+  --gs-steel:   #2A2A2E;
+  --gs-border:  rgba(255,255,255,0.07);
+  --sem-long:   #22DD88;
+  --sem-short:  #FF4444;
+  --sem-warn:   #FFD700;
+  --font-d:'Syne',sans-serif;
+  --font-m:'JetBrains Mono',monospace;
+}
+body{background:var(--bg-void);color:var(--gs-muted);font-family:var(--font-d);overflow-x:hidden;}
+
+.bg-orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+.orb1{width:600px;height:600px;top:-180px;left:-180px;background:radial-gradient(circle,rgba(0,201,167,0.07) 0%,transparent 65%);}
+.orb2{width:400px;height:400px;bottom:0;right:-80px;background:radial-gradient(circle,rgba(0,154,132,0.06) 0%,transparent 65%);}
+
+.wrap{max-width:1140px;margin:0 auto;padding:32px 28px;position:relative;z-index:1;}
+
+.glass{background:rgba(22,22,25,0.72);backdrop-filter:blur(20px);border:0.5px solid var(--ix-border);border-radius:14px;
+  transition:border-color .22s,box-shadow .22s,transform .22s;}
+.glass:hover{border-color:var(--ix-hi);box-shadow:0 0 28px rgba(0,201,167,0.08),0 8px 32px rgba(0,0,0,0.35);transform:translateY(-1px);}
+
+.cloud{position:relative;overflow:hidden;}
+.cloud::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 22%, rgba(0,201,167,0.15) 0%,transparent 56%),
+    radial-gradient(ellipse 55% 70% at 80% 75%, rgba(0,154,132,0.12) 0%,transparent 52%),
+    radial-gradient(ellipse 45% 50% at 55% 8%,  rgba(0,179,150,0.08) 0%,transparent 48%),
+    radial-gradient(ellipse 60% 35% at 90% 18%, rgba(0,122,103,0.10) 0%,transparent 50%);
+  animation:cloudShift 14s ease-in-out infinite alternate;}
+.cloud>*{position:relative;z-index:1;}
+@keyframes cloudShift{from{opacity:.8;transform:scale(1);}to{opacity:1;transform:scale(1.04) translate(5px,-4px);}}
+
+.sidebar{width:56px;position:fixed;left:0;top:0;bottom:0;background:rgba(10,10,11,0.92);border-right:0.5px solid rgba(0,201,167,0.10);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;padding:10px 0 14px;gap:4px;z-index:100;}
+.logo-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--ix-vivid),var(--ix-deep));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:15px;font-weight:800;color:#fff;margin-bottom:12px;box-shadow:0 0 16px rgba(0,201,167,0.3);}
+.nav-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--gs-light);cursor:pointer;transition:background .2s,color .2s,transform .12s;}
+.nav-icon:hover{background:rgba(0,201,167,0.1);color:var(--ix-glow);transform:scale(1.08);}
+.nav-icon.active{background:rgba(0,201,167,0.15);color:var(--ix-vivid);box-shadow:0 0 12px rgba(0,201,167,0.18),inset 0 0 0 0.5px rgba(0,201,167,0.4);}
+.nav-icon.active::after{content:'';position:absolute;left:-1px;top:25%;bottom:25%;width:2px;background:var(--ix-vivid);border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(0,201,167,0.7);}
+.nav-icon{position:relative;}
+
+.topbar{background:rgba(10,10,11,0.88);border-bottom:0.5px solid rgba(0,201,167,0.10);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:46px;margin-left:56px;}
+.tbar-left{display:flex;align-items:center;gap:12px;}
+.avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--ix-vivid),var(--ix-deep));display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:11px;font-weight:800;color:#fff;}
+.welcome{font-size:13px;color:var(--gs-muted);}
+.welcome strong{color:var(--ix-glow);font-weight:600;}
+.time-badge{font-family:var(--font-m);font-size:12px;color:var(--ix-ultra);opacity:.7;}
+.tbar-right{display:flex;align-items:center;gap:10px;}
+.pill{padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-d);}
+.pill-steel{background:rgba(42,42,46,0.7);border:0.5px solid var(--gs-border);color:var(--gs-muted);}
+.pill-ix{background:rgba(0,201,167,0.12);border:0.5px solid var(--ix-border);color:var(--ix-vivid);display:flex;align-items:center;gap:5px;}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--ix-vivid);animation:pulseAnim 2s ease-out infinite;}
+@keyframes pulseAnim{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.main{margin-left:56px;padding:24px 28px;}
+
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.page-title{font-family:var(--font-d);font-size:32px;font-weight:800;color:var(--ix-vivid);letter-spacing:-1px;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--gs-light);display:flex;align-items:center;gap:6px;}
+.beta-chip{padding:2px 8px;border-radius:100px;background:rgba(255,215,0,0.12);border:0.5px solid rgba(255,215,0,0.3);color:var(--sem-warn);font-size:10px;font-weight:700;letter-spacing:1px;}
+.page-actions{display:flex;gap:8px;}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;font-family:var(--font-d);font-size:13px;font-weight:600;cursor:pointer;border:none;letter-spacing:.4px;transition:all .2s;}
+.btn-ix{background:linear-gradient(135deg,var(--ix-vivid),var(--ix-deep));color:#fff;box-shadow:0 0 0 0 rgba(0,201,167,0);}
+.btn-ix:hover{box-shadow:0 0 22px rgba(0,201,167,0.4);}
+.btn-steel{background:rgba(42,42,46,0.9);color:var(--gs-muted);border:0.5px solid var(--gs-border);}
+.btn-ghost{background:rgba(0,201,167,0.08);color:var(--ix-glow);border:0.5px solid var(--ix-border);}
+
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.metric{padding:18px 18px 16px;}
+.metric-lbl{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gs-light);margin-bottom:10px;}
+.metric-val{font-family:var(--font-d);font-size:clamp(18px,2.2vw,28px);font-weight:800;color:var(--ix-vivid);letter-spacing:-1px;line-height:1;}
+.metric-sub{font-size:11px;color:var(--gs-muted);margin-top:5px;}
+.pos{color:var(--sem-long);}
+.neg{color:var(--sem-short);}
+
+.spark{width:100%;height:32px;margin-top:10px;display:block;}
+
+.tabs-row{display:flex;align-items:center;gap:6px;margin-bottom:16px;}
+.tab{padding:7px 16px;border-radius:10px;font-family:var(--font-d);font-size:13px;font-weight:600;color:var(--gs-muted);background:rgba(42,42,46,0.7);border:0.5px solid var(--gs-border);cursor:pointer;transition:all .2s;}
+.tab.active{background:rgba(0,201,167,0.15);color:var(--ix-vivid);border-color:var(--ix-hi);}
+.acct-filter{margin-left:auto;display:flex;gap:4px;}
+.acct-btn{padding:5px 12px;border-radius:100px;font-size:11px;font-weight:600;font-family:var(--font-d);background:rgba(42,42,46,0.8);border:0.5px solid var(--gs-border);color:var(--gs-muted);cursor:pointer;transition:all .2s;}
+.acct-btn.on{background:rgba(0,201,167,0.15);border-color:var(--ix-border);color:var(--ix-glow);}
+
+.holdings-table{width:100%;border-collapse:collapse;}
+.holdings-table th{font-family:var(--font-d);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gs-light);padding:10px 14px;text-align:left;border-bottom:0.5px solid rgba(0,201,167,0.1);}
+.holdings-table th:not(:first-child){text-align:right;}
+.holdings-table td{padding:11px 14px;font-size:12px;color:var(--gs-muted);border-bottom:0.5px solid rgba(255,255,255,0.03);transition:background .12s;}
+.holdings-table tr:hover td{background:rgba(0,201,167,0.03);}
+.holdings-table td.sym{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--ix-glow);}
+.holdings-table td.sub{font-family:var(--font-d);font-size:10px;color:var(--gs-light);}
+.holdings-table td.num{font-family:var(--font-m);font-size:11px;text-align:right;}
+.holdings-table td.pos-val{font-family:var(--font-m);font-size:11px;text-align:right;color:var(--sem-long);}
+.holdings-table td.neg-val{font-family:var(--font-m);font-size:11px;text-align:right;color:var(--sem-short);}
+
+.sector-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px;}
+
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:0.5px solid rgba(0,201,167,0.08);}
+.panel-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gs-light);}
+
+.sip-card{padding:16px 18px;}
+.sip-name{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--ix-glow);margin-bottom:4px;}
+.sip-meta{font-family:var(--font-m);font-size:10px;color:var(--gs-light);margin-bottom:10px;}
+.sip-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;}
+.sip-k{color:var(--gs-light);}
+.sip-v{font-family:var(--font-m);color:var(--gs-muted);}
+.status-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;}
+.chip-active{background:rgba(0,201,167,0.15);color:var(--ix-vivid);border:0.5px solid rgba(0,201,167,0.35);}
+.chip-paused{background:rgba(255,215,0,0.12);color:var(--sem-warn);border:0.5px solid rgba(255,215,0,0.3);}
+.dot-live{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulseAnim 2s infinite;}
+
+.divider{height:0.5px;background:linear-gradient(90deg,transparent,rgba(0,201,167,0.25),transparent);margin:24px 0;}
+
+.legend-row{display:flex;gap:20px;align-items:center;margin-bottom:10px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gs-muted);}
+
+.equity-curve{padding:0 16px 16px;}
+.curve-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px;}
+
+.ref-badge{position:absolute;top:16px;right:16px;padding:3px 10px;border-radius:6px;background:rgba(0,201,167,0.1);border:0.5px solid rgba(0,201,167,0.2);font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--ix-glow);text-transform:uppercase;}
+
+.section-lbl{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gs-light);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.section-lbl::after{content:'';flex:1;height:0.5px;background:rgba(0,201,167,0.15);}
+</style>
+</head>
+<body>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo-mark">IX</div>
+  <nav style="display:flex;flex-direction:column;gap:3px;flex:1;">
+    <div class="nav-icon active" title="Portfolio">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+    </div>
+    <div class="nav-icon" title="SIP Engine">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div class="nav-icon" title="IPO Bot">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    </div>
+    <div class="nav-icon" title="Watchlist">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    <div class="nav-icon" title="Analysis">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    </div>
+  </nav>
+  <div class="nav-icon" style="margin-top:auto;color:var(--gs-light);" title="Sign out">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tbar-left">
+    <div class="avatar">KJ</div>
+    <span class="welcome">Welcome, <strong>Karthikeyan</strong></span>
+    <span class="time-badge">IST 09:48:05 am</span>
+  </div>
+  <div class="tbar-right">
+    <div class="pill pill-steel">All Accounts ▾</div>
+    <div class="pill pill-ix"><span class="pulse"></span>INVEX BETA</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- Page header -->
+  <div class="page-hdr">
+    <div>
+      <div class="page-title">Portfolio</div>
+      <div class="page-sub">
+        37 stocks · 9 funds · all accounts
+        <span class="beta-chip">BETA</span>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-steel">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-ix">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero metric cards -->
+  <div class="metrics">
+    <div class="glass cloud metric" style="position:relative;">
+      <div class="ref-badge">Primary</div>
+      <div class="metric-lbl">Total Portfolio</div>
+      <div class="metric-val">₹48.8L</div>
+      <div class="metric-sub">across 3 accounts</div>
+      <svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none">
+        <polyline points="0,28 20,22 40,25 60,14 80,17 100,8 120,5 120,32 0,32" fill="rgba(0,201,167,0.07)" stroke="none"/>
+        <polyline points="0,28 20,22 40,25 60,14 80,17 100,8 120,5" fill="none" stroke="#00C9A7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="glass cloud metric">
+      <div class="metric-lbl">Total P&L</div>
+      <div class="metric-val pos">+₹4.2L</div>
+      <div class="metric-sub pos">+9.4% overall</div>
+    </div>
+    <div class="glass cloud metric">
+      <div class="metric-lbl">Day P&L</div>
+      <div class="metric-val neg">−₹12,480</div>
+      <div class="metric-sub neg">−0.26% today</div>
+    </div>
+    <div class="glass cloud metric">
+      <div class="metric-lbl">XIRR</div>
+      <div class="metric-val" style="color:var(--ix-ultra);">14.8%</div>
+      <div class="metric-sub">annualised return</div>
+    </div>
+    <div class="glass cloud metric">
+      <div class="metric-lbl">Invested</div>
+      <div class="metric-val" style="font-size:22px;">₹44.6L</div>
+      <div class="metric-sub">total cost basis</div>
+    </div>
+  </div>
+
+  <!-- Tabs + Account filter -->
+  <div class="tabs-row">
+    <div class="tab active">Equity</div>
+    <div class="tab">Mutual Funds</div>
+    <div class="tab">Equity Curve</div>
+    <div class="acct-filter">
+      <div class="acct-btn on">All</div>
+      <div class="acct-btn">Karthik</div>
+      <div class="acct-btn">Mom</div>
+      <div class="acct-btn">Wife</div>
+    </div>
+  </div>
+
+  <!-- Holdings Table -->
+  <div class="glass" style="padding:0;overflow:hidden;margin-bottom:20px;">
+    <div class="panel-hdr">
+      <div class="panel-title">Equity Holdings · 37 stocks</div>
+      <div style="display:flex;gap:6px;">
+        <span class="status-chip chip-active"><span class="dot-live"></span>Live</span>
+        <button class="btn btn-steel" style="padding:5px 12px;font-size:11px;">Sort ▾</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="holdings-table">
+        <thead>
+          <tr>
+            <th>Stock</th>
+            <th style="text-align:right;">Qty</th>
+            <th style="text-align:right;">Avg Price</th>
+            <th style="text-align:right;">LTP</th>
+            <th style="text-align:right;">P&L</th>
+            <th style="text-align:right;">P&L %</th>
+            <th style="text-align:right;">Day Chg</th>
+            <th style="text-align:right;">Account</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="sym">RELIANCE</div><div class="sub">Energy · Karthik</div></td>
+            <td class="num">10</td>
+            <td class="num">2,640.00</td>
+            <td class="num">2,890.50</td>
+            <td class="pos-val">+₹2,505</td>
+            <td class="pos-val">+9.49%</td>
+            <td class="pos-val">+₹180</td>
+            <td class="num" style="color:var(--ix-glow);">Karthik</td>
+          </tr>
+          <tr>
+            <td><div class="sym">HDFCBANK</div><div class="sub">Banking · Mom</div></td>
+            <td class="num">25</td>
+            <td class="num">1,580.00</td>
+            <td class="num">1,720.30</td>
+            <td class="pos-val">+₹3,508</td>
+            <td class="pos-val">+8.88%</td>
+            <td class="neg-val">−₹225</td>
+            <td class="num" style="color:var(--ix-glow);">Mom</td>
+          </tr>
+          <tr>
+            <td><div class="sym">INFY</div><div class="sub">Technology · Mom</div></td>
+            <td class="num">15</td>
+            <td class="num">1,820.00</td>
+            <td class="num">1,744.85</td>
+            <td class="neg-val">−₹1,127</td>
+            <td class="neg-val">−4.13%</td>
+            <td class="neg-val">−₹360</td>
+            <td class="num" style="color:var(--ix-glow);">Mom</td>
+          </tr>
+          <tr>
+            <td><div class="sym">TCS</div><div class="sub">Technology · Karthik</div></td>
+            <td class="num">5</td>
+            <td class="num">3,900.00</td>
+            <td class="num">4,210.00</td>
+            <td class="pos-val">+₹1,550</td>
+            <td class="pos-val">+7.95%</td>
+            <td class="pos-val">+₹95</td>
+            <td class="num" style="color:var(--ix-glow);">Karthik</td>
+          </tr>
+          <tr style="opacity:0.5;">
+            <td colspan="8" style="text-align:center;padding:8px 14px;font-size:11px;color:var(--gs-light);">+ 33 more holdings...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom 2-col: Sector + Equity Curve -->
+  <div class="grid2">
+
+    <!-- Sector allocation -->
+    <div class="glass cloud" style="padding:0;overflow:hidden;">
+      <div class="panel-hdr">
+        <div class="panel-title">Sector Allocation</div>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;">Details</button>
+      </div>
+      <div style="padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="sector-dot" style="background:#00C9A7;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gs-muted);">Technology</span><span style="color:var(--ix-glow);font-family:var(--font-m);">32%</span></div>
+            <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:32%;background:var(--ix-vivid);border-radius:2px;"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="sector-dot" style="background:#007A67;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gs-muted);">Banking & Finance</span><span style="color:var(--ix-glow);font-family:var(--font-m);">28%</span></div>
+            <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:28%;background:#007A67;border-radius:2px;"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="sector-dot" style="background:#5EECD8;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gs-muted);">Energy</span><span style="color:var(--ix-glow);font-family:var(--font-m);">18%</span></div>
+            <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:18%;background:#5EECD8;border-radius:2px;"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="sector-dot" style="background:#009E84;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gs-muted);">FMCG</span><span style="color:var(--ix-glow);font-family:var(--font-m);">12%</span></div>
+            <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:12%;background:#009E84;border-radius:2px;"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="sector-dot" style="background:#5A5A61;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--gs-muted);">Others</span><span style="color:var(--ix-glow);font-family:var(--font-m);">10%</span></div>
+            <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:10%;background:#5A5A61;border-radius:2px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equity Curve preview -->
+    <div class="glass cloud" style="padding:0;overflow:hidden;">
+      <div class="panel-hdr">
+        <div class="panel-title">Equity Curve</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-steel" style="padding:4px 10px;font-size:11px;">1M</button>
+          <button class="btn btn-ix" style="padding:4px 10px;font-size:11px;">3M</button>
+          <button class="btn btn-steel" style="padding:4px 10px;font-size:11px;">1Y</button>
+          <button class="btn btn-steel" style="padding:4px 10px;font-size:11px;">All</button>
+        </div>
+      </div>
+      <div style="padding:14px 18px 16px;">
+        <div style="font-family:var(--font-d);font-size:22px;font-weight:800;color:var(--ix-vivid);letter-spacing:-1px;margin-bottom:2px;">₹48,80,947</div>
+        <div style="font-size:11px;color:var(--sem-long);">▲ +₹4,21,230  +9.4% since inception</div>
+        <svg width="100%" height="80" viewBox="0 0 400 80" preserveAspectRatio="none" style="margin-top:14px;display:block;">
+          <defs>
+            <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00C9A7" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#00C9A7" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,70 C30,68 50,60 80,55 S120,45 150,42 S200,35 230,30 S270,22 300,18 S350,12 400,8 L400,80 L0,80Z" fill="url(#curveGrad)"/>
+          <path d="M0,70 C30,68 50,60 80,55 S120,45 150,42 S200,35 230,30 S270,22 300,18 S350,12 400,8" fill="none" stroke="#00C9A7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- SIP section preview -->
+  <div class="section-lbl">SIP Engine — Phase 2</div>
+  <div class="grid3">
+    <div class="glass cloud sip-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div class="sip-name">HDFCBANK</div>
+        <span class="status-chip chip-active"><span class="dot-live"></span>Active</span>
+      </div>
+      <div class="sip-meta">Karthik · Angel One · Monthly 5th</div>
+      <div class="sip-row"><span class="sip-k">Amount</span><span class="sip-v">₹10,000</span></div>
+      <div class="sip-row"><span class="sip-k">Invested</span><span class="sip-v">₹1,20,000</span></div>
+      <div class="sip-row"><span class="sip-k">Current</span><span class="sip-v pos">₹1,32,400</span></div>
+      <div class="sip-row"><span class="sip-k">XIRR</span><span class="sip-v" style="color:var(--ix-vivid);">14.2%</span></div>
+      <div class="sip-row"><span class="sip-k">Next</span><span class="sip-v">05 May 2026</span></div>
+    </div>
+    <div class="glass cloud sip-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div class="sip-name">RELIANCE</div>
+        <span class="status-chip chip-paused">Paused</span>
+      </div>
+      <div class="sip-meta">Mom · Angel One · Weekly Mon</div>
+      <div class="sip-row"><span class="sip-k">Amount</span><span class="sip-v">₹5,000</span></div>
+      <div class="sip-row"><span class="sip-k">Invested</span><span class="sip-v">₹60,000</span></div>
+      <div class="sip-row"><span class="sip-k">Current</span><span class="sip-v pos">₹64,200</span></div>
+      <div class="sip-row"><span class="sip-k">XIRR</span><span class="sip-v" style="color:var(--ix-vivid);">9.8%</span></div>
+      <div class="sip-row"><span class="sip-k">Next</span><span class="sip-v" style="color:var(--sem-warn);">Paused</span></div>
+    </div>
+    <div class="glass cloud sip-card" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;min-height:160px;border-style:dashed;border-color:rgba(0,201,167,0.2);cursor:pointer;">
+      <div style="width:32px;height:32px;border-radius:8px;border:1.5px dashed rgba(0,201,167,0.35);display:flex;align-items:center;justify-content:center;color:var(--ix-border);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span style="font-size:12px;color:var(--gs-light);">Add New SIP</span>
+    </div>
+  </div>
+
+  <div style="margin-top:40px;text-align:center;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gs-light);">
+    INVEX Design Reference · Teal Accent · LIFEX Intelligence Suite
+  </div>
+
+</div>
+</body>
+</html>
