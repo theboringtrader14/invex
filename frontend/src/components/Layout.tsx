@@ -32,13 +32,6 @@ const IconAnalysis = () => (
     <line x1="6" y1="20" x2="6" y2="14"/>
   </svg>
 )
-const IconLogout = () => (
-  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-)
 
 const NAV = [
   { path: "/portfolio", label: "Portfolio",  Icon: IconPortfolio },
@@ -48,15 +41,10 @@ const NAV = [
   { path: "/analysis",  label: "Analysis",   Icon: IconAnalysis },
 ]
 
-type Notification = { id: number; type: string; message: string; time: string }
-
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [istTime, setIstTime] = useState("")
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [showNotif, setShowNotif] = useState(false)
-  const [unread, setUnread] = useState(0)
 
   useEffect(() => {
     const tick = () =>
@@ -69,18 +57,6 @@ export default function Layout() {
   }, [])
 
   const logout = () => { localStorage.removeItem("staax_token"); navigate("/login") }
-
-  const addNotification = (n: Omit<Notification, "id" | "time">) => {
-    const entry: Notification = {
-      ...n, id: Date.now(),
-      time: new Date().toLocaleTimeString("en-IN", {
-        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit",
-      }),
-    }
-    setNotifications(prev => [entry, ...prev.slice(0, 49)])
-    setUnread(u => u + 1)
-  }
-  ;(window as any).__invex_notify = addNotification
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--bg-void)", overflow: "hidden", position: "relative" }}>
@@ -141,30 +117,6 @@ export default function Layout() {
             )
           })}
         </div>
-
-        {/* Logout */}
-        <button
-          onClick={logout}
-          title="Logout"
-          onMouseEnter={e => {
-            const b = e.currentTarget
-            b.style.color = "#FF4444"
-            b.style.background = "rgba(255,68,68,0.08)"
-          }}
-          onMouseLeave={e => {
-            const b = e.currentTarget
-            b.style.color = "var(--gs-light)"
-            b.style.background = "transparent"
-          }}
-          style={{
-            width: "40px", height: "40px", borderRadius: "10px",
-            background: "transparent", border: "none", cursor: "pointer",
-            color: "var(--gs-light)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "all 0.15s",
-          }}>
-          <IconLogout />
-        </button>
       </nav>
 
       {/* ── RIGHT PANEL ── */}
@@ -181,104 +133,56 @@ export default function Layout() {
           justifyContent: "space-between",
           padding: "0 20px",
         }}>
-          {/* Left — avatar · welcome · IST */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{
-              width: "26px", height: "26px", borderRadius: "7px",
-              background: "linear-gradient(135deg, #00C9A7, #007A67)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "9px", fontWeight: 800, color: "#fff", letterSpacing: "0.3px",
-            }}>KJ</div>
-            <span style={{ fontSize: "13px", color: "var(--gs-muted)" }}>
-              Welcome, <strong style={{ color: "var(--ix-glow)", fontWeight: 600 }}>Karthikeyan</strong>
-            </span>
+          {/* Left — Welcome · name · separator · IST */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+            <span style={{ fontSize: 12, color: "rgba(232,232,248,0.6)" }}>Welcome,&nbsp;</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#F0F0FF", fontFamily: "Syne" }}>Karthikeyan</span>
+            <span style={{
+              display: "inline-block",
+              width: "1px", height: "16px",
+              background: "rgba(255,255,255,0.15)",
+              margin: "0 12px",
+            }} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--ix-ultra)", opacity: 0.75 }}>
               IST {istTime}
             </span>
           </div>
 
-          {/* Right — INVEX BETA pill · bell */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* INVEX BETA pill */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              padding: "4px 12px", borderRadius: "var(--r-pill)",
-              background: "rgba(0,201,167,0.12)",
-              border: "0.5px solid var(--ix-border)",
-              fontSize: "11px", fontWeight: 700,
-              color: "var(--ix-vivid)", letterSpacing: "0.5px",
-              fontFamily: "var(--font-display)",
-            }}>
-              <span style={{
-                width: "6px", height: "6px", borderRadius: "50%",
-                background: "var(--ix-vivid)",
-                animation: "pulseLive 2s ease-out infinite",
-                flexShrink: 0,
-              }} />
-              INVEX BETA
-            </div>
-
-            {/* Notification bell */}
-            <button
-              onClick={() => { setShowNotif(s => !s); setUnread(0) }}
-              style={{
-                width: "30px", height: "30px", borderRadius: "var(--r-sm)",
-                border: `0.5px solid ${showNotif ? "var(--ix-border)" : "var(--gs-border)"}`,
-                background: showNotif ? "var(--ix-ghost)" : "rgba(42,42,46,0.7)",
-                cursor: "pointer", color: "var(--gs-muted)", fontSize: "13px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                position: "relative", transition: "all 0.15s",
-              }}>
-              🔔
-              {unread > 0 && (
-                <span style={{
-                  position: "absolute", top: "5px", right: "5px",
-                  width: "6px", height: "6px", borderRadius: "50%",
-                  background: "var(--sem-short)",
-                }} />
-              )}
-            </button>
-          </div>
+          {/* Right — logout button */}
+          <button
+            onClick={logout}
+            title="Logout"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "32px", height: "32px", borderRadius: "9px",
+              background: "rgba(255,255,255,0.03)",
+              border: "0.5px solid rgba(255,255,255,0.08)",
+              cursor: "pointer", color: "rgba(255,255,255,0.4)",
+              transition: "all 0.18s ease", flexShrink: 0,
+            }}
+            onMouseEnter={e => {
+              const b = e.currentTarget
+              b.style.color = "rgba(255,255,255,0.9)"
+              b.style.background = "rgba(255,255,255,0.08)"
+              b.style.borderColor = "rgba(255,255,255,0.20)"
+            }}
+            onMouseLeave={e => {
+              const b = e.currentTarget
+              b.style.color = "rgba(255,255,255,0.4)"
+              b.style.background = "rgba(255,255,255,0.03)"
+              b.style.borderColor = "rgba(255,255,255,0.08)"
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path d="M6 2H3a1 1 0 00-1 1v9a1 1 0 001 1h3M10 10l3-2.5L10 5M13 7.5H6"
+                stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </header>
-
-        {/* Notification panel */}
-        {showNotif && (
-          <div style={{
-            position: "absolute", top: "46px", right: 0, width: "300px",
-            height: "calc(100% - 46px)",
-            background: "rgba(14,14,18,0.97)",
-            backdropFilter: "blur(20px)",
-            borderLeft: "0.5px solid rgba(0,201,167,0.12)",
-            zIndex: 200, overflow: "auto",
-          }}>
-            <div style={{
-              padding: "12px 16px",
-              borderBottom: "0.5px solid rgba(0,201,167,0.08)",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
-              <span style={{ fontWeight: 700, fontSize: "12px", color: "var(--gs-muted)" }}>Notifications</span>
-              <button onClick={() => setShowNotif(false)} style={{
-                background: "none", border: "none", cursor: "pointer",
-                color: "var(--gs-light)", fontSize: "18px", lineHeight: 1,
-              }}>×</button>
-            </div>
-            {notifications.length === 0
-              ? <div style={{ padding: "32px 16px", color: "var(--gs-light)", fontSize: "12px", textAlign: "center" }}>
-                  No notifications yet
-                </div>
-              : notifications.map(n => (
-                <div key={n.id} style={{ padding: "10px 16px", borderBottom: "0.5px solid rgba(255,255,255,0.03)" }}>
-                  <div style={{ fontSize: "11px", color: "var(--gs-muted)" }}>{n.message}</div>
-                  <div style={{ fontSize: "10px", color: "var(--gs-light)", marginTop: "3px" }}>{n.time}</div>
-                </div>
-              ))
-            }
-          </div>
-        )}
 
         {/* Page content */}
         <main style={{ flex: 1, overflow: "hidden", height: 0 }}>
-          <Outlet context={{ addNotification }} />
+          <Outlet />
         </main>
       </div>
     </div>

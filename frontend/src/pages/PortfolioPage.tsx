@@ -21,12 +21,13 @@ type Summary = {
   xirr?: number; holdings_count: number; mf_count: number
 }
 type Snapshot = { date: string; total_value: number; invested?: number; pnl?: number }
+// 3b: sort key stored in localStorage
 type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
+const LS_SORT_KEY = "invex_holdings_sort"
 
 /* ─── Helpers ────────────────────────────────────── */
-// Strip broker suffixes for display
 const displaySym = (s: string) => s.replace(/-EQ$/i, "").replace(/-BE$/i, "")
 
 const fmt = (n?: number) =>
@@ -77,10 +78,50 @@ function MiniSparkline({ data }: { data: number[] }) {
   }).join(" ")
   const fill = `${pts} ${W},${H} 0,${H}`
   return (
-    <svg width="100%" height="32" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block", marginTop: "10px" }}>
+    <svg width="100%" height="32" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+      style={{ display: "block", marginTop: "10px" }}>
       <polyline points={fill} fill="rgba(0,201,167,0.07)" stroke="none" />
-      <polyline points={pts} fill="none" stroke="#00C9A7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke="#00C9A7" strokeWidth="1.5"
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+/* ─── InsightCard ────────────────────────────────── */
+function InsightCard({
+  title, holdings, pick, subFn, subColor,
+}: {
+  title: string
+  holdings: Holding[]
+  pick: (hs: Holding[]) => Holding | null
+  subFn: (h: Holding) => string
+  subColor: string
+}) {
+  const h = holdings.length ? pick(holdings) : null
+  return (
+    <div className="glass cloud-fill" style={{
+      padding: "10px 14px", overflow: "hidden",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      height: "100%", boxSizing: "border-box",
+    }}>
+      <div style={{
+        fontSize: "9px", fontWeight: 700, letterSpacing: "2px",
+        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "8px",
+      }}>{title}</div>
+      <div style={{
+        fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 700,
+        color: "#F0F0FF", letterSpacing: "-0.3px", lineHeight: 1.2,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        {h ? displaySym(h.symbol) : "—"}
+      </div>
+      <div style={{
+        fontFamily: "var(--font-mono)", fontSize: "11px",
+        color: h ? subColor : "var(--gs-muted)", marginTop: "4px",
+      }}>
+        {h ? subFn(h) : "—"}
+      </div>
+    </div>
   )
 }
 
@@ -141,7 +182,7 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
   )
 }
 
-/* ─── EquityCurve ────────────────────────────────── */
+/* ─── EquityCurve — cloud-fill applied (task 3d) ─── */
 type TimeRange = "1M" | "3M" | "1Y" | "All"
 
 function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
@@ -171,9 +212,9 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
   const ptsStr = pts.join(" ")
   const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
 
+  // 3d: cloud-fill + glass
   return (
-    <div className="glass" style={{ overflow: "hidden" }}>
-      {/* No borderBottom on header — task 2h */}
+    <div className="glass cloud-fill" style={{ overflow: "hidden", position: "relative" }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 10px",
@@ -197,8 +238,10 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
       </div>
       <div style={{ padding: "10px 18px 16px" }}>
         {data.length < 2 ? (
-          <div style={{ height: "100px", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "12px", color: "var(--gs-light)" }}>
+          <div style={{
+            height: "100px", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "12px", color: "var(--gs-light)",
+          }}>
             No snapshot data available
           </div>
         ) : (
@@ -214,7 +257,8 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
                 stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
             ))}
             <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
-            <polyline points={ptsStr} fill="none" stroke="#00C9A7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={ptsStr} fill="none" stroke="#00C9A7" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </div>
@@ -229,23 +273,38 @@ function HoldingsTable({
   holdings: Holding[]
   accountMap: Record<string, string>
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>("pnl")
-  const [sortAsc, setSortAsc] = useState(false)
+  // 3b: persist sort in localStorage, default symbol A→Z
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    const saved = localStorage.getItem(LS_SORT_KEY)
+    return (saved as SortKey) || "symbol"
+  })
+  const [sortAsc, setSortAsc] = useState<boolean>(() => {
+    const saved = localStorage.getItem(LS_SORT_KEY + "_asc")
+    return saved !== null ? saved === "true" : true   // default A→Z = asc
+  })
+
+  const toggleSort = (key: SortKey) => {
+    let nextAsc: boolean
+    if (sortKey === key) {
+      nextAsc = !sortAsc
+    } else {
+      nextAsc = key === "symbol"   // symbol defaults asc, numbers desc
+    }
+    setSortKey(key)
+    setSortAsc(nextAsc)
+    localStorage.setItem(LS_SORT_KEY, key)
+    localStorage.setItem(LS_SORT_KEY + "_asc", String(nextAsc))
+  }
 
   const sorted = [...holdings].sort((a, b) => {
     let va: number | string = 0; let vb: number | string = 0
-    if (sortKey === "symbol") { va = a.symbol; vb = b.symbol }
+    if (sortKey === "symbol") { va = displaySym(a.symbol); vb = displaySym(b.symbol) }
     else if (sortKey === "pnl") { va = a.pnl ?? 0; vb = b.pnl ?? 0 }
     else if (sortKey === "pnl_pct") { va = a.pnl_pct ?? 0; vb = b.pnl_pct ?? 0 }
     else if (sortKey === "current_value") { va = a.current_value ?? 0; vb = b.current_value ?? 0 }
     if (typeof va === "string") return sortAsc ? va.localeCompare(vb as string) : (vb as string).localeCompare(va)
     return sortAsc ? va - (vb as number) : (vb as number) - va
   })
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortAsc(a => !a)
-    else { setSortKey(key); setSortAsc(false) }
-  }
 
   const SortIcon = ({ k }: { k: SortKey }) => (
     <span style={{ opacity: sortKey === k ? 1 : 0.3, marginLeft: "3px", fontSize: "9px" }}>
@@ -261,27 +320,33 @@ function HoldingsTable({
     )
   }
 
+  // 3c: center for numerics, left for symbol
+  const numStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "center",
+  }
+
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="holdings-table">
         <thead>
           <tr>
-            {/* Stock — left aligned */}
-            <th onClick={() => toggleSort("symbol")} style={{ cursor: "pointer", textAlign: "left" }}>
+            <th onClick={() => toggleSort("symbol")}
+              style={{ cursor: "pointer", textAlign: "left" }}>
               Stock <SortIcon k="symbol" />
             </th>
-            {/* Numeric columns — right aligned (CSS handles th:not(:first-child)) */}
-            <th>Qty</th>
-            <th>Avg Price</th>
-            <th>LTP</th>
-            <th onClick={() => toggleSort("pnl")} style={{ cursor: "pointer" }}>
+            <th style={{ textAlign: "center" }}>Qty</th>
+            <th style={{ textAlign: "center" }}>Avg Price</th>
+            <th style={{ textAlign: "center" }}>LTP</th>
+            <th onClick={() => toggleSort("pnl")}
+              style={{ cursor: "pointer", textAlign: "center" }}>
               P&amp;L <SortIcon k="pnl" />
             </th>
-            <th onClick={() => toggleSort("pnl_pct")} style={{ cursor: "pointer" }}>
+            <th onClick={() => toggleSort("pnl_pct")}
+              style={{ cursor: "pointer", textAlign: "center" }}>
               P&amp;L% <SortIcon k="pnl_pct" />
             </th>
-            <th>Day Chg</th>
-            <th>Account</th>
+            <th style={{ textAlign: "center" }}>Day Chg</th>
+            <th style={{ textAlign: "center" }}>Account</th>
           </tr>
         </thead>
         <tbody>
@@ -290,43 +355,41 @@ function HoldingsTable({
             const acct = accountMap[h.account_id] ?? h.account_id.slice(0, 8)
             return (
               <tr key={h.id}>
-                {/* Stock name — no sub-label (task 2b) */}
                 <td style={{ textAlign: "left" }}>
                   <span className="td-sym">{sym}</span>
                 </td>
-                {/* Qty */}
-                <td className="td-num">{h.qty}</td>
-                {/* Avg Price */}
-                <td className="td-num">
+                <td style={numStyle}>{h.qty}</td>
+                <td style={numStyle}>
                   ₹{h.avg_price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                 </td>
-                {/* LTP — white (neutral current price, task 2d) */}
-                <td className="td-ltp">
+                {/* LTP — white, neutral current price */}
+                <td style={{ ...numStyle, color: "#fff" }}>
                   {h.ltp ? `₹${h.ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}
                 </td>
-                {/* P&L — green/red (task 2d) */}
+                {/* P&L */}
                 <td style={{
-                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  ...numStyle,
                   color: h.pnl != null ? (h.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
                 }}>
                   {h.pnl != null ? `${h.pnl >= 0 ? "+" : ""}${fmt(h.pnl)}` : "—"}
                 </td>
-                {/* P&L% — green/red (task 2d) */}
+                {/* P&L% */}
                 <td style={{
-                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  ...numStyle,
                   color: h.pnl_pct != null ? (h.pnl_pct >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
                 }}>
                   {fmtPct(h.pnl_pct)}
                 </td>
-                {/* Day Chg — green/red (task 2d) */}
+                {/* Day Chg */}
                 <td style={{
-                  fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                  ...numStyle,
                   color: h.day_change != null ? (h.day_change >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
                 }}>
                   {h.day_change != null ? `${h.day_change >= 0 ? "+" : ""}${fmt(h.day_change)}` : "—"}
                 </td>
-                {/* Account */}
-                <td className="td-acct">{acct}</td>
+                <td style={{ ...numStyle, fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--ix-glow)" }}>
+                  {acct}
+                </td>
               </tr>
             )
           })}
@@ -345,17 +408,20 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
       </div>
     )
   }
+  const numStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "center",
+  }
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="holdings-table">
         <thead>
           <tr>
             <th style={{ textAlign: "left" }}>Fund</th>
-            <th>Units</th>
-            <th>NAV</th>
-            <th>Invested</th>
-            <th>Current Value</th>
-            <th>P&amp;L</th>
+            <th style={{ textAlign: "center" }}>Units</th>
+            <th style={{ textAlign: "center" }}>NAV</th>
+            <th style={{ textAlign: "center" }}>Invested</th>
+            <th style={{ textAlign: "center" }}>Current Value</th>
+            <th style={{ textAlign: "center" }}>P&amp;L</th>
           </tr>
         </thead>
         <tbody>
@@ -364,12 +430,12 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
               <td style={{ textAlign: "left" }}>
                 <span className="td-sym" style={{ fontSize: "12px" }}>{f.fund_name}</span>
               </td>
-              <td className="td-num">{f.units.toFixed(3)}</td>
-              <td className="td-num">{f.nav ? `₹${f.nav.toFixed(2)}` : "—"}</td>
-              <td className="td-num">{fmt(f.invested_amount)}</td>
-              <td className="td-num">{fmt(f.current_value)}</td>
+              <td style={numStyle}>{f.units.toFixed(3)}</td>
+              <td style={numStyle}>{f.nav ? `₹${f.nav.toFixed(2)}` : "—"}</td>
+              <td style={numStyle}>{fmt(f.invested_amount)}</td>
+              <td style={numStyle}>{fmt(f.current_value)}</td>
               <td style={{
-                fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "right",
+                ...numStyle,
                 color: f.pnl != null ? (f.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
               }}>
                 {f.pnl != null ? `${f.pnl >= 0 ? "+" : ""}${fmt(f.pnl)}` : "—"}
@@ -383,15 +449,16 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
 }
 
 /* ─── Main Page ──────────────────────────────────── */
-type ActiveTab = "equity" | "mf" | "curve"
+// 3a: removed "curve" tab — Equity Curve is always a card
+type ActiveTab = "equity" | "mf"
 
 export default function PortfolioPage() {
-  const [summary, setSummary]   = useState<Summary | null>(null)
-  const [holdings, setHoldings] = useState<Holding[]>([])
-  const [mf, setMF]             = useState<MFHolding[]>([])
+  const [summary, setSummary]     = useState<Summary | null>(null)
+  const [holdings, setHoldings]   = useState<Holding[]>([])
+  const [mf, setMF]               = useState<MFHolding[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [accountMap, setAccountMap] = useState<Record<string, string>>({})
-  const [loading, setLoading]   = useState(true)
+  const [loading, setLoading]     = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
@@ -407,7 +474,7 @@ export default function PortfolioPage() {
         accts.forEach(a => { map[a.id] = a.nickname })
         setAccountMap(map)
       }
-    } catch { /* STAAX may be down — continue */ }
+    } catch { /* STAAX may be down */ }
 
     try {
       const [s, h, m, snap] = await Promise.all([
@@ -474,7 +541,10 @@ export default function PortfolioPage() {
     }}>
 
       {/* ── Page header ── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px", flexShrink: 0 }}>
+      <div style={{
+        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+        marginBottom: "16px", flexShrink: 0,
+      }}>
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
@@ -521,7 +591,8 @@ export default function PortfolioPage() {
           }}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
@@ -531,7 +602,7 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ── 4-column Metric Cards (XIRR removed — task 2e) ── */}
+      {/* ── 4-column Metric Cards ── */}
       <div className="grid-4" style={{ marginBottom: "16px", flexShrink: 0 }}>
         <MetricCard
           label="Total Portfolio"
@@ -557,12 +628,12 @@ export default function PortfolioPage() {
         />
       </div>
 
-      {/* ── Tabs + Account filter ── */}
+      {/* ── Tabs + Account filter — Equity | Mutual Funds only (3a) ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: "6px",
         marginBottom: "14px", flexWrap: "wrap", flexShrink: 0,
       }}>
-        {(["equity", "mf", "curve"] as ActiveTab[]).map(tab => (
+        {(["equity", "mf"] as ActiveTab[]).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             style={{
               padding: "7px 16px", borderRadius: "var(--r-md)",
@@ -572,7 +643,7 @@ export default function PortfolioPage() {
               color: activeTab === tab ? "var(--ix-vivid)" : "var(--gs-muted)",
               cursor: "pointer", transition: "all 0.2s",
             }}>
-            {tab === "equity" ? "Equity" : tab === "mf" ? "Mutual Funds" : "Equity Curve"}
+            {tab === "equity" ? "Equity" : "Mutual Funds"}
           </button>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
@@ -591,45 +662,128 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ── Equity Curve tab (full width) ── */}
-      {activeTab === "curve" && (
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <EquityCurve snapshots={snapshots} />
-        </div>
-      )}
-
-      {/* ── Sector + Equity Curve row — ABOVE the table ── */}
-      {(activeTab === "equity" || activeTab === "mf") && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px", flexShrink: 0 }}>
-          <SectorAllocation holdings={filteredHoldings} />
-          <EquityCurve snapshots={snapshots} />
-        </div>
-      )}
-
-      {/* ── Holdings Table (fixed height, internal scroll only) ── */}
+      {/* ── Insight cards + Sector + Equity Curve — equity tab only ── */}
       {activeTab === "equity" && (
-        <div className="glass" style={{ overflow: "hidden", flex: 1, minHeight: 0 }}>
-          <div className="panel-hdr" style={{ flexShrink: 0 }}>
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr 2fr",
+          gap: "12px", marginBottom: "14px", flexShrink: 0,
+          alignItems: "stretch",
+        }}>
+          {/* Col 1 — 5 insight cards in a grid, equal height rows stretching to sector height */}
+          <div style={{ display: "grid", gridTemplateRows: "repeat(5, 1fr)", gap: "8px", height: "100%" }}>
+            <InsightCard
+              title="TOP HOLDING"
+              holdings={filteredHoldings}
+              pick={hs => hs.reduce((best, h) =>
+                (h.current_value ?? 0) > (best.current_value ?? 0) ? h : best
+              , hs[0])}
+              subFn={h => fmt(h.current_value)}
+              subColor="var(--gs-muted)"
+            />
+            <InsightCard
+              title="TOP PROFIT"
+              holdings={filteredHoldings}
+              pick={hs => hs.reduce((best, h) =>
+                (h.pnl ?? -Infinity) > (best.pnl ?? -Infinity) ? h : best
+              , hs[0])}
+              subFn={h => h.pnl != null ? `+${fmt(h.pnl)}` : "—"}
+              subColor="var(--sem-long)"
+            />
+            <InsightCard
+              title="TOP LOSS"
+              holdings={filteredHoldings}
+              pick={hs => hs.reduce((best, h) =>
+                (h.pnl ?? Infinity) < (best.pnl ?? Infinity) ? h : best
+              , hs[0])}
+              subFn={h => h.pnl != null ? fmt(h.pnl) : "—"}
+              subColor="var(--sem-short)"
+            />
+            <InsightCard
+              title="TOP GAINER"
+              holdings={filteredHoldings}
+              pick={hs => {
+                const withDay = hs.filter(h => h.day_change != null)
+                if (!withDay.length) return null
+                return withDay.reduce((best, h) =>
+                  (h.day_change ?? -Infinity) > (best.day_change ?? -Infinity) ? h : best
+                , withDay[0])
+              }}
+              subFn={h => h.day_change != null ? `+${fmt(h.day_change)}` : "—"}
+              subColor="var(--sem-long)"
+            />
+            <InsightCard
+              title="TOP LOSER"
+              holdings={filteredHoldings}
+              pick={hs => {
+                const withDay = hs.filter(h => h.day_change != null)
+                if (!withDay.length) return null
+                return withDay.reduce((best, h) =>
+                  (h.day_change ?? Infinity) < (best.day_change ?? Infinity) ? h : best
+                , withDay[0])
+              }}
+              subFn={h => h.day_change != null ? fmt(h.day_change) : "—"}
+              subColor="var(--sem-short)"
+            />
+          </div>
+          {/* Col 2 — Sector Allocation */}
+          <SectorAllocation holdings={filteredHoldings} />
+          {/* Col 3 — Equity Curve (2fr) */}
+          <EquityCurve snapshots={snapshots} />
+        </div>
+      )}
+
+      {/* ── Holdings — 3e: outer glass cloud-fill + inner dark table container ── */}
+      {activeTab === "equity" && (
+        <div className="glass cloud-fill" style={{
+          overflow: "hidden", flex: 1, minHeight: 0,
+          position: "relative",
+          border: "0.5px solid var(--ix-border)",
+        }}>
+          <div className="panel-hdr" style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
             <div className="panel-title">Equity Holdings · {filteredHoldings.length} stocks</div>
             <span className="status-chip chip-active">
               <span className="dot-live" />
               Live
             </span>
           </div>
-          <div style={{ height: "calc(100% - 41px)", overflowY: "auto", overflowX: "auto" }}>
-            <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+          {/* Inner dark container — no cloud-fill, just the table */}
+          <div style={{
+            margin: "0 12px 12px",
+            background: "rgba(10,10,11,0.85)",
+            border: "0.5px solid rgba(255,255,255,0.06)",
+            borderRadius: "10px",
+            overflow: "hidden",
+            height: "calc(100% - 53px)",
+            position: "relative", zIndex: 1,
+          }}>
+            <div style={{ height: "100%", overflowY: "auto", overflowX: "auto" }}>
+              <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── MF Table (fixed height, internal scroll only) ── */}
+      {/* ── MF — content-fit height, no forced flex-1 ── */}
       {activeTab === "mf" && (
-        <div className="glass" style={{ overflow: "hidden", flex: 1, minHeight: 0 }}>
-          <div className="panel-hdr" style={{ flexShrink: 0 }}>
+        <div className="glass cloud-fill" style={{
+          overflow: "hidden",
+          position: "relative",
+          border: "0.5px solid var(--ix-border)",
+        }}>
+          <div className="panel-hdr" style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
             <div className="panel-title">Mutual Funds · {filteredMF.length} funds</div>
           </div>
-          <div style={{ height: "calc(100% - 41px)", overflowY: "auto", overflowX: "auto" }}>
-            <MFTable mf={filteredMF} />
+          <div style={{
+            margin: "0 12px 12px",
+            background: "rgba(10,10,11,0.85)",
+            border: "0.5px solid rgba(255,255,255,0.06)",
+            borderRadius: "10px",
+            overflow: "hidden",
+            position: "relative", zIndex: 1,
+          }}>
+            <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 420px)" }}>
+              <MFTable mf={filteredMF} />
+            </div>
           </div>
         </div>
       )}

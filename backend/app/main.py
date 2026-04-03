@@ -1,8 +1,10 @@
 """INVEX Backend — FastAPI app."""
 import logging
 from contextlib import asynccontextmanager
+from zoneinfo import ZoneInfo
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
 from app.models import holdings, sips, ipo_bots, watchlist  # noqa
@@ -36,6 +38,17 @@ async def _startup_refresh() -> None:
         except Exception as e:
             logger.warning(f"[STARTUP] Snapshot write failed: {e}")
 
+async def _scheduled_snapshot() -> None:
+    """Called by APScheduler at 15:35 IST on weekdays — writes daily equity curve snapshot."""
+    from app.api.v1.portfolio import _write_snapshot
+    async with AsyncSessionLocal() as db:
+        try:
+            await _write_snapshot(db)
+            logger.info("[SCHEDULER] Daily snapshot written at 15:35 IST")
+        except Exception as e:
+            logger.warning(f"[SCHEDULER] Daily snapshot failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("INVEX starting up...")
@@ -43,8 +56,31 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Tables ready — loading holdings from brokers...")
     await _startup_refresh()
-    logger.info("✅ INVEX ready on port 8001")
+
+    # Fetch NSE sector map and cache on app.state
+    try:
+        from app.core.nse_sector_fetcher import get_sector_map
+        sector_map = await get_sector_map()
+        app.state.sector_map = sector_map
+        logger.info(f"[STARTUP] NSE sectors loaded: {len(sector_map)} symbols")
+    except Exception as e:
+        app.state.sector_map = {}
+        logger.warning(f"[STARTUP] NSE sector fetch failed: {e}")
+
+    # Schedule daily portfolio snapshot at 15:35 IST, Mon–Fri
+    _IST = ZoneInfo("Asia/Kolkata")
+    scheduler = AsyncIOScheduler(timezone=_IST)
+    scheduler.add_job(
+        _scheduled_snapshot, "cron",
+        day_of_week="mon-fri", hour=15, minute=35,
+        id="daily_snapshot",
+    )
+    scheduler.start()
+    logger.info("✅ INVEX ready on port 8001 — daily snapshot scheduled at 15:35 IST")
+
     yield
+
+    scheduler.shutdown(wait=False)
     logger.info("INVEX shutting down")
 
 app = FastAPI(title="INVEX API", version="1.0.0", lifespan=lifespan)

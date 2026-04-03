@@ -58,10 +58,42 @@ SECTOR_MAP: dict[str, str] = {
     # Utilities
     "POWERGRID":   "Utilities",
     "NTPC":        "Utilities",
-    # Pharma
+    # Pharma / Healthcare
     "SUNPHARMA":   "Pharma",
     "DRREDDY":     "Pharma",
     "CIPLA":       "Pharma",
+    "LAURUSLABS":  "Pharma",
+    "JLHL":        "Healthcare",
+    # Defence
+    "BDL":         "Defence",
+    "MAZDOCK":     "Defence",
+    # Automobile (additional)
+    "ASHOKLEY":    "Automobile",
+    "OLECTRA":     "Automobile",
+    "SONACOMS":    "Automobile",
+    "SUPRAJIT":    "Automobile",
+    "TMCV":        "Automobile",
+    "TMPV":        "Automobile",
+    # Energy (additional)
+    "IOC":         "Energy",
+    "TATAPOWER":   "Energy",
+    # Banking & Finance (additional)
+    "BAJAJHFL":    "Banking & Finance",
+    "CHOLAFIN":    "Banking & Finance",
+    "JIOFIN":      "Banking & Finance",
+    "YESBANK":     "Banking & Finance",
+    # Consumer Goods (additional)
+    "ITCHOTELS":   "Consumer Goods",
+    # Index / Commodities ETF
+    "GOLDBEES":    "Index Fund",
+    "SILVERBEES":  "Commodities",
+    # Infrastructure (additional)
+    "JSWINFRA":    "Infrastructure",
+    "TITAGARH":    "Infrastructure",
+    # Materials (additional)
+    "WELCORP":     "Materials",
+    # Technology (additional)
+    "TIMETECHNO":  "Technology",
 }
 
 DEFAULT_SECTOR = "Others"

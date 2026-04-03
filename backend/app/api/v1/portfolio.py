@@ -1,9 +1,9 @@
 """Portfolio API — holdings, MF, summary."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.core.sector_map import get_sector
+from app.core.nse_sector_fetcher import get_sector_from_map
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
 import uuid
 from datetime import date
@@ -11,13 +11,14 @@ from datetime import date
 router = APIRouter()
 
 @router.get("/holdings")
-async def get_holdings(db: AsyncSession = Depends(get_db)):
+async def get_holdings(request: Request, db: AsyncSession = Depends(get_db)):
+    sector_map: dict = getattr(request.app.state, "sector_map", {})
     result = await db.execute(select(Holdings).order_by(Holdings.account_id, Holdings.symbol))
     rows = result.scalars().all()
     return [{
         "id": str(r.id), "account_id": r.account_id,
         "symbol": r.symbol, "exchange": r.exchange, "isin": r.isin,
-        "sector": get_sector(r.symbol),
+        "sector": get_sector_from_map(r.symbol, sector_map),
         "qty": r.qty, "avg_price": r.avg_price, "ltp": r.ltp,
         "day_change": r.day_change,
         "pnl": round((r.ltp - r.avg_price) * r.qty, 2) if r.ltp else None,
