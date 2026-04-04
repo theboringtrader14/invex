@@ -270,3 +270,13 @@ body {
 /* ═══ SECTOR BARS ═══ */
 .sector-bar-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); }
 .sector-bar-fill  { height: 4px; border-radius: 2px; transition: width 0.5s var(--ease-spring); }
+
+/* ── Mobile / Tablet Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .invex-metric-grid { grid-template-columns: 1fr 1fr !important; }
+  .invex-holdings-table { overflow-x: auto !important; display: block !important; }
+  .invex-insight-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 480px) {
+  .invex-metric-grid { grid-template-columns: 1fr !important; }
+}

@@ -662,7 +662,7 @@ export default function PortfolioPage() {
       </div>
 
       {/* ── 4-column Metric Cards ── */}
-      <div className="grid-4" style={{ marginBottom: "16px", flexShrink: 0 }}>
+      <div className="grid-4 invex-metric-grid" style={{ marginBottom: "16px", flexShrink: 0 }}>
         <MetricCard
           label="Total Portfolio"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
@@ -723,7 +723,7 @@ export default function PortfolioPage() {
 
       {/* ── Insight cards + Sector + Equity Curve — equity tab only ── */}
       {activeTab === "equity" && (
-        <div style={{
+        <div className="invex-insight-grid" style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 2fr",
           gap: "12px", marginBottom: "14px", flexShrink: 0,
           alignItems: "stretch",
@@ -815,7 +815,7 @@ export default function PortfolioPage() {
             height: "calc(100% - 53px)",
             position: "relative", zIndex: 1,
           }}>
-            <div style={{ height: "100%", overflowY: "auto", overflowX: "auto" }}>
+            <div className="invex-holdings-table" style={{ height: "100%", overflowY: "auto", overflowX: "auto" }}>
               <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
             </div>
           </div>
