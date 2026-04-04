@@ -17,7 +17,8 @@ async def _startup_refresh() -> None:
     """Auto-load all holdings at startup so the portfolio page is never blank."""
     from app.data_ingestion.zerodha_loader import load_zerodha_holdings
     from app.data_ingestion.angel_loader import load_angel_holdings
-    from app.api.v1.portfolio import _write_snapshot
+    from app.api.v1.portfolio import _write_snapshot, HOLDINGS_CACHE_KEY
+    from app.core.redis_client import redis_client
 
     async with AsyncSessionLocal() as db:
         try:
@@ -37,6 +38,10 @@ async def _startup_refresh() -> None:
             logger.info("[STARTUP] Portfolio snapshot written")
         except Exception as e:
             logger.warning(f"[STARTUP] Snapshot write failed: {e}")
+
+    # Bust stale cache — next /holdings call will rebuild from fresh DB data
+    await redis_client.delete(HOLDINGS_CACHE_KEY)
+    logger.info("[STARTUP] Holdings cache invalidated")
 
 async def _scheduled_snapshot() -> None:
     """Called by APScheduler at 15:35 IST on weekdays — writes daily equity curve snapshot."""
@@ -81,6 +86,8 @@ async def lifespan(app: FastAPI):
     yield
 
     scheduler.shutdown(wait=False)
+    from app.core.redis_client import redis_client
+    await redis_client.aclose()
     logger.info("INVEX shutting down")
 
 app = FastAPI(title="INVEX API", version="1.0.0", lifespan=lifespan)

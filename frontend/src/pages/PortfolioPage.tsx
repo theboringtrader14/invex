@@ -26,6 +26,20 @@ type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
 const LS_SORT_KEY = "invex_holdings_sort"
+const PORTFOLIO_CACHE = "invex:portfolio:cache"
+
+type PortfolioCache = {
+  summary: Summary | null
+  holdings: Holding[]
+  mf: MFHolding[]
+  snapshots: Snapshot[]
+}
+function readCache(): PortfolioCache | null {
+  try { const r = sessionStorage.getItem(PORTFOLIO_CACHE); return r ? JSON.parse(r) : null } catch { return null }
+}
+function writeCache(d: PortfolioCache) {
+  try { sessionStorage.setItem(PORTFOLIO_CACHE, JSON.stringify(d)) } catch { /* quota */ }
+}
 
 /* ─── Helpers ────────────────────────────────────── */
 const displaySym = (s: string) => s.replace(/-EQ$/i, "").replace(/-BE$/i, "")
@@ -84,6 +98,16 @@ function MiniSparkline({ data }: { data: number[] }) {
       <polyline points={pts} fill="none" stroke="#00C9A7" strokeWidth="1.5"
         strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+/* ─── SkeletonCard ───────────────────────────────── */
+function SkeletonCard() {
+  return (
+    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px" }}>
+      <div style={{ height: "10px", width: "55%", background: "rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "22px", width: "70%", background: "rgba(255,255,255,0.10)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+    </div>
   )
 }
 
@@ -453,45 +477,63 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
 type ActiveTab = "equity" | "mf"
 
 export default function PortfolioPage() {
-  const [summary, setSummary]     = useState<Summary | null>(null)
-  const [holdings, setHoldings]   = useState<Holding[]>([])
-  const [mf, setMF]               = useState<MFHolding[]>([])
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [summary, setSummary]     = useState<Summary | null>(() => readCache()?.summary ?? null)
+  const [holdings, setHoldings]   = useState<Holding[]>(() => readCache()?.holdings ?? [])
+  const [mf, setMF]               = useState<MFHolding[]>(() => readCache()?.mf ?? [])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>(() => readCache()?.snapshots ?? [])
   const [accountMap, setAccountMap] = useState<Record<string, string>>({})
-  const [loading, setLoading]     = useState(true)
+  const [loading, setLoading]     = useState(() => readCache() === null)
+  const [syncing, setSyncing]     = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
 
   const load = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("staax_token")
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
-      const acctRes = await fetch("http://localhost:8000/api/v1/accounts/", { headers })
-      if (acctRes.ok) {
-        const accts: Array<{ id: string; nickname: string }> = await acctRes.json()
+    // Run accounts (STAAX port 8000) + portfolio (INVEX port 8001) in parallel
+    const token = localStorage.getItem("staax_token")
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+
+    const acctPromise = fetch("http://localhost:8000/api/v1/accounts/", { headers })
+      .then(async r => {
+        if (!r.ok) return
+        const accts: Array<{ id: string; nickname: string }> = await r.json()
         const map: Record<string, string> = {}
         accts.forEach(a => { map[a.id] = a.nickname })
         setAccountMap(map)
-      }
-    } catch { /* STAAX may be down */ }
+      })
+      .catch(() => { /* STAAX may be down */ })
 
-    try {
-      const [s, h, m, snap] = await Promise.all([
-        portfolioAPI.summary(),
-        portfolioAPI.holdings(),
-        portfolioAPI.mf(),
-        portfolioAPI.snapshots(),
-      ])
-      setSummary(s.data)
-      setHoldings(h.data || [])
-      setMF(m.data || [])
-      setSnapshots(snap.data || [])
-    } catch { /* data might be empty */ }
+    const portfolioPromise = Promise.all([
+      portfolioAPI.summary(),
+      portfolioAPI.holdings(),
+      portfolioAPI.mf(),
+      portfolioAPI.snapshots(),
+    ]).then(([s, h, m, snap]) => {
+      const data: PortfolioCache = {
+        summary: s.data,
+        holdings: h.data || [],
+        mf: m.data || [],
+        snapshots: snap.data || [],
+      }
+      setSummary(data.summary)
+      setHoldings(data.holdings)
+      setMF(data.mf)
+      setSnapshots(data.snapshots)
+      writeCache(data)
+    }).catch(() => { /* data might be empty */ })
+
+    await Promise.all([acctPromise, portfolioPromise])
   }, [])
 
   useEffect(() => {
-    load().finally(() => setLoading(false))
+    if (readCache() !== null) {
+      // Cache hit — show it instantly, sync fresh data in background
+      setSyncing(true)
+      load().finally(() => setSyncing(false))
+    } else {
+      // Cold start — wait for data then reveal
+      load().finally(() => setLoading(false))
+    }
   }, [load])
 
   const handleRefresh = async () => {
@@ -520,12 +562,23 @@ export default function PortfolioPage() {
   if (loading) {
     return (
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100%", color: "var(--gs-light)", fontFamily: "var(--font-mono)",
-        fontSize: "13px", gap: "10px",
+        padding: "20px 28px", height: "100%", overflow: "hidden",
+        display: "flex", flexDirection: "column",
       }}>
-        <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
-        Loading portfolio...
+        <div style={{ marginBottom: "16px", flexShrink: 0 }}>
+          <div style={{ height: "32px", width: "180px", background: "rgba(255,255,255,0.08)", borderRadius: "6px", marginBottom: "8px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+          <div style={{ height: "12px", width: "140px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+        </div>
+        <div className="grid-4" style={{ marginBottom: "16px", flexShrink: 0 }}>
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+        <div style={{
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--gs-muted)", fontSize: "12px", fontFamily: "var(--font-mono)", gap: "8px",
+        }}>
+          <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
+          Fetching holdings...
+        </div>
       </div>
     )
   }
@@ -553,6 +606,12 @@ export default function PortfolioPage() {
           <div style={{ fontSize: "12px", color: "var(--gs-light)", display: "flex", alignItems: "center", gap: "6px" }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
             {activeAccount !== "All" && <> · {activeAccount}</>}
+            {syncing && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--gs-muted)", fontSize: "11px" }}>
+                <span className="dot-live" style={{ color: "var(--ix-glow)" }} />
+                syncing
+              </span>
+            )}
             <span style={{
               padding: "1px 7px", borderRadius: "var(--r-pill)",
               background: "rgba(255,215,0,0.10)", border: "0.5px solid rgba(255,215,0,0.25)",
