@@ -1,5 +1,5 @@
 """SIPs API."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from pydantic import BaseModel
@@ -46,7 +46,7 @@ async def create_sip(body: SIPCreate, db: AsyncSession = Depends(get_db), user =
     return _sip_dict(sip)
 
 @router.patch("/{sip_id}")
-async def update_sip(sip_id: str, body: dict, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def update_sip(sip_id: str, body: dict = Body(...), db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
     result = await db.execute(select(SIP).where(SIP.id == sip_id))
     sip = result.scalar_one_or_none()
     if not sip: raise HTTPException(404, "SIP not found")

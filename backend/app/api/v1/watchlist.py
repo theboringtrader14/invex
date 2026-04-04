@@ -1,5 +1,5 @@
 """Watchlist API."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -13,7 +13,7 @@ import uuid as uuid_lib
 router = APIRouter()
 
 class WatchlistAdd(BaseModel):
-    account_id: str; symbol: str; exchange: str = "NSE"
+    account_id: str = "default"; symbol: str; exchange: str = "NSE"
     notes: Optional[str] = None
     price_alert_above: Optional[float] = None
     price_alert_below: Optional[float] = None
@@ -39,7 +39,7 @@ async def add_to_watchlist(body: WatchlistAdd, db: AsyncSession = Depends(get_db
     return _w_dict(w)
 
 @router.patch("/{wid}")
-async def update_watchlist(wid: str, body: dict, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+async def update_watchlist(wid: str, body: dict = Body(...), db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
     result = await db.execute(select(Watchlist).where(Watchlist.id == wid))
     w = result.scalar_one_or_none()
     if not w: raise HTTPException(404)

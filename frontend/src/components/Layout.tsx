@@ -56,7 +56,7 @@ export default function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  const logout = () => { localStorage.removeItem("staax_token"); navigate("/login") }
+  const logout = () => { localStorage.removeItem("staax_token"); window.location.href = 'http://localhost:3000' }
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--bg-void)", overflow: "hidden", position: "relative" }}>
@@ -162,9 +162,9 @@ export default function Layout() {
             }}
             onMouseEnter={e => {
               const b = e.currentTarget
-              b.style.color = "rgba(255,255,255,0.9)"
-              b.style.background = "rgba(255,255,255,0.08)"
-              b.style.borderColor = "rgba(255,255,255,0.20)"
+              b.style.color = "#FF4444"
+              b.style.background = "rgba(255,68,68,0.10)"
+              b.style.borderColor = "rgba(255,68,68,0.30)"
             }}
             onMouseLeave={e => {
               const b = e.currentTarget
