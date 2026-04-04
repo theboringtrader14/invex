@@ -56,7 +56,7 @@ export default function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  const logout = () => { localStorage.removeItem("staax_token"); window.location.href = 'http://localhost:3000' }
+  const logout = () => { localStorage.removeItem("staax_token"); window.location.href = 'https://lifexos.co.in' }
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--bg-void)", overflow: "hidden", position: "relative" }}>
