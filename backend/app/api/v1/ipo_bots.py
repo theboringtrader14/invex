@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.ipo_bots import IPOBot, IPOOrder
+from app.engine.ipo_engine import get_ytr_for_symbol
 import uuid as uuid_lib
 
 router = APIRouter()
@@ -50,6 +51,29 @@ async def update_bot(bot_id: str, body: dict, db: AsyncSession = Depends(get_db)
         if hasattr(bot, k): setattr(bot, k, v)
     await db.commit()
     return _bot_dict(bot)
+
+@router.get("/ytr/{symbol}")
+async def get_ytr_levels(symbol: str, user = Depends(get_current_user)):
+    """Compute YTR levels for a symbol via NSE public API."""
+    result = await get_ytr_for_symbol(symbol.upper())
+    if 'error' in result:
+        raise HTTPException(422, result['error'])
+    return result
+
+@router.post("/scan")
+async def scan_ipo_watchlist(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+    """Scan all watching bots for YTR signals. Returns signal for each bot's symbol."""
+    result = await db.execute(select(IPOBot).where(IPOBot.status == "watching"))
+    bots = result.scalars().all()
+    signals = []
+    for bot in bots:
+        ytr = await get_ytr_for_symbol(bot.symbol)
+        signals.append({
+            'bot_id': str(bot.id),
+            'symbol': bot.symbol,
+            **ytr,
+        })
+    return {'signals': signals}
 
 @router.get("/{bot_id}/orders")
 async def bot_orders(bot_id: str, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):

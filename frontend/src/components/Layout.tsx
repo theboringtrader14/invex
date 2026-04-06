@@ -124,26 +124,22 @@ export default function Layout() {
 
         {/* ── TOPBAR ── */}
         <header style={{
-          height: "46px", flexShrink: 0,
-          background: "rgba(10,10,11,0.88)",
-          borderBottom: "0.5px solid rgba(0,201,167,0.10)",
+          height: "52px", minHeight: "52px", flexShrink: 0,
+          background: "rgba(10,10,11,0.94)",
+          borderBottom: "0.5px solid rgba(0,201,167,0.16)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 20px",
+          padding: "0 24px",
         }}>
           {/* Left — Welcome · name · separator · IST */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
-            <span style={{ fontSize: 12, color: "rgba(232,232,248,0.6)" }}>Welcome,&nbsp;</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#F0F0FF", fontFamily: "Syne" }}>Karthikeyan</span>
-            <span style={{
-              display: "inline-block",
-              width: "1px", height: "16px",
-              background: "rgba(255,255,255,0.15)",
-              margin: "0 12px",
-            }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--ix-ultra)", opacity: 0.75 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <span style={{ fontSize: "12px", color: "rgba(240,237,232,0.38)", fontFamily: "'DM Sans','Calibri',sans-serif" }}>
+              Welcome, <span style={{ color: "#F0EDE8", fontWeight: 600 }}>Karthikeyan</span>
+            </span>
+            <span style={{ width: "1px", height: "16px", background: "rgba(0,201,167,0.25)", display: "inline-block" }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--ix-vivid)", letterSpacing: "0.04em" }}>
               IST {istTime}
             </span>
           </div>
