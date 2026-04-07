@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const API = 'http://localhost:8001/api/v1'
-const STAAX_API = 'http://localhost:8000/api/v1'
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/api/v1`
+const STAAX_API = `${import.meta.env.VITE_STAAX_API_URL || 'http://localhost:8000'}/api/v1`
 
 // Auth still used for SIPs/IPO/Watchlist (write endpoints — kept for future)
 const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('staax_token')}` } })
