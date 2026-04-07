@@ -123,9 +123,10 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
             jwt_token = await angel_login(client_id, password, api_key, totp_secret)
 
             # Get account_id from STAAX accounts table
-            result = await db.execute(text(
-                f"SELECT id FROM accounts WHERE nickname='{nickname}' AND broker='angelone' LIMIT 1"
-            ))
+            result = await db.execute(
+                text("SELECT id FROM accounts WHERE nickname=:nickname AND broker='angelone' LIMIT 1"),
+                {"nickname": nickname}
+            )
             row = result.fetchone()
             if not row:
                 logger.warning(f"[ANGEL] {nickname}: account not found in DB")
@@ -134,9 +135,10 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
             account_id = str(row[0])
 
             # Also store token back to accounts table for reference
-            await db.execute(text(
-                f"UPDATE accounts SET access_token='{jwt_token}', status='active' WHERE id='{account_id}'"
-            ))
+            await db.execute(
+                text("UPDATE accounts SET access_token=:token, status='active' WHERE id=:id"),
+                {"token": jwt_token, "id": account_id}
+            )
 
             # Fetch holdings
             raw = await fetch_angel_holdings(jwt_token, api_key)

@@ -93,7 +93,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="INVEX API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3001",
+        "http://localhost:3000",
+        "https://invex.lifexos.co.in",
+        "https://staax.lifexos.co.in",
+        "https://lifexos.co.in",
+    ],
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(portfolio.router,     prefix="/api/v1/portfolio",  tags=["portfolio"])

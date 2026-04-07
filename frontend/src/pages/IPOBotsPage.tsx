@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 
 /* ─── API helpers ──────────────────────────────────────────── */
 const API =
-  (import.meta as any).env?.VITE_API_URL?.replace('api.', 'invex-api.') ||
+  import.meta.env.VITE_API_URL?.replace('api.', 'invex-api.') ||
   'https://invex.lifexos.co.in'
 
 function authHeaders() {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('staax_token')
   return {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',

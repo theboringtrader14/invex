@@ -493,7 +493,7 @@ export default function PortfolioPage() {
     const token = localStorage.getItem("staax_token")
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
-    const acctPromise = fetch(`${(import.meta as any).env?.VITE_STAAX_API_URL || 'https://api.lifexos.co.in'}/api/v1/accounts/`, { headers })
+    const acctPromise = fetch(`${import.meta.env.VITE_STAAX_API_URL || 'https://api.lifexos.co.in'}/api/v1/accounts/`, { headers })
       .then(async r => {
         if (!r.ok) return
         const accts: Array<{ id: string; nickname: string }> = await r.json()
@@ -648,6 +648,7 @@ export default function PortfolioPage() {
             background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
             border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
           }}
+          onClick={() => alert('Export coming soon')}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
