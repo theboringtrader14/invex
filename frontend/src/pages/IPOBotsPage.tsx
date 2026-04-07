@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 /* ─── API helpers ──────────────────────────────────────────── */
 const API =
   (import.meta as any).env?.VITE_API_URL?.replace('api.', 'invex-api.') ||
-  'http://localhost:8001'
+  'https://invex.lifexos.co.in'
 
 function authHeaders() {
   const token = localStorage.getItem('token')
