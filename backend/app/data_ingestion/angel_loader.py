@@ -3,12 +3,22 @@ Angel One Holdings Loader — direct login with client ID + password + auto-TOTP
 No OAuth redirect needed. Fully automated with pyotp.
 """
 import logging
+import os
 import pyotp
 import httpx
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy import text, delete
 from app.core.config import settings
+
+# Separate engine for STAAX DB — accounts table lives there, not in invex_db
+STAAX_DATABASE_URL = os.getenv(
+    "STAAX_DATABASE_URL",
+    "postgresql+asyncpg://staax:staax_password@127.0.0.1:5432/staax_db"
+)
+_staax_engine = create_async_engine(STAAX_DATABASE_URL, echo=False)
+StaaxSessionLocal = async_sessionmaker(_staax_engine, class_=AsyncSession, expire_on_commit=False)
 
 logger = logging.getLogger(__name__)
 
@@ -122,23 +132,25 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
             # Auto-login with TOTP
             jwt_token = await angel_login(client_id, password, api_key, totp_secret)
 
-            # Get account_id from STAAX accounts table
-            result = await db.execute(
-                text("SELECT id FROM accounts WHERE nickname=:nickname AND broker='angelone' LIMIT 1"),
-                {"nickname": nickname}
-            )
-            row = result.fetchone()
-            if not row:
-                logger.warning(f"[ANGEL] {nickname}: account not found in DB")
-                results[nickname] = {"error": "Account not in DB"}
-                continue
-            account_id = str(row[0])
+            # Get account_id from STAAX DB (accounts table lives in staax_db, not invex_db)
+            async with StaaxSessionLocal() as staax_db:
+                result = await staax_db.execute(
+                    text("SELECT id FROM accounts WHERE nickname=:nickname AND broker='angelone' LIMIT 1"),
+                    {"nickname": nickname}
+                )
+                row = result.fetchone()
+                if not row:
+                    logger.warning(f"[ANGEL] {nickname}: account not found in DB")
+                    results[nickname] = {"error": "Account not in DB"}
+                    continue
+                account_id = str(row[0])
 
-            # Also store token back to accounts table for reference
-            await db.execute(
-                text("UPDATE accounts SET access_token=:token, status='active' WHERE id=:id"),
-                {"token": jwt_token, "id": account_id}
-            )
+                # Also store token back to accounts table for reference
+                await staax_db.execute(
+                    text("UPDATE accounts SET access_token=:token, status='active' WHERE id=:id"),
+                    {"token": jwt_token, "id": account_id}
+                )
+                await staax_db.commit()
 
             # Fetch holdings
             raw = await fetch_angel_holdings(jwt_token, api_key)
