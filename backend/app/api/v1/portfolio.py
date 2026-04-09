@@ -72,12 +72,19 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
     total_invested  = equity_invested + mf_invested
     # day_change on holdings is already (ltp - prev_close) * qty from loaders
     day_pnl = sum((r.day_change or 0) for r in holdings)
+    total_value = round(total_current, 2)
+    day_change = round(day_pnl, 2)
+    day_change_pct = round(day_change / total_value * 100, 2) if total_value else 0.0
     return {
-        "total_portfolio_value": round(total_current, 2),
+        "total_portfolio_value": total_value,
+        "total_value": total_value,
         "total_invested": round(total_invested, 2),
         "total_pnl": round(total_current - total_invested, 2),
         "total_pnl_pct": round((total_current - total_invested) / total_invested * 100, 2) if total_invested else 0,
-        "day_pnl": round(day_pnl, 2),
+        "day_pnl": day_change,
+        "day_change": day_change,
+        "day_change_pct": day_change_pct,
+        "day_pnl_pct": day_change_pct,
         "equity_value": round(equity_current, 2),
         "mf_value": round(mf_current, 2),
         "holdings_count": len(holdings),
