@@ -13,17 +13,32 @@ logger = logging.getLogger(__name__)
 
 KITE_BASE = "https://api.kite.trade"
 
-async def get_zerodha_token(db: AsyncSession) -> Optional[dict]:
-    """Fetch Zerodha account + access token from STAAX accounts table."""
-    result = await db.execute(text(
-        "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' LIMIT 1"
-    ))
-    row = result.fetchone()
-    if not row or not row[2]:
-        logger.warning("[ZERODHA] No active token found")
-        return None
-    # Use api_key from .env if DB has null api_key
+async def get_zerodha_token(_db: AsyncSession = None) -> Optional[dict]:
+    """Fetch Zerodha account + access token from STAAX DB (staax_db.accounts table).
+
+    INVEX's own DB (invex_db) has no accounts table — tokens live in STAAX DB.
+    Opens a separate short-lived connection to staax_db for this lookup.
+    """
     from app.core.config import settings
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession as _AS
+    from sqlalchemy.orm import sessionmaker
+
+    # Derive STAAX DB URL: same host/user/pass but database=staax_db
+    staax_url = settings.database_url.replace("/invex_db", "/staax_db")
+    engine = create_async_engine(staax_url, pool_pre_ping=True, pool_size=1, max_overflow=0)
+    async_session = sessionmaker(engine, class_=_AS, expire_on_commit=False)
+    try:
+        async with async_session() as session:
+            result = await session.execute(text(
+                "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' LIMIT 1"
+            ))
+            row = result.fetchone()
+    finally:
+        await engine.dispose()
+
+    if not row or not row[2]:
+        logger.warning("[ZERODHA] No active token found in STAAX DB")
+        return None
     api_key = row[1] or settings.zerodha_api_key
     return {"account_id": str(row[0]), "api_key": api_key, "token": row[2]}
 
@@ -65,7 +80,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
     from sqlalchemy import select, delete
     import uuid
 
-    account_info = await get_zerodha_token(db)
+    account_info = await get_zerodha_token()
     if not account_info:
         return {"error": "No Zerodha token available"}
 
