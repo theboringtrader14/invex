@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { watchlistAPI } from "../services/api"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -15,6 +15,11 @@ type WatchItem = {
   rsi_alert_threshold: number | null
   earnings_alert: boolean
 }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type PriceInfo = { ltp: number; change: number; pct_change: number } | null
+type PricesMap = Record<string, PriceInfo>
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +51,14 @@ const IconClose = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
+const IconRefresh = ({ spinning }: { spinning?: boolean }) => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+    style={spinning ? { animation: "spin 1s linear infinite", display: "inline-block" } : undefined}>
+    <polyline points="23 4 23 10 17 10"/>
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
   </svg>
 )
 
@@ -279,6 +292,22 @@ export default function WatchlistPage() {
   const [showModal, setShowModal] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
+  // ── Live prices state ──────────────────────────────────────────────────────
+  const [prices, setPrices] = useState<PricesMap>({})
+  const [pricesLoading, setPricesLoading] = useState(false)
+
+  const fetchPrices = useCallback(async () => {
+    setPricesLoading(true)
+    try {
+      const res = await watchlistAPI.getPrices()
+      setPrices(res.data?.prices ?? {})
+    } catch (e) {
+      console.error("WatchlistPage fetchPrices error", e)
+    } finally {
+      setPricesLoading(false)
+    }
+  }, [])
+
   const load = async () => {
     try {
       const res = await watchlistAPI.list()
@@ -290,7 +319,10 @@ export default function WatchlistPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    fetchPrices()
+  }, [])
 
   const handleAdd = async (data: any) => {
     const res = await watchlistAPI.add(data)
@@ -340,19 +372,41 @@ export default function WatchlistPage() {
             Price &amp; technical alerts
           </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            padding: "8px 18px", borderRadius: "var(--r-md)",
-            fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-            background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-            border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
-          <IconPlus /> Add Stock
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Refresh prices button */}
+          <button
+            onClick={fetchPrices}
+            disabled={pricesLoading}
+            title="Refresh live prices"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "8px 14px", borderRadius: "var(--r-md)",
+              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
+              background: "transparent",
+              border: "0.5px solid rgba(0,201,167,0.40)",
+              color: "#00C9A7",
+              cursor: pricesLoading ? "not-allowed" : "pointer",
+              opacity: pricesLoading ? 0.6 : 1,
+              transition: "box-shadow 0.2s, border-color 0.2s",
+            }}
+            onMouseEnter={e => { if (!pricesLoading) e.currentTarget.style.boxShadow = "0 0 16px rgba(0,201,167,0.25)" }}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            <IconRefresh spinning={pricesLoading} /> Refresh
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "8px 18px", borderRadius: "var(--r-md)",
+              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
+              background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
+              border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            <IconPlus /> Add Stock
+          </button>
+        </div>
       </div>
 
       {/* ── Stats row — 3 MetricCards ── */}
@@ -448,10 +502,39 @@ export default function WatchlistPage() {
                           )}
                         </div>
                       </td>
-                      {/* LTP — live data not yet available */}
-                      <td className="td-num">—</td>
-                      {/* Change % */}
-                      <td className="td-num">—</td>
+                      {/* LTP — live price */}
+                      {(() => {
+                        const p = prices[item.symbol]
+                        const isPos = p && p.change >= 0
+                        return (
+                          <>
+                            <td className="td-num" style={{ color: "#00C9A7", fontWeight: 700 }}>
+                              {pricesLoading && !p
+                                ? <span style={{ color: "var(--gs-muted)", fontWeight: 400 }}>…</span>
+                                : p
+                                  ? `₹${p.ltp.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : <span style={{ color: "var(--gs-muted)", fontWeight: 400 }}>—</span>
+                              }
+                            </td>
+                            {/* Change (abs + %) */}
+                            <td className="td-num" style={{ color: p ? (isPos ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)" }}>
+                              {pricesLoading && !p
+                                ? <span style={{ color: "var(--gs-muted)" }}>…</span>
+                                : p
+                                  ? <>
+                                      <span style={{ display: "block" }}>
+                                        {isPos ? "+" : ""}{p.change.toFixed(2)}
+                                      </span>
+                                      <span style={{ fontSize: "10px", opacity: 0.85 }}>
+                                        {isPos ? "+" : ""}{p.pct_change.toFixed(2)}%
+                                      </span>
+                                    </>
+                                  : "—"
+                              }
+                            </td>
+                          </>
+                        )
+                      })()}
                       {/* 52W High */}
                       <td className="td-num">—</td>
                       {/* 52W Low */}

@@ -40,8 +40,9 @@ export const ipoAPI = {
 
 // Watchlist
 export const watchlistAPI = {
-  list:   () => axios.get(`${API}/watchlist/`, auth()),
-  add:    (d: any) => axios.post(`${API}/watchlist/`, d, auth()),
-  update: (id: string, d: any) => axios.patch(`${API}/watchlist/${id}`, d, auth()),
-  remove: (id: string) => axios.delete(`${API}/watchlist/${id}`, auth()),
+  list:      () => axios.get(`${API}/watchlist/`, auth()),
+  add:       (d: any) => axios.post(`${API}/watchlist/`, d, auth()),
+  update:    (id: string, d: any) => axios.patch(`${API}/watchlist/${id}`, d, auth()),
+  remove:    (id: string) => axios.delete(`${API}/watchlist/${id}`, auth()),
+  getPrices: () => axios.get(`${API}/watchlist/prices`, auth()),
 }
