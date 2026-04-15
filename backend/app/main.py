@@ -10,6 +10,7 @@ from app.core.database import engine, Base, AsyncSessionLocal
 from app.models import holdings, sips, ipo_bots, watchlist  # noqa
 from app.api.v1 import portfolio, sips as sips_api, ipo_bots as ipo_api, watchlist as watchlist_api
 from app.api.v1 import analysis as analysis_api
+from app.engine.sip_engine import run_sip_engine, refresh_nse_holidays
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,6 +56,16 @@ async def _scheduled_snapshot() -> None:
             logger.warning(f"[SCHEDULER] Daily snapshot failed: {e}")
 
 
+async def _scheduled_sip_run() -> None:
+    """Called by APScheduler at 09:20 IST on weekdays — executes due SIPs."""
+    async with AsyncSessionLocal() as db:
+        try:
+            summary = await run_sip_engine(db)
+            logger.info(f"[SCHEDULER] SIP engine complete: {summary}")
+        except Exception as e:
+            logger.warning(f"[SCHEDULER] SIP engine failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("INVEX starting up...")
@@ -73,6 +84,12 @@ async def lifespan(app: FastAPI):
         app.state.sector_map = {}
         logger.warning(f"[STARTUP] NSE sector fetch failed: {e}")
 
+    # Warm up NSE holiday cache for SIP engine
+    try:
+        await refresh_nse_holidays()
+    except Exception as e:
+        logger.warning(f"[STARTUP] NSE holiday refresh failed: {e}")
+
     # Schedule daily portfolio snapshot at 15:35 IST, Mon–Fri
     _IST = ZoneInfo("Asia/Kolkata")
     scheduler = AsyncIOScheduler(timezone=_IST)
@@ -81,8 +98,14 @@ async def lifespan(app: FastAPI):
         day_of_week="mon-fri", hour=15, minute=35,
         id="daily_snapshot",
     )
+    # Schedule SIP engine at 09:20 IST, Mon–Fri
+    scheduler.add_job(
+        _scheduled_sip_run, "cron",
+        day_of_week="mon-fri", hour=9, minute=20,
+        id="sip_engine",
+    )
     scheduler.start()
-    logger.info("✅ INVEX ready on port 8001 — daily snapshot scheduled at 15:35 IST")
+    logger.info("✅ INVEX ready on port 8001 — daily snapshot @ 15:35 IST, SIP engine @ 09:20 IST")
 
     yield
 

@@ -17,6 +17,7 @@ type SIP = {
   end_date: string | null
   total_invested: number
   total_units: number
+  last_executed_at: string | null
 }
 
 type Execution = {
@@ -76,6 +77,11 @@ function nextDue(sip: SIP): string {
     return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
   }
   return "—"
+}
+
+function fmtLastRun(last_executed_at: string | null): string {
+  if (!last_executed_at) return "Never"
+  return new Date(last_executed_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
 }
 
 function monthlyEquiv(sip: SIP): number {
@@ -219,6 +225,15 @@ function SIPCard({ sip, accountName, onToggle, onDelete, deleting }: {
           fontFamily: "var(--font-mono)", fontSize: "12px",
           color: isActive ? "var(--ix-ultra)" : "var(--gs-light)",
         }}>{nextDue(sip)}</div>
+      </div>
+
+      {/* Last Execution */}
+      <div style={{ minWidth: "100px" }}>
+        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Last Run</div>
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: "12px",
+          color: sip.last_executed_at ? "var(--gs-muted)" : "var(--gs-light)",
+        }}>{fmtLastRun(sip.last_executed_at)}</div>
       </div>
 
       {/* Account */}
@@ -532,6 +547,7 @@ export default function SIPsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [runningNow, setRunningNow] = useState(false)
 
   const load = async () => {
     const token = localStorage.getItem("staax_token")
@@ -568,6 +584,18 @@ export default function SIPsPage() {
     const next = sip.status === "active" ? "paused" : "active"
     const res = await sipsAPI.update(sip.id, { status: next })
     setSips(prev => prev.map(s => s.id === sip.id ? res.data : s))
+  }
+
+  const handleRunNow = async () => {
+    setRunningNow(true)
+    try {
+      await sipsAPI.executeNow()
+      await load()
+    } catch (e) {
+      console.error("SIP execute-now error", e)
+    } finally {
+      setRunningNow(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -615,19 +643,38 @@ export default function SIPsPage() {
             Recurring investment scheduler
           </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            padding: "8px 18px", borderRadius: "var(--r-md)",
-            fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-            background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-            border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
-          <IconPlus /> New SIP
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            onClick={handleRunNow}
+            disabled={runningNow}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "8px 16px", borderRadius: "var(--r-md)",
+              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
+              background: "transparent", color: "var(--ix-vivid)",
+              border: "0.5px solid var(--ix-border)",
+              cursor: runningNow ? "not-allowed" : "pointer",
+              opacity: runningNow ? 0.6 : 1,
+              transition: "box-shadow 0.2s, border-color 0.15s",
+            }}
+            onMouseEnter={e => { if (!runningNow) e.currentTarget.style.boxShadow = "0 0 14px rgba(0,201,167,0.25)" }}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            <IconPlay /> {runningNow ? "Running…" : "Run Now"}
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "6px",
+              padding: "8px 18px", borderRadius: "var(--r-md)",
+              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
+              background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
+              border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            <IconPlus /> New SIP
+          </button>
+        </div>
       </div>
 
       {/* ── Stats row — 3 MetricCards ── */}

@@ -29,6 +29,7 @@ def _sip_dict(s: SIP):
         "end_date": str(s.end_date) if s.end_date else None,
         "total_invested": s.total_invested or 0,
         "total_units": s.total_units or 0,
+        "last_executed_at": s.last_executed_at.isoformat() if s.last_executed_at else None,
     }
 
 @router.get("/")
@@ -44,6 +45,14 @@ async def create_sip(body: SIPCreate, db: AsyncSession = Depends(get_db), user =
               created_at=datetime.now(timezone.utc))
     db.add(sip); await db.commit(); await db.refresh(sip)
     return _sip_dict(sip)
+
+@router.post("/execute-now")
+async def execute_sips_now(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+    """Manually trigger the SIP engine — executes all due SIPs immediately."""
+    from app.engine.sip_engine import run_sip_engine
+    summary = await run_sip_engine(db)
+    return summary
+
 
 @router.patch("/{sip_id}")
 async def update_sip(sip_id: str, body: dict = Body(...), db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):

@@ -19,6 +19,7 @@ class SIP(Base):
     total_invested = Column(Float, server_default="0")
     total_units = Column(Float, server_default="0")
     created_at = Column(DateTime(timezone=True), nullable=True)
+    last_executed_at = Column(DateTime(timezone=True), nullable=True)
 
 class SIPExecution(Base):
     __tablename__ = "invex_sip_executions"
