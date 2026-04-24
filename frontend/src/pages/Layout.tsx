@@ -1,5 +1,4 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import { SignOut } from '@phosphor-icons/react'
 
 const NAV_LINKS = [
@@ -27,17 +26,6 @@ const iconBtnStyle: React.CSSProperties = {
 }
 
 export default function Layout() {
-  const [time, setTime] = useState('')
-
-  useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-    }))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
-
   const logout = () => { localStorage.removeItem('invex_token'); window.location.href = '/login' }
 
   return (
@@ -98,11 +86,8 @@ export default function Layout() {
             ))}
           </nav>
 
-          {/* RIGHT — IST clock + Exit */}
+          {/* RIGHT — Exit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-mute)', letterSpacing: '0.04em' }}>
-              {time}
-            </span>
             <button
               onClick={logout}
               title="Exit"

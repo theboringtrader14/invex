@@ -335,7 +335,7 @@ export default function IPOBotsPage() {
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{
             fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800,
-            color: 'var(--text)', marginBottom: '4px',
+            color: 'var(--accent)', marginBottom: '4px',
           }}>
             IPO Bot
           </div>

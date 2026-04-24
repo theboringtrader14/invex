@@ -623,8 +623,7 @@ export default function PortfolioPage() {
       }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--text)", marginBottom: "4px",
+            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800, color: "var(--accent)", marginBottom: "4px",
           }}>Portfolio</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)" }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
