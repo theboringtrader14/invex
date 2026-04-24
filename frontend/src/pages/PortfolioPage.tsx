@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { ArrowsClockwise } from "@phosphor-icons/react"
 import { portfolioAPI } from "../services/api"
+import PortfolioAnalysisSection from "../components/PortfolioAnalysisSection"
 
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
@@ -23,6 +24,8 @@ type Summary = {
 }
 type Snapshot = { date: string; total_value: number; invested?: number; pnl?: number }
 type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
+type TimeRange = "1M" | "3M" | "1Y" | "All"
+type ActiveTab = "equity" | "mf"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
 const LS_SORT_KEY = "invex_holdings_sort"
@@ -51,126 +54,149 @@ const fmtPct = (n?: number) =>
 const pnlColor = (n?: number) =>
   !n ? "var(--text-mute)" : n >= 0 ? "var(--green)" : "var(--red)"
 
-/* ─── MetricCard ─────────────────────────────────── */
-function MetricCard({
-  label, value, sub, valueColor, sparkline
-}: {
-  label: string; value: string; sub?: string
-  valueColor?: string; sparkline?: number[]
-}) {
-  return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      boxShadow: 'var(--neu-raised)',
-      borderRadius: 'var(--r-lg)',
-      padding: "18px 18px 16px"
-    }}>
-      <div style={{
-        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
-        textTransform: "uppercase", color: "var(--text-mute)",
-        fontFamily: "var(--font-mono)", marginBottom: "10px"
-      }}>{label}</div>
-      <div style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "22px", fontWeight: 700,
-        color: valueColor || "var(--text)",
-        lineHeight: 1
-      }}>{value}</div>
-      {sub && (
-        <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
-      )}
-      {sparkline && sparkline.length > 1 && (
-        <MiniSparkline data={sparkline} />
-      )}
-    </div>
-  )
-}
-
-function MiniSparkline({ data }: { data: number[] }) {
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-  const W = 120; const H = 32
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * W
-    const y = H - ((v - min) / range) * (H - 4) - 2
-    return `${x},${y}`
-  }).join(" ")
-  const fill = `${pts} ${W},${H} 0,${H}`
-  return (
-    <svg width="100%" height="32" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-      style={{ display: "block", marginTop: "10px" }}>
-      <polyline points={fill} fill="rgba(45,212,191,0.08)" stroke="none" />
-      <polyline points={pts} fill="none" stroke="#2dd4bf" strokeWidth="1.5"
-        strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 /* ─── SkeletonCard ───────────────────────────────── */
 function SkeletonCard() {
   return (
     <div style={{
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
-      borderRadius: 'var(--r-lg)',
-      padding: "18px 18px 16px"
+      borderRadius: 12,
+      padding: "14px 16px"
     }}>
-      <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "16px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
-      <div style={{ height: "22px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "20px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
     </div>
   )
 }
 
-/* ─── InsightCard ────────────────────────────────── */
-function InsightCard({
-  title, holdings, pick, subFn, subColor
+/* ─── KPI Strip Card ─────────────────────────────── */
+function KPICard({
+  label, value, sub, valueColor
 }: {
-  title: string
-  holdings: Holding[]
-  pick: (hs: Holding[]) => Holding | null
-  subFn: (h: Holding) => string
-  subColor: string
+  label: string; value: string; sub?: string; valueColor?: string
 }) {
-  const h = holdings.length ? pick(holdings) : null
   return (
     <div style={{
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised-sm)',
-      borderRadius: 'var(--r-md)',
-      padding: "10px 14px", overflow: "hidden",
-      display: "flex", flexDirection: "column", justifyContent: "center",
-      height: "100%", boxSizing: "border-box"
+      borderRadius: 12,
+      padding: "14px 16px",
+      flex: 1
     }}>
       <div style={{
-        fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em",
+        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
         textTransform: "uppercase", color: "var(--text-mute)",
-        fontFamily: "var(--font-mono)", marginBottom: "8px"
-      }}>{title}</div>
+        fontFamily: "var(--font-mono)", marginBottom: "4px"
+      }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700,
-        color: "var(--accent)", letterSpacing: "-0.3px", lineHeight: 1.2,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+        fontFamily: "var(--font-mono)",
+        fontSize: "20px", fontWeight: 700,
+        color: valueColor || "var(--text)",
+        lineHeight: 1
+      }}>{value}</div>
+      {sub && (
+        <div style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px", fontFamily: "var(--font-body)" }}>{sub}</div>
+      )}
+    </div>
+  )
+}
+
+/* ─── EquityCurve ────────────────────────────────── */
+function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
+  const [range, setRange] = useState<TimeRange>("3M")
+
+  const filtered = (() => {
+    if (!snapshots.length) return []
+    const now = new Date()
+    const cutoff = new Date(now)
+    if (range === "1M") cutoff.setMonth(now.getMonth() - 1)
+    else if (range === "3M") cutoff.setMonth(now.getMonth() - 3)
+    else if (range === "1Y") cutoff.setFullYear(now.getFullYear() - 1)
+    else return snapshots
+    return snapshots.filter(s => new Date(s.date) >= cutoff)
+  })()
+
+  const data = filtered.map(s => s.total_value)
+  const min = Math.min(...(data.length ? data : [0]))
+  const max = Math.max(...(data.length ? data : [1]))
+  const range_ = max - min || 1
+  const W = 800; const H = 160
+  const pts = data.map((v, i) => {
+    const x = data.length > 1 ? (i / (data.length - 1)) * W : W / 2
+    const y = H - ((v - min) / range_) * (H - 8) - 4
+    return `${x},${y}`
+  })
+  const ptsStr = pts.join(" ")
+  const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 16,
+      overflow: "hidden"
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 20px 10px"
       }}>
-        {h ? displaySym(h.symbol) : "—"}
+        <div style={{
+          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+          textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
+        }}>Equity Curve</div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
+            <button key={r} onClick={() => setRange(r)}
+              style={{
+                padding: "3px 10px", borderRadius: "var(--r-pill)",
+                fontSize: "11px", fontWeight: 600,
+                fontFamily: "var(--font-body)",
+                border: "none",
+                background: range === r ? "var(--bg)" : "transparent",
+                boxShadow: range === r ? "var(--neu-inset)" : "none",
+                color: range === r ? "var(--accent)" : "var(--text-dim)",
+                cursor: "pointer", transition: "all 0.2s"
+              }}>{r}</button>
+          ))}
+        </div>
       </div>
-      <div style={{
-        fontFamily: "var(--font-mono)", fontSize: "11px",
-        color: h ? subColor : "var(--text-mute)", marginTop: "4px"
-      }}>
-        {h ? subFn(h) : "—"}
+      <div style={{ padding: "10px 20px 20px" }}>
+        {data.length < 2 ? (
+          <div style={{
+            height: "200px", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "12px", color: "var(--text-mute)"
+          }}>
+            No snapshot data available
+          </div>
+        ) : (
+          <svg width="100%" height="200" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(45,212,191,0.18)" />
+                <stop offset="100%" stopColor="rgba(45,212,191,0)" />
+              </linearGradient>
+            </defs>
+            {[0.25, 0.5, 0.75].map(f => (
+              <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
+                stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
+            ))}
+            <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
+            <polyline points={ptsStr} fill="none" stroke="#2dd4bf" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
       </div>
     </div>
   )
 }
 
-/* ─── SectorAllocation ───────────────────────────── */
+/* ─── SectorAllocationCard ───────────────────────── */
 const SECTOR_PALETTE = [
   "#2dd4bf", "#4488FF", "#F59E0B", "#FF6B6B", "#A78BFA",
   "#34D399", "#FB923C", "#38BDF8", "#F472B6", "#9CA3AF",
 ]
 
-function SectorAllocation({ holdings }: { holdings: Holding[] }) {
+function SectorAllocationCard({ holdings }: { holdings: Holding[] }) {
   const grouped: Record<string, number> = {}
   let total = 0
   for (const h of holdings) {
@@ -191,11 +217,14 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
     <div style={{
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
-      borderRadius: 'var(--r-lg)',
+      borderRadius: 16,
       overflow: "hidden"
     }}>
-      <div style={{ padding: "14px 18px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+      <div style={{ padding: "14px 18px 12px" }}>
+        <div style={{
+          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+          textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
+        }}>
           Sector Allocation
         </div>
       </div>
@@ -218,7 +247,10 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
                 </span>
               </div>
               <div style={{ height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.08)" }}>
-                <div style={{ width: `${pct}%`, height: "4px", borderRadius: "2px", background: colorMap[key], transition: "width 0.5s" }} />
+                <div style={{
+                  width: `${pct}%`, height: "4px", borderRadius: "2px",
+                  background: colorMap[key], transition: "width 0.5s"
+                }} />
               </div>
             </div>
           </div>
@@ -228,91 +260,91 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
   )
 }
 
-/* ─── EquityCurve ─── */
-type TimeRange = "1M" | "3M" | "1Y" | "All"
-
-function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
-  const [range, setRange] = useState<TimeRange>("3M")
-
-  const filtered = (() => {
-    if (!snapshots.length) return []
-    const now = new Date()
-    const cutoff = new Date(now)
-    if (range === "1M") cutoff.setMonth(now.getMonth() - 1)
-    else if (range === "3M") cutoff.setMonth(now.getMonth() - 3)
-    else if (range === "1Y") cutoff.setFullYear(now.getFullYear() - 1)
-    else return snapshots
-    return snapshots.filter(s => new Date(s.date) >= cutoff)
-  })()
-
-  const data = filtered.map(s => s.total_value)
-  const min = Math.min(...(data.length ? data : [0]))
-  const max = Math.max(...(data.length ? data : [1]))
-  const range_ = max - min || 1
-  const W = 400; const H = 100
-  const pts = data.map((v, i) => {
-    const x = data.length > 1 ? (i / (data.length - 1)) * W : W / 2
-    const y = H - ((v - min) / range_) * (H - 8) - 4
-    return `${x},${y}`
-  })
-  const ptsStr = pts.join(" ")
-  const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
+/* ─── Highlights Card ────────────────────────────── */
+function HighlightsCard({ holdings }: { holdings: Holding[] }) {
+  const rows: Array<{
+    label: string
+    pick: (hs: Holding[]) => Holding | null
+    valFn: (h: Holding) => string
+    color: string
+  }> = [
+    {
+      label: "Top Holding",
+      pick: hs => hs.length ? hs.reduce((b, h) => (h.current_value ?? 0) > (b.current_value ?? 0) ? h : b, hs[0]) : null,
+      valFn: h => fmt(h.current_value),
+      color: "var(--text-dim)"
+    },
+    {
+      label: "Best Return",
+      pick: hs => hs.length ? hs.reduce((b, h) => (h.pnl_pct ?? -Infinity) > (b.pnl_pct ?? -Infinity) ? h : b, hs[0]) : null,
+      valFn: h => fmtPct(h.pnl_pct),
+      color: "var(--green)"
+    },
+    {
+      label: "Worst Return",
+      pick: hs => hs.length ? hs.reduce((b, h) => (h.pnl_pct ?? Infinity) < (b.pnl_pct ?? Infinity) ? h : b, hs[0]) : null,
+      valFn: h => fmtPct(h.pnl_pct),
+      color: "var(--red)"
+    },
+    {
+      label: "Day Gainer",
+      pick: hs => {
+        const w = hs.filter(h => h.day_change != null)
+        return w.length ? w.reduce((b, h) => (h.day_change ?? -Infinity) > (b.day_change ?? -Infinity) ? h : b, w[0]) : null
+      },
+      valFn: h => h.day_change != null ? `+${fmt(h.day_change)}` : "—",
+      color: "var(--green)"
+    },
+    {
+      label: "Day Loser",
+      pick: hs => {
+        const w = hs.filter(h => h.day_change != null)
+        return w.length ? w.reduce((b, h) => (h.day_change ?? Infinity) < (b.day_change ?? Infinity) ? h : b, w[0]) : null
+      },
+      valFn: h => h.day_change != null ? fmt(h.day_change) : "—",
+      color: "var(--red)"
+    }
+  ]
 
   return (
     <div style={{
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
-      borderRadius: 'var(--r-lg)',
+      borderRadius: 16,
       overflow: "hidden"
     }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 18px 10px"
-      }}>
-        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
-          Equity Curve
-        </div>
-        <div style={{ display: "flex", gap: "4px" }}>
-          {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
-            <button key={r} onClick={() => setRange(r)}
-              style={{
-                padding: "3px 10px", borderRadius: "var(--r-pill)",
-                fontSize: "11px", fontWeight: 600,
-                fontFamily: "var(--font-body)",
-                border: "none",
-                background: range === r ? "var(--bg)" : "transparent",
-                boxShadow: range === r ? "var(--neu-inset)" : "none",
-                color: range === r ? "var(--accent)" : "var(--text-dim)",
-                cursor: "pointer", transition: "all 0.2s"
-              }}>{r}</button>
-          ))}
-        </div>
+      <div style={{ padding: "14px 18px 12px" }}>
+        <div style={{
+          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+          textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
+        }}>Highlights</div>
       </div>
-      <div style={{ padding: "10px 18px 16px" }}>
-        {data.length < 2 ? (
-          <div style={{
-            height: "100px", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "12px", color: "var(--text-mute)"
-          }}>
-            No snapshot data available
-          </div>
-        ) : (
-          <svg width="100%" height="100" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(45,212,191,0.18)" />
-                <stop offset="100%" stopColor="rgba(45,212,191,0)" />
-              </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75].map(f => (
-              <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
-                stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
-            ))}
-            <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
-            <polyline points={ptsStr} fill="none" stroke="#2dd4bf" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
+      <div style={{ padding: "0 18px 16px" }}>
+        {rows.map((row, i) => {
+          const h = holdings.length ? row.pick(holdings) : null
+          return (
+            <div key={row.label} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "8px 0",
+              borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none"
+            }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-mute)"
+              }}>{row.label}</span>
+              <div style={{ textAlign: "right" }}>
+                <div style={{
+                  fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+                  color: "var(--accent)"
+                }}>{h ? displaySym(h.symbol) : "—"}</div>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: "11px",
+                  color: h ? row.color : "var(--text-mute)"
+                }}>{h ? row.valFn(h) : "—"}</div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -495,8 +527,6 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
 }
 
 /* ─── Main Page ──────────────────────────────────── */
-type ActiveTab = "equity" | "mf"
-
 export default function PortfolioPage() {
   const [summary, setSummary]     = useState<Summary | null>(() => readCache()?.summary ?? null)
   const [holdings, setHoldings]   = useState<Holding[]>(() => readCache()?.holdings ?? [])
@@ -575,8 +605,6 @@ export default function PortfolioPage() {
         (accountMap[f.account_id ?? ""] || "").toLowerCase() === activeAccount.toLowerCase()
       )
 
-  const sparkData = snapshots.slice(-20).map(s => s.total_value)
-
   const btnBase: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: "6px",
     padding: "8px 16px", borderRadius: "var(--r-md)",
@@ -586,6 +614,7 @@ export default function PortfolioPage() {
     transition: "all 0.15s"
   }
 
+  /* ── Loading skeleton ── */
   if (loading) {
     return (
       <div style={{ padding: "20px 0" }}>
@@ -593,8 +622,8 @@ export default function PortfolioPage() {
           <div style={{ height: "32px", width: "180px", background: "rgba(0,0,0,0.07)", borderRadius: "6px", marginBottom: "8px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
           <div style={{ height: "12px", width: "140px", background: "rgba(0,0,0,0.05)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
-          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -608,21 +637,25 @@ export default function PortfolioPage() {
     )
   }
 
+  /* ── Main layout ── */
   return (
     <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
-      {/* ── Page header ── */}
+      {/* ══ HEADER ══ */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
         marginBottom: "20px"
       }}>
         <div>
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
+            color: "var(--accent)", margin: 0, marginBottom: "4px"
+          }}>Portfolio</h1>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800, color: "var(--accent)", marginBottom: "4px"
-          }}>Portfolio</div>
-          <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)" }}>
+            fontSize: "12px", color: "var(--text-dim)",
+            display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)"
+          }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
-            {activeAccount !== "All" && <> · {activeAccount}</>}
             {syncing && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--text-mute)", fontSize: "11px" }}>
                 <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
@@ -635,12 +668,25 @@ export default function PortfolioPage() {
               color: "var(--amber)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px"
             }}>BETA</span>
           </div>
+          {/* Account filter chips */}
+          <div style={{ display: "flex", gap: "4px", marginTop: "10px" }}>
+            {ACCOUNTS.map(a => (
+              <button key={a} onClick={() => setActiveAccount(a)}
+                style={{
+                  padding: "5px 12px", borderRadius: "var(--r-pill)",
+                  fontSize: "11px", fontWeight: 600,
+                  fontFamily: "var(--font-body)",
+                  background: activeAccount === a ? "var(--bg)" : "var(--bg-surface)",
+                  boxShadow: activeAccount === a ? "var(--neu-inset)" : "var(--neu-raised-sm)",
+                  border: "none",
+                  color: activeAccount === a ? "var(--accent)" : "var(--text-dim)",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}>{a}</button>
+            ))}
+          </div>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={btnBase}>
+          <button onClick={handleRefresh} disabled={refreshing} style={btnBase}>
             <svg style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }}
               width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -649,9 +695,7 @@ export default function PortfolioPage() {
             </svg>
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
-          <button
-            style={{ ...btnBase, color: "var(--accent)" }}
-            onClick={() => alert('Export coming soon')}>
+          <button style={{ ...btnBase, color: "var(--accent)" }} onClick={() => alert('Export coming soon')}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -663,204 +707,116 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ── 4-column Metric Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
-        <MetricCard
-          label="Total Portfolio"
+      {/* ══ ROW 1: KPI STRIP ══ */}
+      <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+        <KPICard
+          label="Portfolio Value"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
-          sub={summary ? `across 3 accounts` : undefined}
-          sparkline={sparkData}
+          sub="across 3 accounts"
         />
-        <MetricCard
+        <KPICard
+          label="Invested"
+          value={summary ? fmt(summary.total_invested) : "—"}
+          sub="total cost basis"
+        />
+        <KPICard
           label="Total P&L"
           value={summary ? `${summary.total_pnl >= 0 ? "+" : ""}${fmt(summary.total_pnl)}` : "—"}
           sub={summary ? fmtPct(summary.total_pnl_pct) : undefined}
           valueColor={pnlColor(summary?.total_pnl)}
         />
-        <MetricCard
+        <KPICard
+          label="Return %"
+          value={summary ? fmtPct(summary.total_pnl_pct) : "—"}
+          valueColor={pnlColor(summary?.total_pnl_pct)}
+        />
+        <KPICard
           label="Day P&L"
           value={summary ? `${(summary.day_pnl ?? 0) >= 0 ? "+" : ""}${fmt(summary.day_pnl)}` : "—"}
           valueColor={pnlColor(summary?.day_pnl)}
         />
-        <MetricCard
-          label="Invested"
-          value={summary ? fmt(summary.total_invested) : "—"}
-          sub="total cost basis"
-        />
       </div>
 
-      {/* ── Tabs + Account filter ── */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: "6px",
-        marginBottom: "14px", flexWrap: "wrap"
-      }}>
-        {(["equity", "mf"] as ActiveTab[]).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{
-              padding: "7px 16px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
-              background: activeTab === tab ? "var(--bg)" : "var(--bg-surface)",
-              boxShadow: activeTab === tab ? "var(--neu-inset)" : "var(--neu-raised-sm)",
-              border: "none",
-              color: activeTab === tab ? "var(--accent)" : "var(--text-dim)",
-              cursor: "pointer", transition: "all 0.2s"
+      {/* ══ ROW 2: EQUITY CURVE (full width) ══ */}
+      <div style={{ marginBottom: "16px" }}>
+        <EquityCurve snapshots={snapshots} />
+      </div>
+
+      {/* ══ ROW 3: TWO COLUMNS — Holdings 65% / Right panel 35% ══ */}
+      <div style={{ display: "flex", gap: "16px", marginBottom: "16px", alignItems: "flex-start" }}>
+
+        {/* Left: Holdings table (65%) */}
+        <div style={{ flex: "0 0 65%" }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            boxShadow: 'var(--neu-raised)',
+            borderRadius: 16,
+            overflow: "hidden"
+          }}>
+            {/* Table header with [Equity][MF] underline-style tabs */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "14px 18px 0"
             }}>
-            {tab === "equity" ? "Equity" : "Mutual Funds"}
-          </button>
-        ))}
-        <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
-          {ACCOUNTS.map(a => (
-            <button key={a} onClick={() => setActiveAccount(a)}
-              style={{
-                padding: "5px 12px", borderRadius: "var(--r-pill)",
-                fontSize: "11px", fontWeight: 600,
-                fontFamily: "var(--font-body)",
-                background: activeAccount === a ? "var(--bg)" : "var(--bg-surface)",
-                boxShadow: activeAccount === a ? "var(--neu-inset)" : "var(--neu-raised-sm)",
-                border: "none",
-                color: activeAccount === a ? "var(--accent)" : "var(--text-dim)",
-                cursor: "pointer", transition: "all 0.2s"
-              }}>{a}</button>
-          ))}
+              <div style={{ display: "flex", gap: 0 }}>
+                {(["equity", "mf"] as ActiveTab[]).map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)}
+                    style={{
+                      padding: "0 0 10px 0", marginRight: "20px",
+                      fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: activeTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
+                      color: activeTab === tab ? "var(--accent)" : "var(--text-dim)",
+                      cursor: "pointer", transition: "all 0.2s"
+                    }}>
+                    {tab === "equity" ? "Equity" : "Mutual Funds"}
+                  </button>
+                ))}
+              </div>
+              {activeTab === "equity" && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: "4px",
+                  padding: "2px 8px", borderRadius: "var(--r-pill)",
+                  fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                  background: "var(--bg)", boxShadow: "var(--neu-inset)",
+                  color: "var(--accent)", marginBottom: "10px"
+                }}>
+                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
+                  Live
+                </span>
+              )}
+            </div>
+            <div style={{
+              margin: "0 12px 12px",
+              background: "var(--bg)",
+              boxShadow: "var(--neu-inset)",
+              borderRadius: "10px",
+              overflow: "hidden"
+            }}>
+              {activeTab === "equity" ? (
+                <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 480px)" }}>
+                  <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+                </div>
+              ) : (
+                <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 480px)" }}>
+                  <MFTable mf={filteredMF} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Sector + Highlights (35%) */}
+        <div style={{ flex: "0 0 35%", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <SectorAllocationCard holdings={filteredHoldings} />
+          <HighlightsCard holdings={filteredHoldings} />
         </div>
       </div>
 
-      {/* ── Insight cards + Sector + Equity Curve — equity tab only ── */}
-      {activeTab === "equity" && (
-        <div style={{
-          display: "grid", gridTemplateColumns: "1fr 1fr 2fr",
-          gap: "16px", marginBottom: "14px",
-          alignItems: "stretch"
-        }}>
-          {/* Col 1 — 5 insight cards */}
-          <div style={{ display: "grid", gridTemplateRows: "repeat(5, 1fr)", gap: "8px", height: "100%" }}>
-            <InsightCard
-              title="TOP HOLDING"
-              holdings={filteredHoldings}
-              pick={hs => hs.reduce((best, h) =>
-                (h.current_value ?? 0) > (best.current_value ?? 0) ? h : best
-              , hs[0])}
-              subFn={h => fmt(h.current_value)}
-              subColor="var(--text-dim)"
-            />
-            <InsightCard
-              title="TOP PROFIT"
-              holdings={filteredHoldings}
-              pick={hs => hs.reduce((best, h) =>
-                (h.pnl ?? -Infinity) > (best.pnl ?? -Infinity) ? h : best
-              , hs[0])}
-              subFn={h => h.pnl != null ? `+${fmt(h.pnl)}` : "—"}
-              subColor="var(--green)"
-            />
-            <InsightCard
-              title="TOP LOSS"
-              holdings={filteredHoldings}
-              pick={hs => hs.reduce((best, h) =>
-                (h.pnl ?? Infinity) < (best.pnl ?? Infinity) ? h : best
-              , hs[0])}
-              subFn={h => h.pnl != null ? fmt(h.pnl) : "—"}
-              subColor="var(--red)"
-            />
-            <InsightCard
-              title="TOP GAINER"
-              holdings={filteredHoldings}
-              pick={hs => {
-                const withDay = hs.filter(h => h.day_change != null)
-                if (!withDay.length) return null
-                return withDay.reduce((best, h) =>
-                  (h.day_change ?? -Infinity) > (best.day_change ?? -Infinity) ? h : best
-                , withDay[0])
-              }}
-              subFn={h => h.day_change != null ? `+${fmt(h.day_change)}` : "—"}
-              subColor="var(--green)"
-            />
-            <InsightCard
-              title="TOP LOSER"
-              holdings={filteredHoldings}
-              pick={hs => {
-                const withDay = hs.filter(h => h.day_change != null)
-                if (!withDay.length) return null
-                return withDay.reduce((best, h) =>
-                  (h.day_change ?? Infinity) < (best.day_change ?? Infinity) ? h : best
-                , withDay[0])
-              }}
-              subFn={h => h.day_change != null ? fmt(h.day_change) : "—"}
-              subColor="var(--red)"
-            />
-          </div>
-          {/* Col 2 — Sector Allocation */}
-          <SectorAllocation holdings={filteredHoldings} />
-          {/* Col 3 — Equity Curve (2fr) */}
-          <EquityCurve snapshots={snapshots} />
-        </div>
-      )}
+      {/* ══ ROW 4: PORTFOLIO ANALYSIS SECTION ══ */}
+      <PortfolioAnalysisSection holdings={filteredHoldings} accountFilter={activeAccount} />
 
-      {/* ── Holdings Table ── */}
-      {activeTab === "equity" && (
-        <div style={{
-          background: 'var(--bg-surface)',
-          boxShadow: 'var(--neu-raised)',
-          borderRadius: 'var(--r-lg)',
-          overflow: "hidden"
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 18px 12px"
-          }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
-              Equity Holdings · {filteredHoldings.length} stocks
-            </div>
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: "4px",
-              padding: "2px 8px", borderRadius: "var(--r-pill)",
-              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
-              background: "var(--bg)", boxShadow: "var(--neu-inset)",
-              color: "var(--accent)"
-            }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
-              Live
-            </span>
-          </div>
-          <div style={{
-            margin: "0 12px 12px",
-            background: "var(--bg)",
-            boxShadow: "var(--neu-inset)",
-            borderRadius: "10px",
-            overflow: "hidden"
-          }}>
-            <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 460px)" }}>
-              <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MF ── */}
-      {activeTab === "mf" && (
-        <div style={{
-          background: 'var(--bg-surface)',
-          boxShadow: 'var(--neu-raised)',
-          borderRadius: 'var(--r-lg)',
-          overflow: "hidden"
-        }}>
-          <div style={{ padding: "14px 18px 12px" }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
-              Mutual Funds · {filteredMF.length} funds
-            </div>
-          </div>
-          <div style={{
-            margin: "0 12px 12px",
-            background: "var(--bg)",
-            boxShadow: "var(--neu-inset)",
-            borderRadius: "10px",
-            overflow: "hidden"
-          }}>
-            <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 420px)" }}>
-              <MFTable mf={filteredMF} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

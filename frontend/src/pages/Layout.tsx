@@ -7,7 +7,6 @@ const NAV_LINKS = [
   { to: '/sips',      label: 'SIPs'      },
   { to: '/ipo-bots',  label: 'IPO'       },
   { to: '/watchlist', label: 'Watchlist' },
-  { to: '/analysis',  label: 'Analysis'  },
 ]
 
 const iconBtnStyle: React.CSSProperties = {

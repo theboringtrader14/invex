@@ -4,7 +4,6 @@ import PortfolioPage from "./pages/PortfolioPage"
 import SIPsPage from "./pages/SIPsPage"
 import IPOBotsPage from "./pages/IPOBotsPage"
 import WatchlistPage from "./pages/WatchlistPage"
-import AnalysisPage from "./pages/AnalysisPage"
 
 export default function App() {
   return (
@@ -16,7 +15,7 @@ export default function App() {
           <Route path="sips" element={<SIPsPage />} />
           <Route path="ipo-bots" element={<IPOBotsPage />} />
           <Route path="watchlist" element={<WatchlistPage />} />
-          <Route path="analysis" element={<AnalysisPage />} />
+          <Route path="analysis" element={<Navigate to="/portfolio" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
