@@ -27,7 +27,8 @@ export const sipsAPI = {
   delete:        (id: string) => axios.delete(`${API}/sips/${id}`, auth()),
   executions:    (id: string) => axios.get(`${API}/sips/${id}/executions`, auth()),
   allExecutions: () => axios.get(`${API}/sips/executions`, auth()),
-  executeNow:    () => axios.post(`${API}/sips/execute-now`, {}, auth()),
+  executeNow:        () => axios.post(`${API}/sips/execute-now`, {}, auth()),
+  executeNowForSip:  (id: string) => axios.post(`${API}/sips/${id}/execute`, {}, auth()),
 }
 
 // IPO Bots

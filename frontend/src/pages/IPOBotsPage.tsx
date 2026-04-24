@@ -55,35 +55,15 @@ interface RowYTR {
 function signalStyle(signal: string | undefined): React.CSSProperties {
   switch (signal) {
     case 'STRONG_BULLISH':
-      return {
-        background: 'rgba(0,230,118,0.18)',
-        color: '#00e676',
-        border: '0.5px solid rgba(0,230,118,0.45)',
-      }
+      return { color: '#22DD88', background: 'rgba(34,221,136,0.10)', border: '1px solid rgba(34,221,136,0.25)' }
     case 'BULLISH':
-      return {
-        background: 'rgba(0,201,167,0.18)',
-        color: 'var(--ix-vivid)',
-        border: '0.5px solid rgba(0,201,167,0.40)',
-      }
+      return { color: 'var(--accent)', background: 'rgba(45,212,191,0.10)', border: '1px solid rgba(45,212,191,0.25)' }
     case 'BEARISH':
-      return {
-        background: 'rgba(255,82,82,0.14)',
-        color: '#ff5252',
-        border: '0.5px solid rgba(255,82,82,0.35)',
-      }
+      return { color: 'var(--red)', background: 'rgba(255,68,68,0.08)', border: '1px solid rgba(255,68,68,0.20)' }
     case 'STRONG_BEARISH':
-      return {
-        background: 'rgba(213,0,0,0.18)',
-        color: '#ff1744',
-        border: '0.5px solid rgba(213,0,0,0.45)',
-      }
+      return { color: '#cc0000', background: 'rgba(204,0,0,0.08)', border: '1px solid rgba(204,0,0,0.20)' }
     default:
-      return {
-        background: 'rgba(255,255,255,0.07)',
-        color: 'var(--gs-muted)',
-        border: '0.5px solid rgba(255,255,255,0.12)',
-      }
+      return { color: 'var(--text-mute)', background: 'var(--bg)', border: '1px solid var(--border)' }
   }
 }
 
@@ -95,6 +75,7 @@ const chipBase: React.CSSProperties = {
   borderRadius: 'var(--r-pill)',
   fontSize: '10px',
   fontWeight: 700,
+  fontFamily: 'var(--font-mono)',
 }
 
 /* ─── YTR Level Bar ─────────────────────────────────────────── */
@@ -123,34 +104,32 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
 
   return (
     <div style={{ marginTop: '12px', padding: '0 4px' }}>
-      {/* Bar */}
       <div style={{ position: 'relative', height: '22px', borderRadius: '4px', overflow: 'visible' }}>
-        {/* Bearish zone: LPP1 → LPP */}
+        {/* Bearish zone */}
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: '0%', width: `${lppPct}%`,
-          background: 'rgba(255,82,82,0.22)', borderRadius: '4px 0 0 4px',
+          background: 'rgba(255,68,68,0.12)', borderRadius: '4px 0 0 4px',
         }} />
-        {/* Neutral zone: LPP → UPP */}
+        {/* Neutral zone */}
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: `${lppPct}%`, width: `${uppPct - lppPct}%`,
-          background: 'rgba(255,255,255,0.09)',
+          background: 'rgba(0,0,0,0.05)',
         }} />
-        {/* Bullish zone: UPP → UPP1 */}
+        {/* Bullish zone */}
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: `${uppPct}%`, width: `${100 - uppPct}%`,
-          background: 'rgba(0,201,167,0.22)', borderRadius: '0 4px 4px 0',
+          background: 'rgba(45,212,191,0.15)', borderRadius: '0 4px 4px 0',
         }} />
 
-        {/* Level tick marks */}
         {levels.map(l => (
           <div key={l.key} style={{
             position: 'absolute', top: 0, bottom: 0,
             left: `${pct(l.val)}%`,
             width: '1px',
-            background: 'rgba(255,255,255,0.20)',
+            background: 'rgba(0,0,0,0.15)',
           }} />
         ))}
 
@@ -166,8 +145,8 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
             display: 'block',
             width: '10px', height: '10px',
             borderRadius: '50%',
-            background: 'var(--ix-vivid)',
-            boxShadow: '0 0 0 3px rgba(0,201,167,0.30)',
+            background: 'var(--accent)',
+            boxShadow: '0 0 0 3px rgba(45,212,191,0.25)',
             animation: 'pulseLive 1.5s ease-in-out infinite',
           }} />
         </div>
@@ -181,12 +160,13 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
             left: `${pct(l.val)}%`,
             transform: 'translateX(-50%)',
             fontSize: '9px',
-            color: 'var(--gs-muted)',
+            color: 'var(--text-mute)',
             whiteSpace: 'nowrap',
+            fontFamily: 'var(--font-mono)',
           }}>
             {l.label}
             <br />
-            <span style={{ color: 'var(--ix-ultra)', fontWeight: 600 }}>
+            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
               {l.val.toFixed(1)}
             </span>
           </div>
@@ -204,20 +184,16 @@ export default function IPOBotsPage() {
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
   const [scanResults, setScanResults] = useState<YTRData[] | null>(null)
 
-  /* Add form state */
   const [addSymbol, setAddSymbol] = useState('')
   const [addAccountId, setAddAccountId] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
 
-  /* Scan state */
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState('')
 
-  /* Per-row refresh loading */
   const [refreshing, setRefreshing] = useState<{ [botId: string]: boolean }>({})
 
-  /* ── Fetch bot list ── */
   const fetchBots = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/v1/ipo-bots/`, { headers: authHeaders() })
@@ -229,7 +205,6 @@ export default function IPOBotsPage() {
 
   useEffect(() => { fetchBots() }, [fetchBots])
 
-  /* ── Add bot ── */
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!addSymbol.trim() || !addAccountId.trim()) {
@@ -262,7 +237,6 @@ export default function IPOBotsPage() {
     }
   }
 
-  /* ── Refresh single row YTR ── */
   async function refreshRow(bot: Bot) {
     setRefreshing(r => ({ ...r, [bot.id]: true }))
     try {
@@ -278,7 +252,6 @@ export default function IPOBotsPage() {
     }
   }
 
-  /* ── Scan all ── */
   async function handleScan() {
     setScanning(true)
     setScanError('')
@@ -294,7 +267,6 @@ export default function IPOBotsPage() {
       } else {
         const data = await res.json()
         setScanResults(data.signals || [])
-        /* Also merge into rowYTR keyed by bot_id */
         const merged: RowYTR = {}
         for (const s of (data.signals || [])) {
           if (s.bot_id) merged[s.bot_id] = s
@@ -311,117 +283,126 @@ export default function IPOBotsPage() {
   const fmt = (v: number | null | undefined) =>
     v != null ? v.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'
 
-  const selectedYTR = selectedBotId ? rowYTR[selectedBotId] : null
+  const neuCard: React.CSSProperties = {
+    background: 'var(--bg-surface)',
+    boxShadow: 'var(--neu-raised)',
+    borderRadius: 'var(--r-lg)',
+    border: '1px solid var(--border)',
+  }
 
-  /* ──────────────── RENDER ──────────────────────────────────── */
+  const inputStyleLocal: React.CSSProperties = {
+    background: 'var(--bg)',
+    boxShadow: 'var(--neu-inset)',
+    border: '1px solid var(--border)',
+    borderRadius: '7px',
+    padding: '7px 12px',
+    color: 'var(--text)',
+    fontSize: '12px',
+    width: '148px',
+    outline: 'none',
+    fontFamily: 'var(--font-body)',
+  }
+
+  const addBtnStyleLocal = (disabled: boolean): React.CSSProperties => ({
+    padding: '7px 16px',
+    borderRadius: '7px',
+    fontSize: '12px', fontWeight: 700,
+    background: 'var(--bg-surface)',
+    boxShadow: disabled ? 'none' : 'var(--neu-raised-sm)',
+    color: disabled ? 'var(--text-mute)' : 'var(--accent)',
+    border: 'none',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    transition: 'all 150ms',
+    alignSelf: 'flex-end',
+    fontFamily: 'var(--font-body)',
+  })
+
+  const toggleChipStyle = (active: boolean, colorActive: string): React.CSSProperties => ({
+    ...chipBase,
+    cursor: 'pointer',
+    border: 'none',
+    background: active ? 'var(--bg)' : 'var(--bg-surface)',
+    boxShadow: active ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+    color: active ? colorActive : 'var(--text-mute)',
+  })
+
   return (
-    <div style={{ padding: '24px 28px', animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
+    <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap', paddingTop: '8px' }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{
-            fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 800,
-            color: 'var(--ix-vivid)', letterSpacing: '-1px', marginBottom: '4px',
+            fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 800,
+            color: 'var(--text)', marginBottom: '4px',
           }}>
             IPO Bot
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--gs-muted)' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
             YTR strategy scanner · NSE auto-detect
           </div>
         </div>
 
         {/* LIVE / PRACTIX toggle chip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '6px' }}>
-          <button
-            onClick={() => setIsPractix(false)}
-            style={{
-              ...chipBase,
-              cursor: 'pointer',
-              border: 'none',
-              background: !isPractix ? 'rgba(0,201,167,0.18)' : 'rgba(255,255,255,0.06)',
-              color: !isPractix ? 'var(--ix-vivid)' : 'var(--gs-muted)',
-              outline: !isPractix ? '0.5px solid rgba(0,201,167,0.40)' : '0.5px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            {!isPractix && <span className="dot-live" />}
+          <button onClick={() => setIsPractix(false)} style={toggleChipStyle(!isPractix, 'var(--accent)')}>
+            {!isPractix && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', animation: 'pulseLive 2s ease-out infinite', display: 'inline-block' }} />}
             LIVE
           </button>
-          <button
-            onClick={() => setIsPractix(true)}
-            style={{
-              ...chipBase,
-              cursor: 'pointer',
-              border: 'none',
-              background: isPractix ? 'rgba(255,215,0,0.14)' : 'rgba(255,255,255,0.06)',
-              color: isPractix ? 'var(--sem-warn)' : 'var(--gs-muted)',
-              outline: isPractix ? '0.5px solid rgba(255,215,0,0.35)' : '0.5px solid rgba(255,255,255,0.12)',
-            }}
-          >
+          <button onClick={() => setIsPractix(true)} style={toggleChipStyle(isPractix, 'var(--amber)')}>
             PRACTIX
           </button>
         </div>
       </div>
 
       {/* ── Add symbol row ── */}
-      <div className="glass cloud-fill" style={{ padding: '18px 20px', marginBottom: '16px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ix-ultra)', marginBottom: '12px', letterSpacing: '0.06em' }}>
+      <div style={{ ...neuCard, padding: '18px 20px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '12px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
           ADD TO WATCHLIST
         </div>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', color: 'var(--gs-muted)', fontWeight: 600 }}>SYMBOL</label>
+            <label style={{ fontSize: '10px', color: 'var(--text-mute)', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>SYMBOL</label>
             <input
               value={addSymbol}
               onChange={e => setAddSymbol(e.target.value.toUpperCase())}
               placeholder="e.g. SWIGGY"
-              style={inputStyle}
+              style={inputStyleLocal}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', color: 'var(--gs-muted)', fontWeight: 600 }}>ACCOUNT ID</label>
+            <label style={{ fontSize: '10px', color: 'var(--text-mute)', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>ACCOUNT ID</label>
             <input
               value={addAccountId}
               onChange={e => setAddAccountId(e.target.value)}
               placeholder="e.g. ZER123"
-              style={inputStyle}
+              style={inputStyleLocal}
             />
           </div>
-          <button
-            type="submit"
-            disabled={adding}
-            style={addBtnStyle(adding)}
-          >
+          <button type="submit" disabled={adding} style={addBtnStyleLocal(adding)}>
             {adding ? 'Adding…' : '+ Add'}
           </button>
-
-          {/* Scan All button */}
           <button
             type="button"
             onClick={handleScan}
             disabled={scanning}
-            style={{
-              ...addBtnStyle(scanning),
-              background: scanning ? 'rgba(255,255,255,0.06)' : 'rgba(0,201,167,0.12)',
-              color: scanning ? 'var(--gs-muted)' : 'var(--ix-vivid)',
-              border: '0.5px solid rgba(0,201,167,0.35)',
-            }}
+            style={{ ...addBtnStyleLocal(scanning), color: scanning ? 'var(--text-mute)' : 'var(--accent)' }}
           >
             {scanning ? 'Scanning…' : '⚡ Scan All'}
           </button>
         </form>
         {addError && (
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#ff5252' }}>{addError}</div>
+          <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--red)', fontFamily: 'var(--font-body)' }}>{addError}</div>
         )}
         {scanError && (
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#ff5252' }}>Scan error: {scanError}</div>
+          <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--red)', fontFamily: 'var(--font-body)' }}>Scan error: {scanError}</div>
         )}
       </div>
 
       {/* ── Scan results banner ── */}
       {scanResults && scanResults.length > 0 && (
-        <div className="glass cloud-fill" style={{ padding: '14px 20px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ix-ultra)', marginBottom: '10px', letterSpacing: '0.06em' }}>
+        <div style={{ ...neuCard, padding: '14px 20px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '10px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
             SCAN RESULTS · {scanResults.length} symbol{scanResults.length !== 1 ? 's' : ''}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -429,11 +410,11 @@ export default function IPOBotsPage() {
               <div key={i} style={{
                 padding: '6px 12px',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '0.5px solid rgba(255,255,255,0.10)',
+                background: 'var(--bg)',
+                boxShadow: 'var(--neu-inset)',
                 display: 'flex', alignItems: 'center', gap: '8px',
               }}>
-                <span style={{ fontWeight: 700, color: 'var(--ix-vivid)', fontSize: '12px' }}>
+                <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
                   {s.symbol}
                 </span>
                 {s.signal && (
@@ -442,12 +423,12 @@ export default function IPOBotsPage() {
                   </span>
                 )}
                 {s.ltp != null && (
-                  <span style={{ fontSize: '11px', color: 'var(--gs-muted)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                     ₹{fmt(s.ltp)}
                   </span>
                 )}
                 {s.error && (
-                  <span style={{ fontSize: '11px', color: '#ff5252' }}>{s.error}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--red)' }}>{s.error}</span>
                 )}
               </div>
             ))}
@@ -456,38 +437,43 @@ export default function IPOBotsPage() {
       )}
 
       {/* ── Watchlist table ── */}
-      <div className="glass cloud-fill" style={{ padding: '0', overflow: 'hidden', marginBottom: '16px' }}>
+      <div style={{ ...neuCard, overflow: 'hidden', marginBottom: '16px' }}>
         <div style={{
-          padding: '14px 20px', borderBottom: '0.5px solid var(--ix-border)',
+          padding: '14px 20px', borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ix-ultra)', letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-mute)', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
             WATCHLIST · {bots.length} bot{bots.length !== 1 ? 's' : ''}
           </div>
-          <span className={isPractix ? 'status-chip chip-paused' : 'status-chip chip-active'}>
-            {!isPractix && <span className="dot-live" />}
+          <span style={{
+            ...chipBase,
+            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+            color: isPractix ? 'var(--amber)' : 'var(--accent)',
+          }}>
+            {!isPractix && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', animation: 'pulseLive 2s ease-out infinite', display: 'inline-block' }} />}
             {isPractix ? 'PRACTIX' : 'LIVE'}
           </span>
         </div>
 
         {bots.length === 0 ? (
-          <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--gs-muted)', fontSize: '13px' }}>
+          <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-mute)', fontSize: '13px', fontFamily: 'var(--font-body)' }}>
             No bots yet — add a symbol above to get started.
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
                   {['Symbol', 'Signal', 'LTP', 'UPP / LPP', 'Target / SL', 'Status', ''].map(h => (
                     <th key={h} style={{
                       padding: '10px 16px',
                       textAlign: 'left',
                       fontSize: '10px', fontWeight: 700,
-                      color: 'var(--gs-muted)',
+                      color: 'var(--text-mute)',
                       letterSpacing: '0.06em',
-                      borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                      borderBottom: '1px solid var(--border)',
                       whiteSpace: 'nowrap',
+                      fontFamily: 'var(--font-mono)',
                     }}>{h}</th>
                   ))}
                 </tr>
@@ -503,14 +489,12 @@ export default function IPOBotsPage() {
                         onClick={() => setSelectedBotId(isSelected ? null : bot.id)}
                         style={{
                           cursor: 'pointer',
-                          background: isSelected
-                            ? 'rgba(0,201,167,0.06)'
-                            : 'transparent',
+                          background: isSelected ? 'rgba(45,212,191,0.04)' : 'transparent',
                           transition: 'background 150ms',
-                          borderBottom: '0.5px solid rgba(255,255,255,0.05)',
+                          borderBottom: '1px solid var(--border)',
                         }}
                         onMouseEnter={e => {
-                          if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(255,255,255,0.03)'
+                          if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0,0,0,0.02)'
                         }}
                         onMouseLeave={e => {
                           if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'
@@ -518,10 +502,10 @@ export default function IPOBotsPage() {
                       >
                         {/* Symbol */}
                         <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--ix-vivid)', fontSize: '13px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>
                             {bot.symbol}
                           </span>
-                          <div style={{ fontSize: '10px', color: 'var(--gs-muted)', marginTop: '2px' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--text-mute)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
                             {bot.exchange}
                           </div>
                         </td>
@@ -533,12 +517,12 @@ export default function IPOBotsPage() {
                               {ytr.signal.replace('_', ' ')}
                             </span>
                           ) : (
-                            <span style={{ color: 'var(--gs-muted)', fontSize: '11px' }}>—</span>
+                            <span style={{ color: 'var(--text-mute)', fontSize: '11px' }}>—</span>
                           )}
                         </td>
 
                         {/* LTP */}
-                        <td style={{ padding: '12px 16px', color: 'var(--ix-ultra)', fontWeight: 600 }}>
+                        <td style={{ padding: '12px 16px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                           {ytr?.ltp != null ? `₹${fmt(ytr.ltp)}` : '—'}
                         </td>
 
@@ -548,9 +532,9 @@ export default function IPOBotsPage() {
                             {ytr?.UPP != null && (
                               <span style={{
                                 ...chipBase,
-                                background: 'rgba(0,201,167,0.10)',
-                                color: 'var(--ix-vivid)',
-                                border: '0.5px solid rgba(0,201,167,0.25)',
+                                background: 'rgba(45,212,191,0.08)',
+                                color: 'var(--accent)',
+                                border: '1px solid rgba(45,212,191,0.20)',
                               }}>
                                 UPP {fmt(ytr.UPP)}
                               </span>
@@ -558,14 +542,14 @@ export default function IPOBotsPage() {
                             {ytr?.LPP != null && (
                               <span style={{
                                 ...chipBase,
-                                background: 'rgba(255,82,82,0.10)',
-                                color: '#ff5252',
-                                border: '0.5px solid rgba(255,82,82,0.25)',
+                                background: 'rgba(255,68,68,0.08)',
+                                color: 'var(--red)',
+                                border: '1px solid rgba(255,68,68,0.20)',
                               }}>
                                 LPP {fmt(ytr.LPP)}
                               </span>
                             )}
-                            {!ytr && <span style={{ color: 'var(--gs-muted)', fontSize: '11px' }}>—</span>}
+                            {!ytr && <span style={{ color: 'var(--text-mute)', fontSize: '11px' }}>—</span>}
                           </div>
                         </td>
 
@@ -573,23 +557,27 @@ export default function IPOBotsPage() {
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                             {ytr?.target != null ? (
-                              <span style={{ fontSize: '11px', color: '#00e676' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--green)', fontFamily: 'var(--font-mono)' }}>
                                 T: ₹{fmt(ytr.target)}
                               </span>
                             ) : null}
                             {ytr?.sl != null ? (
-                              <span style={{ fontSize: '11px', color: '#ff5252' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>
                                 SL: ₹{fmt(ytr.sl)}
                               </span>
                             ) : null}
-                            {!ytr && <span style={{ color: 'var(--gs-muted)', fontSize: '11px' }}>—</span>}
+                            {!ytr && <span style={{ color: 'var(--text-mute)', fontSize: '11px' }}>—</span>}
                           </div>
                         </td>
 
                         {/* Status */}
                         <td style={{ padding: '12px 16px' }}>
-                          <span className={bot.status === 'watching' ? 'status-chip chip-active' : 'status-chip chip-paused'}>
-                            {bot.status === 'watching' && <span className="dot-live" />}
+                          <span style={{
+                            ...chipBase,
+                            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                            color: bot.status === 'watching' ? 'var(--green)' : 'var(--amber)',
+                          }}>
+                            {bot.status === 'watching' && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', animation: 'pulseLive 2s ease-out infinite', display: 'inline-block' }} />}
                             {bot.status.toUpperCase()}
                           </span>
                         </td>
@@ -602,13 +590,15 @@ export default function IPOBotsPage() {
                             style={{
                               padding: '4px 10px',
                               borderRadius: '6px',
-                              fontSize: '10px', fontWeight: 600,
-                              background: 'rgba(0,201,167,0.10)',
-                              color: refreshing[bot.id] ? 'var(--gs-muted)' : 'var(--ix-vivid)',
-                              border: '0.5px solid rgba(0,201,167,0.25)',
+                              fontSize: '10px', fontWeight: 700,
+                              background: 'var(--bg-surface)',
+                              boxShadow: refreshing[bot.id] ? 'none' : 'var(--neu-raised-sm)',
+                              color: refreshing[bot.id] ? 'var(--text-mute)' : 'var(--accent)',
+                              border: 'none',
                               cursor: refreshing[bot.id] ? 'not-allowed' : 'pointer',
                               transition: 'all 150ms',
                               whiteSpace: 'nowrap',
+                              fontFamily: 'var(--font-mono)',
                             }}
                           >
                             {refreshing[bot.id] ? '…' : '↻ Refresh'}
@@ -618,25 +608,24 @@ export default function IPOBotsPage() {
 
                       {/* Expanded YTR bar row */}
                       {isSelected && (
-                        <tr key={`${bot.id}-bar`} style={{ background: 'rgba(0,201,167,0.03)' }}>
+                        <tr key={`${bot.id}-bar`} style={{ background: 'rgba(45,212,191,0.02)' }}>
                           <td
                             colSpan={7}
                             style={{
                               padding: '16px 20px 20px',
-                              borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                              borderBottom: '1px solid var(--border)',
                             }}
                           >
                             {!ytr ? (
-                              <div style={{ fontSize: '12px', color: 'var(--gs-muted)' }}>
+                              <div style={{ fontSize: '12px', color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
                                 Click ↻ Refresh to load YTR levels for {bot.symbol}.
                               </div>
                             ) : ytr.error ? (
-                              <div style={{ fontSize: '12px', color: '#ff5252' }}>
+                              <div style={{ fontSize: '12px', color: 'var(--red)', fontFamily: 'var(--font-body)' }}>
                                 Error: {ytr.error}
                               </div>
                             ) : (
                               <>
-                                {/* Summary row */}
                                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
                                   {[
                                     { label: 'Open', val: ytr.dopen },
@@ -649,16 +638,15 @@ export default function IPOBotsPage() {
                                     { label: 'PROFITUP1', val: ytr.PROFITUP1 },
                                   ].map(item => (
                                     <div key={item.label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <span style={{ fontSize: '9px', color: 'var(--gs-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                        {item.label.toUpperCase()}
+                                      <span style={{ fontSize: '9px', color: 'var(--text-mute)', fontWeight: 700, letterSpacing: '0.05em', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+                                        {item.label}
                                       </span>
-                                      <span style={{ fontSize: '12px', color: 'var(--ix-ultra)', fontWeight: 600 }}>
+                                      <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                                         ₹{fmt(item.val)}
                                       </span>
                                     </div>
                                   ))}
                                 </div>
-                                {/* Price bar */}
                                 <YTRBar ytr={ytr} />
                               </>
                             )}
@@ -676,30 +664,4 @@ export default function IPOBotsPage() {
 
     </div>
   )
-}
-
-/* ─── Local style constants ─────────────────────────────────── */
-const inputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
-  border: '0.5px solid rgba(255,255,255,0.14)',
-  borderRadius: '7px',
-  padding: '7px 12px',
-  color: 'var(--ix-ultra)',
-  fontSize: '12px',
-  width: '148px',
-  outline: 'none',
-}
-
-function addBtnStyle(disabled: boolean): React.CSSProperties {
-  return {
-    padding: '7px 16px',
-    borderRadius: '7px',
-    fontSize: '12px', fontWeight: 700,
-    background: disabled ? 'rgba(255,255,255,0.06)' : 'rgba(0,201,167,0.18)',
-    color: disabled ? 'var(--gs-muted)' : 'var(--ix-vivid)',
-    border: '0.5px solid rgba(0,201,167,0.30)',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'all 150ms',
-    alignSelf: 'flex-end',
-  }
 }

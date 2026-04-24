@@ -54,6 +54,20 @@ async def execute_sips_now(db: AsyncSession = Depends(get_db), user = Depends(ge
     return summary
 
 
+@router.post("/{sip_id}/execute")
+async def execute_sip_now(sip_id: str, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
+    """Trigger immediate SIP purchase for a single SIP."""
+    from app.engine.sip_engine import execute_sip
+    result = await db.execute(select(SIP).where(SIP.id == sip_id))
+    sip = result.scalar_one_or_none()
+    if not sip:
+        raise HTTPException(404, "SIP not found")
+    if sip.status != "active":
+        raise HTTPException(400, "SIP is not active")
+    outcome = await execute_sip(db, sip)
+    return {"status": "ok", "message": "SIP executed", "detail": outcome}
+
+
 @router.patch("/{sip_id}")
 async def update_sip(sip_id: str, body: dict = Body(...), db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
     result = await db.execute(select(SIP).where(SIP.id == sip_id))

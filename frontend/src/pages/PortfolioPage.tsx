@@ -21,7 +21,6 @@ type Summary = {
   xirr?: number; holdings_count: number; mf_count: number
 }
 type Snapshot = { date: string; total_value: number; invested?: number; pnl?: number }
-// 3b: sort key stored in localStorage
 type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 
 const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
@@ -49,7 +48,7 @@ const fmt = (n?: number) =>
 const fmtPct = (n?: number) =>
   n != null ? `${n >= 0 ? "+" : ""}${n.toFixed(2)}%` : "—"
 const pnlColor = (n?: number) =>
-  !n ? "var(--gs-muted)" : n >= 0 ? "var(--sem-long)" : "var(--sem-short)"
+  !n ? "var(--text-mute)" : n >= 0 ? "var(--green)" : "var(--red)"
 
 /* ─── MetricCard ─────────────────────────────────── */
 function MetricCard({
@@ -59,19 +58,26 @@ function MetricCard({
   valueColor?: string; sparkline?: number[]
 }) {
   return (
-    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      padding: "18px 18px 16px",
+    }}>
       <div style={{
-        fontSize: "10px", fontWeight: 600, letterSpacing: "2px",
-        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "10px",
+        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        textTransform: "uppercase", color: "var(--text-mute)",
+        fontFamily: "var(--font-mono)", marginBottom: "10px",
       }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: "20px", fontWeight: 700,
-        color: valueColor || "var(--ix-vivid)",
-        letterSpacing: "-0.5px", lineHeight: 1,
+        fontFamily: "var(--font-body)",
+        fontSize: "22px", fontWeight: 700,
+        color: valueColor || "var(--text)",
+        lineHeight: 1,
       }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: "11px", color: "var(--gs-muted)", marginTop: "5px" }}>{sub}</div>
+        <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
       )}
       {sparkline && sparkline.length > 1 && (
         <MiniSparkline data={sparkline} />
@@ -94,8 +100,8 @@ function MiniSparkline({ data }: { data: number[] }) {
   return (
     <svg width="100%" height="32" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
       style={{ display: "block", marginTop: "10px" }}>
-      <polyline points={fill} fill="rgba(0,201,167,0.07)" stroke="none" />
-      <polyline points={pts} fill="none" stroke="#00C9A7" strokeWidth="1.5"
+      <polyline points={fill} fill="rgba(45,212,191,0.08)" stroke="none" />
+      <polyline points={pts} fill="none" stroke="#2dd4bf" strokeWidth="1.5"
         strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -104,9 +110,15 @@ function MiniSparkline({ data }: { data: number[] }) {
 /* ─── SkeletonCard ───────────────────────────────── */
 function SkeletonCard() {
   return (
-    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px" }}>
-      <div style={{ height: "10px", width: "55%", background: "rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
-      <div style={{ height: "22px", width: "70%", background: "rgba(255,255,255,0.10)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      padding: "18px 18px 16px",
+    }}>
+      <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "22px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
     </div>
   )
 }
@@ -123,25 +135,30 @@ function InsightCard({
 }) {
   const h = holdings.length ? pick(holdings) : null
   return (
-    <div className="glass cloud-fill" style={{
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised-sm)',
+      borderRadius: 'var(--r-md)',
+      border: '1px solid var(--border)',
       padding: "10px 14px", overflow: "hidden",
       display: "flex", flexDirection: "column", justifyContent: "center",
       height: "100%", boxSizing: "border-box",
     }}>
       <div style={{
-        fontSize: "9px", fontWeight: 700, letterSpacing: "2px",
-        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "8px",
+        fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em",
+        textTransform: "uppercase", color: "var(--text-mute)",
+        fontFamily: "var(--font-mono)", marginBottom: "8px",
       }}>{title}</div>
       <div style={{
-        fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 700,
-        color: "#F0F0FF", letterSpacing: "-0.3px", lineHeight: 1.2,
+        fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700,
+        color: "var(--accent)", letterSpacing: "-0.3px", lineHeight: 1.2,
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
       }}>
         {h ? displaySym(h.symbol) : "—"}
       </div>
       <div style={{
         fontFamily: "var(--font-mono)", fontSize: "11px",
-        color: h ? subColor : "var(--gs-muted)", marginTop: "4px",
+        color: h ? subColor : "var(--text-mute)", marginTop: "4px",
       }}>
         {h ? subFn(h) : "—"}
       </div>
@@ -151,8 +168,8 @@ function InsightCard({
 
 /* ─── SectorAllocation ───────────────────────────── */
 const SECTOR_PALETTE = [
-  "#00C9A7", "#4488FF", "#FFD700", "#FF6B6B", "#A78BFA",
-  "#34D399", "#FB923C", "#38BDF8", "#F472B6", "#5A5A61",
+  "#2dd4bf", "#4488FF", "#F59E0B", "#FF6B6B", "#A78BFA",
+  "#34D399", "#FB923C", "#38BDF8", "#F472B6", "#9CA3AF",
 ]
 
 function SectorAllocation({ holdings }: { holdings: Holding[] }) {
@@ -173,13 +190,21 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
     .sort((a, b) => b.pct - a.pct)
 
   return (
-    <div className="glass cloud-fill" style={{ overflow: "hidden" }}>
-      <div className="panel-hdr">
-        <div className="panel-title">Sector Allocation</div>
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      overflow: "hidden",
+    }}>
+      <div style={{ padding: "14px 18px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+          Sector Allocation
+        </div>
       </div>
-      <div style={{ padding: "14px 18px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div style={{ padding: "0 18px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {entries.length === 0 ? (
-          <div style={{ fontSize: "12px", color: "var(--gs-light)", textAlign: "center", padding: "20px 0" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-mute)", textAlign: "center", padding: "20px 0" }}>
             No holdings data
           </div>
         ) : entries.map(({ key, pct }) => (
@@ -190,13 +215,13 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
             }} />
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
-                <span style={{ fontSize: "11px", color: "var(--gs-muted)" }}>{key}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--ix-glow)" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>{key}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--accent)" }}>
                   {pct.toFixed(1)}%
                 </span>
               </div>
-              <div className="sector-bar-track">
-                <div className="sector-bar-fill" style={{ width: `${pct}%`, background: colorMap[key] }} />
+              <div style={{ height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.08)" }}>
+                <div style={{ width: `${pct}%`, height: "4px", borderRadius: "2px", background: colorMap[key], transition: "width 0.5s" }} />
               </div>
             </div>
           </div>
@@ -206,7 +231,7 @@ function SectorAllocation({ holdings }: { holdings: Holding[] }) {
   )
 }
 
-/* ─── EquityCurve — cloud-fill applied (task 3d) ─── */
+/* ─── EquityCurve ─── */
 type TimeRange = "1M" | "3M" | "1Y" | "All"
 
 function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
@@ -236,25 +261,32 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
   const ptsStr = pts.join(" ")
   const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
 
-  // 3d: cloud-fill + glass
   return (
-    <div className="glass cloud-fill" style={{ overflow: "hidden", position: "relative" }}>
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      overflow: "hidden",
+    }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 10px",
       }}>
-        <div className="panel-title">Equity Curve</div>
+        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+          Equity Curve
+        </div>
         <div style={{ display: "flex", gap: "4px" }}>
           {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
             <button key={r} onClick={() => setRange(r)}
               style={{
                 padding: "3px 10px", borderRadius: "var(--r-pill)",
                 fontSize: "11px", fontWeight: 600,
-                fontFamily: "var(--font-display)",
-                border: "0.5px solid transparent",
-                background: range === r ? "rgba(0,201,167,0.15)" : "rgba(42,42,46,0.7)",
-                borderColor: range === r ? "var(--ix-border)" : "var(--gs-border)",
-                color: range === r ? "var(--ix-glow)" : "var(--gs-muted)",
+                fontFamily: "var(--font-body)",
+                border: "none",
+                background: range === r ? "var(--bg)" : "transparent",
+                boxShadow: range === r ? "var(--neu-inset)" : "none",
+                color: range === r ? "var(--accent)" : "var(--text-dim)",
                 cursor: "pointer", transition: "all 0.2s",
               }}>{r}</button>
           ))}
@@ -264,7 +296,7 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
         {data.length < 2 ? (
           <div style={{
             height: "100px", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "12px", color: "var(--gs-light)",
+            fontSize: "12px", color: "var(--text-mute)",
           }}>
             No snapshot data available
           </div>
@@ -272,16 +304,16 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
           <svg width="100%" height="100" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
             <defs>
               <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(0,201,167,0.20)" />
-                <stop offset="100%" stopColor="rgba(0,201,167,0)" />
+                <stop offset="0%" stopColor="rgba(45,212,191,0.18)" />
+                <stop offset="100%" stopColor="rgba(45,212,191,0)" />
               </linearGradient>
             </defs>
             {[0.25, 0.5, 0.75].map(f => (
               <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
-                stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+                stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
             ))}
             <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
-            <polyline points={ptsStr} fill="none" stroke="#00C9A7" strokeWidth="2"
+            <polyline points={ptsStr} fill="none" stroke="#2dd4bf" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
@@ -297,14 +329,13 @@ function HoldingsTable({
   holdings: Holding[]
   accountMap: Record<string, string>
 }) {
-  // 3b: persist sort in localStorage, default symbol A→Z
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     const saved = localStorage.getItem(LS_SORT_KEY)
     return (saved as SortKey) || "symbol"
   })
   const [sortAsc, setSortAsc] = useState<boolean>(() => {
     const saved = localStorage.getItem(LS_SORT_KEY + "_asc")
-    return saved !== null ? saved === "true" : true   // default A→Z = asc
+    return saved !== null ? saved === "true" : true
   })
 
   const toggleSort = (key: SortKey) => {
@@ -312,7 +343,7 @@ function HoldingsTable({
     if (sortKey === key) {
       nextAsc = !sortAsc
     } else {
-      nextAsc = key === "symbol"   // symbol defaults asc, numbers desc
+      nextAsc = key === "symbol"
     }
     setSortKey(key)
     setSortAsc(nextAsc)
@@ -338,20 +369,19 @@ function HoldingsTable({
 
   if (holdings.length === 0) {
     return (
-      <div style={{ padding: "48px", textAlign: "center", color: "var(--gs-light)", fontSize: "13px" }}>
+      <div style={{ padding: "48px", textAlign: "center", color: "var(--text-mute)", fontSize: "13px" }}>
         No holdings found for this filter
       </div>
     )
   }
 
-  // 3c: center for numerics, left for symbol
   const numStyle: React.CSSProperties = {
     fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "center",
   }
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table className="holdings-table">
+      <table className="ix-table">
         <thead>
           <tr>
             <th onClick={() => toggleSort("symbol")}
@@ -380,38 +410,34 @@ function HoldingsTable({
             return (
               <tr key={h.id}>
                 <td style={{ textAlign: "left" }}>
-                  <span className="td-sym">{sym}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "13px" }}>{sym}</span>
                 </td>
                 <td style={numStyle}>{h.qty}</td>
                 <td style={numStyle}>
                   ₹{h.avg_price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                 </td>
-                {/* LTP — white, neutral current price */}
-                <td style={{ ...numStyle, color: "#fff" }}>
+                <td style={{ ...numStyle, color: "var(--text)" }}>
                   {h.ltp ? `₹${h.ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}
                 </td>
-                {/* P&L */}
                 <td style={{
                   ...numStyle,
-                  color: h.pnl != null ? (h.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                  color: h.pnl != null ? (h.pnl >= 0 ? "var(--green)" : "var(--red)") : "var(--text-mute)",
                 }}>
                   {h.pnl != null ? `${h.pnl >= 0 ? "+" : ""}${fmt(h.pnl)}` : "—"}
                 </td>
-                {/* P&L% */}
                 <td style={{
                   ...numStyle,
-                  color: h.pnl_pct != null ? (h.pnl_pct >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                  color: h.pnl_pct != null ? (h.pnl_pct >= 0 ? "var(--green)" : "var(--red)") : "var(--text-mute)",
                 }}>
                   {fmtPct(h.pnl_pct)}
                 </td>
-                {/* Day Chg */}
                 <td style={{
                   ...numStyle,
-                  color: h.day_change != null ? (h.day_change >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                  color: h.day_change != null ? (h.day_change >= 0 ? "var(--green)" : "var(--red)") : "var(--text-mute)",
                 }}>
                   {h.day_change != null ? `${h.day_change >= 0 ? "+" : ""}${fmt(h.day_change)}` : "—"}
                 </td>
-                <td style={{ ...numStyle, fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--ix-glow)" }}>
+                <td style={{ ...numStyle, fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)" }}>
                   {acct}
                 </td>
               </tr>
@@ -427,7 +453,7 @@ function HoldingsTable({
 function MFTable({ mf }: { mf: MFHolding[] }) {
   if (mf.length === 0) {
     return (
-      <div style={{ padding: "48px", textAlign: "center", color: "var(--gs-light)", fontSize: "13px" }}>
+      <div style={{ padding: "48px", textAlign: "center", color: "var(--text-mute)", fontSize: "13px" }}>
         No mutual fund holdings found
       </div>
     )
@@ -437,7 +463,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
   }
   return (
     <div style={{ overflowX: "auto" }}>
-      <table className="holdings-table">
+      <table className="ix-table">
         <thead>
           <tr>
             <th style={{ textAlign: "left" }}>Fund</th>
@@ -452,7 +478,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
           {mf.map(f => (
             <tr key={f.id}>
               <td style={{ textAlign: "left" }}>
-                <span className="td-sym" style={{ fontSize: "12px" }}>{f.fund_name}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "12px" }}>{f.fund_name}</span>
               </td>
               <td style={numStyle}>{f.units.toFixed(3)}</td>
               <td style={numStyle}>{f.nav ? `₹${f.nav.toFixed(2)}` : "—"}</td>
@@ -460,7 +486,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
               <td style={numStyle}>{fmt(f.current_value)}</td>
               <td style={{
                 ...numStyle,
-                color: f.pnl != null ? (f.pnl >= 0 ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)",
+                color: f.pnl != null ? (f.pnl >= 0 ? "var(--green)" : "var(--red)") : "var(--text-mute)",
               }}>
                 {f.pnl != null ? `${f.pnl >= 0 ? "+" : ""}${fmt(f.pnl)}` : "—"}
               </td>
@@ -473,7 +499,6 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
 }
 
 /* ─── Main Page ──────────────────────────────────── */
-// 3a: removed "curve" tab — Equity Curve is always a card
 type ActiveTab = "equity" | "mf"
 
 export default function PortfolioPage() {
@@ -489,7 +514,6 @@ export default function PortfolioPage() {
   const [activeAccount, setActiveAccount] = useState("All")
 
   const load = useCallback(async () => {
-    // Run accounts (STAAX port 8000) + portfolio (INVEX port 8001) in parallel
     const token = localStorage.getItem("staax_token")
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
@@ -527,11 +551,9 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (readCache() !== null) {
-      // Cache hit — show it instantly, sync fresh data in background
       setSyncing(true)
       load().finally(() => setSyncing(false))
     } else {
-      // Cold start — wait for data then reveal
       load().finally(() => setLoading(false))
     }
   }, [load])
@@ -559,22 +581,29 @@ export default function PortfolioPage() {
 
   const sparkData = snapshots.slice(-20).map(s => s.total_value)
 
+  const btnBase: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: "6px",
+    padding: "8px 16px", borderRadius: "var(--r-md)",
+    fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+    background: "var(--bg-surface)", border: "none", cursor: "pointer",
+    boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
+    transition: "all 0.15s",
+  }
+
   if (loading) {
     return (
-      <div style={{
-        padding: "20px 28px", height: "100%", overflow: "hidden",
-        display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ marginBottom: "16px", flexShrink: 0 }}>
-          <div style={{ height: "32px", width: "180px", background: "rgba(255,255,255,0.08)", borderRadius: "6px", marginBottom: "8px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
-          <div style={{ height: "12px", width: "140px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ padding: "20px 0" }}>
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ height: "32px", width: "180px", background: "rgba(0,0,0,0.07)", borderRadius: "6px", marginBottom: "8px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+          <div style={{ height: "12px", width: "140px", background: "rgba(0,0,0,0.05)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
         </div>
-        <div className="grid-4" style={{ marginBottom: "16px", flexShrink: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px" }}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
         <div style={{
-          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-          color: "var(--gs-muted)", fontSize: "12px", fontFamily: "var(--font-mono)", gap: "8px",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--text-mute)", fontSize: "12px", fontFamily: "var(--font-mono)", gap: "8px",
+          padding: "40px 0",
         }}>
           <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
           Fetching holdings...
@@ -584,38 +613,31 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div style={{
-      padding: "20px 28px",
-      animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both",
-      height: "100%",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "16px", flexShrink: 0,
+        marginBottom: "20px", paddingTop: "8px",
       }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
-            color: "var(--ix-vivid)", letterSpacing: "-1px", marginBottom: "4px",
+            fontFamily: "var(--font-display)", fontSize: "28px", fontWeight: 800,
+            color: "var(--text)", marginBottom: "4px",
           }}>Portfolio</div>
-          <div style={{ fontSize: "12px", color: "var(--gs-light)", display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)" }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
             {activeAccount !== "All" && <> · {activeAccount}</>}
             {syncing && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--gs-muted)", fontSize: "11px" }}>
-                <span className="dot-live" style={{ color: "var(--ix-glow)" }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--text-mute)", fontSize: "11px" }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
                 syncing
               </span>
             )}
             <span style={{
               padding: "1px 7px", borderRadius: "var(--r-pill)",
-              background: "rgba(255,215,0,0.10)", border: "0.5px solid rgba(255,215,0,0.25)",
-              color: "var(--sem-warn)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px",
+              background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)",
+              color: "var(--amber)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px",
             }}>BETA</span>
           </div>
         </div>
@@ -623,16 +645,7 @@ export default function PortfolioPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "8px 16px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: "rgba(42,42,46,0.9)", color: "var(--gs-muted)",
-              border: "0.5px solid var(--gs-border)", cursor: "pointer",
-              transition: "border-color 0.2s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+            style={btnBase}>
             <svg style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }}
               width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -641,16 +654,9 @@ export default function PortfolioPage() {
             </svg>
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
-          <button style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            padding: "8px 16px", borderRadius: "var(--r-md)",
-            fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-            background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-            border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
-          }}
-          onClick={() => alert('Export coming soon')}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+          <button
+            style={{ ...btnBase, color: "var(--accent)" }}
+            onClick={() => alert('Export coming soon')}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -663,7 +669,7 @@ export default function PortfolioPage() {
       </div>
 
       {/* ── 4-column Metric Cards ── */}
-      <div className="grid-4 invex-metric-grid" style={{ marginBottom: "16px", flexShrink: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px" }}>
         <MetricCard
           label="Total Portfolio"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
@@ -688,19 +694,20 @@ export default function PortfolioPage() {
         />
       </div>
 
-      {/* ── Tabs + Account filter — Equity | Mutual Funds only (3a) ── */}
+      {/* ── Tabs + Account filter ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: "6px",
-        marginBottom: "14px", flexWrap: "wrap", flexShrink: 0,
+        marginBottom: "14px", flexWrap: "wrap",
       }}>
         {(["equity", "mf"] as ActiveTab[]).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             style={{
               padding: "7px 16px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: activeTab === tab ? "rgba(0,201,167,0.15)" : "rgba(42,42,46,0.7)",
-              border: `0.5px solid ${activeTab === tab ? "var(--ix-border-hi)" : "var(--gs-border)"}`,
-              color: activeTab === tab ? "var(--ix-vivid)" : "var(--gs-muted)",
+              fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+              background: activeTab === tab ? "var(--bg)" : "var(--bg-surface)",
+              boxShadow: activeTab === tab ? "var(--neu-inset)" : "var(--neu-raised-sm)",
+              border: "none",
+              color: activeTab === tab ? "var(--accent)" : "var(--text-dim)",
               cursor: "pointer", transition: "all 0.2s",
             }}>
             {tab === "equity" ? "Equity" : "Mutual Funds"}
@@ -712,10 +719,11 @@ export default function PortfolioPage() {
               style={{
                 padding: "5px 12px", borderRadius: "var(--r-pill)",
                 fontSize: "11px", fontWeight: 600,
-                fontFamily: "var(--font-display)",
-                background: activeAccount === a ? "rgba(0,201,167,0.15)" : "rgba(42,42,46,0.8)",
-                border: `0.5px solid ${activeAccount === a ? "var(--ix-border)" : "var(--gs-border)"}`,
-                color: activeAccount === a ? "var(--ix-glow)" : "var(--gs-muted)",
+                fontFamily: "var(--font-body)",
+                background: activeAccount === a ? "var(--bg)" : "var(--bg-surface)",
+                boxShadow: activeAccount === a ? "var(--neu-inset)" : "var(--neu-raised-sm)",
+                border: "none",
+                color: activeAccount === a ? "var(--accent)" : "var(--text-dim)",
                 cursor: "pointer", transition: "all 0.2s",
               }}>{a}</button>
           ))}
@@ -724,12 +732,12 @@ export default function PortfolioPage() {
 
       {/* ── Insight cards + Sector + Equity Curve — equity tab only ── */}
       {activeTab === "equity" && (
-        <div className="invex-insight-grid" style={{
+        <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 2fr",
-          gap: "12px", marginBottom: "14px", flexShrink: 0,
+          gap: "12px", marginBottom: "14px",
           alignItems: "stretch",
         }}>
-          {/* Col 1 — 5 insight cards in a grid, equal height rows stretching to sector height */}
+          {/* Col 1 — 5 insight cards */}
           <div style={{ display: "grid", gridTemplateRows: "repeat(5, 1fr)", gap: "8px", height: "100%" }}>
             <InsightCard
               title="TOP HOLDING"
@@ -738,7 +746,7 @@ export default function PortfolioPage() {
                 (h.current_value ?? 0) > (best.current_value ?? 0) ? h : best
               , hs[0])}
               subFn={h => fmt(h.current_value)}
-              subColor="var(--gs-muted)"
+              subColor="var(--text-dim)"
             />
             <InsightCard
               title="TOP PROFIT"
@@ -747,7 +755,7 @@ export default function PortfolioPage() {
                 (h.pnl ?? -Infinity) > (best.pnl ?? -Infinity) ? h : best
               , hs[0])}
               subFn={h => h.pnl != null ? `+${fmt(h.pnl)}` : "—"}
-              subColor="var(--sem-long)"
+              subColor="var(--green)"
             />
             <InsightCard
               title="TOP LOSS"
@@ -756,7 +764,7 @@ export default function PortfolioPage() {
                 (h.pnl ?? Infinity) < (best.pnl ?? Infinity) ? h : best
               , hs[0])}
               subFn={h => h.pnl != null ? fmt(h.pnl) : "—"}
-              subColor="var(--sem-short)"
+              subColor="var(--red)"
             />
             <InsightCard
               title="TOP GAINER"
@@ -769,7 +777,7 @@ export default function PortfolioPage() {
                 , withDay[0])
               }}
               subFn={h => h.day_change != null ? `+${fmt(h.day_change)}` : "—"}
-              subColor="var(--sem-long)"
+              subColor="var(--green)"
             />
             <InsightCard
               title="TOP LOSER"
@@ -782,7 +790,7 @@ export default function PortfolioPage() {
                 , withDay[0])
               }}
               subFn={h => h.day_change != null ? fmt(h.day_change) : "—"}
-              subColor="var(--sem-short)"
+              subColor="var(--red)"
             />
           </div>
           {/* Col 2 — Sector Allocation */}
@@ -792,54 +800,67 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* ── Holdings — 3e: outer glass cloud-fill + inner dark table container ── */}
+      {/* ── Holdings Table ── */}
       {activeTab === "equity" && (
-        <div className="glass cloud-fill" style={{
-          overflow: "hidden", flex: 1, minHeight: 0,
-          position: "relative",
-          border: "0.5px solid var(--ix-border)",
+        <div style={{
+          background: 'var(--bg-surface)',
+          boxShadow: 'var(--neu-raised)',
+          borderRadius: 'var(--r-lg)',
+          border: '1px solid var(--border)',
+          overflow: "hidden",
         }}>
-          <div className="panel-hdr" style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
-            <div className="panel-title">Equity Holdings · {filteredHoldings.length} stocks</div>
-            <span className="status-chip chip-active">
-              <span className="dot-live" />
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 18px 12px",
+          }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+              Equity Holdings · {filteredHoldings.length} stocks
+            </div>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: "4px",
+              padding: "2px 8px", borderRadius: "var(--r-pill)",
+              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+              background: "var(--bg)", boxShadow: "var(--neu-inset)",
+              color: "var(--accent)",
+            }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
               Live
             </span>
           </div>
-          {/* Inner dark container — no cloud-fill, just the table */}
           <div style={{
             margin: "0 12px 12px",
-            background: "rgba(10,10,11,0.85)",
-            border: "0.5px solid rgba(255,255,255,0.06)",
+            background: "var(--bg)",
+            boxShadow: "var(--neu-inset)",
             borderRadius: "10px",
             overflow: "hidden",
-            height: "calc(100% - 53px)",
-            position: "relative", zIndex: 1,
           }}>
-            <div className="invex-holdings-table" style={{ height: "100%", overflowY: "auto", overflowX: "auto" }}>
+            <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 460px)" }}>
               <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MF — content-fit height, no forced flex-1 ── */}
+      {/* ── MF ── */}
       {activeTab === "mf" && (
-        <div className="glass cloud-fill" style={{
+        <div style={{
+          background: 'var(--bg-surface)',
+          boxShadow: 'var(--neu-raised)',
+          borderRadius: 'var(--r-lg)',
+          border: '1px solid var(--border)',
           overflow: "hidden",
-          position: "relative",
-          border: "0.5px solid var(--ix-border)",
         }}>
-          <div className="panel-hdr" style={{ flexShrink: 0, position: "relative", zIndex: 1 }}>
-            <div className="panel-title">Mutual Funds · {filteredMF.length} funds</div>
+          <div style={{ padding: "14px 18px 12px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+              Mutual Funds · {filteredMF.length} funds
+            </div>
           </div>
           <div style={{
             margin: "0 12px 12px",
-            background: "rgba(10,10,11,0.85)",
-            border: "0.5px solid rgba(255,255,255,0.06)",
+            background: "var(--bg)",
+            boxShadow: "var(--neu-inset)",
             borderRadius: "10px",
             overflow: "hidden",
-            position: "relative", zIndex: 1,
           }}>
             <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 420px)" }}>
               <MFTable mf={filteredMF} />

@@ -16,8 +16,6 @@ type WatchItem = {
   earnings_alert: boolean
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type PriceInfo = { ltp: number; change: number; pct_change: number } | null
 type PricesMap = Record<string, PriceInfo>
 
@@ -62,31 +60,38 @@ const IconRefresh = ({ spinning }: { spinning?: boolean }) => (
   </svg>
 )
 
-// ─── MetricCard — matching PortfolioPage ───────────────────────────────────────
+// ─── MetricCard ───────────────────────────────────────────────────────────────
 
 function MetricCard({ label, value, sub, valueColor }: {
   label: string; value: string; sub?: string; valueColor?: string
 }) {
   return (
-    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      padding: "18px 18px 16px",
+    }}>
       <div style={{
-        fontSize: "10px", fontWeight: 600, letterSpacing: "2px",
-        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "10px",
+        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        textTransform: "uppercase", color: "var(--text-mute)",
+        fontFamily: "var(--font-mono)", marginBottom: "10px",
       }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-display)",
-        fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 800,
-        color: valueColor || "var(--ix-vivid)",
-        letterSpacing: "-1px", lineHeight: 1,
+        fontFamily: "var(--font-body)",
+        fontSize: "22px", fontWeight: 700,
+        color: valueColor || "var(--text)",
+        lineHeight: 1,
       }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: "11px", color: "var(--gs-muted)", marginTop: "5px" }}>{sub}</div>
+        <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
       )}
     </div>
   )
 }
 
-// ─── Alert summary for a watchitem ───────────────────────────────────────────
+// ─── Alert summary ────────────────────────────────────────────────────────────
 
 function alertSummary(item: WatchItem): string {
   const parts: string[] = []
@@ -152,47 +157,48 @@ function AddWatchlistModal({ onClose, onSave }: {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
-    background: "rgba(22,22,25,0.80)", border: "0.5px solid var(--gs-border)",
-    borderRadius: "var(--r-sm)", color: "var(--gs-muted)", fontSize: "13px",
-    padding: "9px 12px", outline: "none", fontFamily: "var(--font-display)",
-    transition: "border-color 0.15s",
+    background: "var(--bg)", boxShadow: "var(--neu-inset)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--r-sm)", color: "var(--text)", fontSize: "13px",
+    padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)",
   }
   const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "10px", fontWeight: 600,
-    color: "var(--gs-light)", textTransform: "uppercase",
-    letterSpacing: "1.5px", marginBottom: "6px",
+    display: "block", fontSize: "10px", fontWeight: 700,
+    color: "var(--text-mute)", textTransform: "uppercase",
+    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)",
   }
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.70)", display: "flex",
+      background: "rgba(0,0,0,0.25)", display: "flex",
       alignItems: "center", justifyContent: "center",
-      backdropFilter: "blur(4px)",
     }}>
       <div style={{
-        background: "var(--bg-deep)", border: "0.5px solid var(--ix-border)",
+        background: "var(--bg-surface)",
+        boxShadow: "var(--neu-raised-lg)",
+        border: "1px solid var(--border)",
         borderRadius: "var(--r-xl)", width: "400px", maxHeight: "90vh", overflow: "auto",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(0,201,167,0.06)",
       }}>
         {/* Header */}
         <div style={{
           padding: "20px 24px 16px",
-          borderBottom: "0.5px solid rgba(0,201,167,0.10)",
+          borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
             <div style={{
               fontFamily: "var(--font-display)", fontSize: "16px",
-              fontWeight: 700, color: "var(--ix-vivid)",
+              fontWeight: 700, color: "var(--text)",
             }}>Add to Watchlist</div>
-            <div style={{ fontSize: "11px", color: "var(--gs-light)", marginTop: "2px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "2px", fontFamily: "var(--font-body)" }}>
               Track a stock with optional price alerts
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--gs-muted)", display: "flex", alignItems: "center", padding: "4px",
+            background: "var(--bg-surface)", border: "none", cursor: "pointer",
+            color: "var(--text-dim)", display: "flex", alignItems: "center", padding: "6px",
+            borderRadius: "var(--r-sm)", boxShadow: "var(--neu-raised-sm)",
           }}>
             <IconClose />
           </button>
@@ -206,9 +212,7 @@ function AddWatchlistModal({ onClose, onSave }: {
               <label style={labelStyle}>Symbol</label>
               <input style={inputStyle} placeholder="e.g. INFY"
                 value={form.symbol}
-                onChange={e => set("symbol", e.target.value.toUpperCase())}
-                onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+                onChange={e => set("symbol", e.target.value.toUpperCase())} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Exchange</label>
@@ -223,14 +227,13 @@ function AddWatchlistModal({ onClose, onSave }: {
           {/* Price alerts */}
           <div style={{
             padding: "14px 16px", borderRadius: "var(--r-md)",
-            background: "rgba(0,201,167,0.04)",
-            border: "0.5px solid rgba(0,201,167,0.12)",
+            background: "var(--bg)", boxShadow: "var(--neu-inset)",
             marginBottom: "16px",
           }}>
             <div style={{
-              fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px",
-              textTransform: "uppercase", color: "var(--ix-glow)", marginBottom: "12px",
-              display: "flex", alignItems: "center", gap: "6px",
+              fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+              textTransform: "uppercase", color: "var(--accent)", marginBottom: "12px",
+              display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)",
             }}>
               <IconBell /> Price Alerts (optional)
             </div>
@@ -239,26 +242,22 @@ function AddWatchlistModal({ onClose, onSave }: {
                 <label style={labelStyle}>Alert above (₹)</label>
                 <input style={inputStyle} type="number" placeholder="—"
                   value={form.price_alert_above}
-                  onChange={e => set("price_alert_above", e.target.value)}
-                  onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-                  onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+                  onChange={e => set("price_alert_above", e.target.value)} />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Alert below (₹)</label>
                 <input style={inputStyle} type="number" placeholder="—"
                   value={form.price_alert_below}
-                  onChange={e => set("price_alert_below", e.target.value)}
-                  onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-                  onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+                  onChange={e => set("price_alert_below", e.target.value)} />
               </div>
             </div>
           </div>
 
           {err && (
             <div style={{
-              fontSize: "12px", color: "var(--sem-short)", marginBottom: "14px",
-              background: "rgba(255,68,68,0.08)", padding: "9px 12px",
-              borderRadius: "var(--r-sm)", border: "0.5px solid rgba(255,68,68,0.25)",
+              fontSize: "12px", color: "var(--red)", marginBottom: "14px",
+              background: "rgba(255,68,68,0.06)", padding: "9px 12px",
+              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)",
             }}>
               {err}
             </div>
@@ -268,14 +267,13 @@ function AddWatchlistModal({ onClose, onSave }: {
             style={{
               width: "100%", padding: "11px", borderRadius: "var(--r-md)",
               border: "none",
-              background: "linear-gradient(135deg, #00C9A7, #007A67)",
-              color: "#fff", fontSize: "13px", fontWeight: 700,
+              background: "var(--bg-surface)",
+              boxShadow: saving ? "none" : "var(--neu-raised)",
+              color: "var(--accent)", fontSize: "13px", fontWeight: 700,
               cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.7 : 1, fontFamily: "var(--font-display)",
-              letterSpacing: "0.5px", transition: "box-shadow 0.2s",
-            }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)" }}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+              opacity: saving ? 0.7 : 1, fontFamily: "var(--font-body)",
+              transition: "all 0.2s",
+            }}>
             {saving ? "Adding…" : "Add to Watchlist"}
           </button>
         </div>
@@ -292,15 +290,16 @@ export default function WatchlistPage() {
   const [showModal, setShowModal] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  // ── Live prices state ──────────────────────────────────────────────────────
   const [prices, setPrices] = useState<PricesMap>({})
   const [pricesLoading, setPricesLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchPrices = useCallback(async () => {
     setPricesLoading(true)
     try {
       const res = await watchlistAPI.getPrices()
       setPrices(res.data?.prices ?? {})
+      setLastUpdated(new Date())
     } catch (e) {
       console.error("WatchlistPage fetchPrices error", e)
     } finally {
@@ -308,7 +307,7 @@ export default function WatchlistPage() {
     }
   }, [])
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await watchlistAPI.list()
       setItems(res.data || [])
@@ -317,12 +316,20 @@ export default function WatchlistPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     load()
     fetchPrices()
-  }, [])
+  }, [load, fetchPrices])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      load()
+      fetchPrices()
+    }, 30000)
+    return () => clearInterval(id)
+  }, [load, fetchPrices])
 
   const handleAdd = async (data: any) => {
     const res = await watchlistAPI.add(data)
@@ -342,11 +349,20 @@ export default function WatchlistPage() {
 
   const withAlerts = items.filter(hasAlerts).length
 
+  const btnBase: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: "6px",
+    padding: "8px 16px", borderRadius: "var(--r-md)",
+    fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+    background: "var(--bg-surface)", border: "none", cursor: "pointer",
+    boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
+    transition: "all 0.15s",
+  }
+
   if (loading) {
     return (
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100%", color: "var(--gs-light)", fontFamily: "var(--font-mono)",
+        height: "60vh", color: "var(--text-mute)", fontFamily: "var(--font-mono)",
         fontSize: "13px", gap: "10px",
       }}>
         <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
@@ -356,61 +372,52 @@ export default function WatchlistPage() {
   }
 
   return (
-    <div style={{ padding: "24px 28px", animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
+    <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px",
+        marginBottom: "20px", paddingTop: "8px",
       }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
-            color: "var(--ix-vivid)", letterSpacing: "-1px", marginBottom: "4px",
+            fontFamily: "var(--font-display)", fontSize: "28px", fontWeight: 800,
+            color: "var(--text)", marginBottom: "4px",
           }}>Watchlist</div>
-          <div style={{ fontSize: "12px", color: "var(--gs-light)" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "10px", fontFamily: "var(--font-body)" }}>
             Price &amp; technical alerts
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: "5px",
+              padding: "2px 8px", borderRadius: "var(--r-pill)",
+              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+              background: "var(--bg)", boxShadow: "var(--neu-inset)",
+              color: "var(--green)",
+            }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "currentColor", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
+              {lastUpdated
+                ? `Live · ${lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}`
+                : "Live · 30s"}
+            </span>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {/* Refresh prices button */}
           <button
             onClick={fetchPrices}
             disabled={pricesLoading}
             title="Refresh live prices"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "8px 14px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: "transparent",
-              border: "0.5px solid rgba(0,201,167,0.40)",
-              color: "#00C9A7",
-              cursor: pricesLoading ? "not-allowed" : "pointer",
-              opacity: pricesLoading ? 0.6 : 1,
-              transition: "box-shadow 0.2s, border-color 0.2s",
-            }}
-            onMouseEnter={e => { if (!pricesLoading) e.currentTarget.style.boxShadow = "0 0 16px rgba(0,201,167,0.25)" }}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            style={{ ...btnBase, color: "var(--accent)", opacity: pricesLoading ? 0.6 : 1, cursor: pricesLoading ? "not-allowed" : "pointer" }}>
             <IconRefresh spinning={pricesLoading} /> Refresh
           </button>
           <button
             onClick={() => setShowModal(true)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "8px 18px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-              border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            style={{ ...btnBase, color: "var(--accent)" }}>
             <IconPlus /> Add Stock
           </button>
         </div>
       </div>
 
-      {/* ── Stats row — 3 MetricCards ── */}
-      <div className="grid-3" style={{ marginBottom: "20px" }}>
+      {/* ── Stats row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <MetricCard
           label="Watching"
           value={String(items.length)}
@@ -420,29 +427,38 @@ export default function WatchlistPage() {
           label="Alerts Set"
           value={String(withAlerts)}
           sub="stocks with active alerts"
-          valueColor={withAlerts > 0 ? "var(--sem-warn)" : "var(--ix-vivid)"}
+          valueColor={withAlerts > 0 ? "var(--amber)" : "var(--text)"}
         />
         <MetricCard
           label="Exchanges"
           value={[...new Set(items.map(i => i.exchange))].join(" · ") || "—"}
           sub="NSE / BSE coverage"
-          valueColor="var(--ix-ultra)"
+          valueColor="var(--accent)"
         />
       </div>
 
       {/* ── Watchlist Table ── */}
-      <div className="glass" style={{ overflow: "hidden" }}>
-        <div className="panel-hdr">
-          <div className="panel-title">
+      <div style={{
+        background: "var(--bg-surface)",
+        boxShadow: "var(--neu-raised)",
+        borderRadius: "var(--r-lg)",
+        border: "1px solid var(--border)",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 18px 12px",
+        }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Watchlist · {items.length} stock{items.length !== 1 ? "s" : ""}
           </div>
           {withAlerts > 0 && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "5px",
               padding: "2px 9px", borderRadius: "var(--r-pill)",
-              fontSize: "10px", fontWeight: 700,
-              background: "rgba(255,215,0,0.12)", color: "var(--sem-warn)",
-              border: "0.5px solid rgba(255,215,0,0.30)",
+              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+              background: "var(--bg)", boxShadow: "var(--neu-inset)",
+              color: "var(--amber)",
             }}>
               <IconBell /> {withAlerts} alert{withAlerts !== 1 ? "s" : ""} active
             </span>
@@ -452,14 +468,14 @@ export default function WatchlistPage() {
         {items.length === 0 ? (
           <div style={{
             padding: "56px", textAlign: "center",
-            color: "var(--gs-light)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px",
           }}>
             No stocks in watchlist.{" "}
             <button
               onClick={() => setShowModal(true)}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "var(--ix-vivid)", fontFamily: "inherit", fontSize: "13px",
+                color: "var(--accent)", fontFamily: "inherit", fontSize: "13px",
                 textDecoration: "underline",
               }}>
               Add your first stock →
@@ -467,7 +483,7 @@ export default function WatchlistPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table className="holdings-table">
+            <table className="ix-table">
               <thead>
                 <tr>
                   <th style={{ textAlign: "left" }}>Stock</th>
@@ -487,39 +503,37 @@ export default function WatchlistPage() {
                       <td style={{ textAlign: "left" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <div>
-                            <div className="td-sym">{item.symbol}</div>
-                            <div className="td-sub">{item.exchange}</div>
+                            <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "13px" }}>{item.symbol}</div>
+                            <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-mute)" }}>{item.exchange}</div>
                           </div>
                           {alerts && (
                             <span style={{
                               padding: "1px 6px", borderRadius: "var(--r-pill)",
-                              fontSize: "9px", fontWeight: 700,
-                              background: "rgba(255,215,0,0.12)", color: "var(--sem-warn)",
-                              border: "0.5px solid rgba(255,215,0,0.25)",
+                              fontSize: "9px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                              background: "rgba(245,158,11,0.10)", color: "var(--amber)",
+                              border: "1px solid rgba(245,158,11,0.20)",
                             }}>
                               ALERT
                             </span>
                           )}
                         </div>
                       </td>
-                      {/* LTP — live price */}
                       {(() => {
                         const p = prices[item.symbol]
                         const isPos = p && p.change >= 0
                         return (
                           <>
-                            <td className="td-num" style={{ color: "#00C9A7", fontWeight: 700 }}>
+                            <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--accent)", fontWeight: 700 }}>
                               {pricesLoading && !p
-                                ? <span style={{ color: "var(--gs-muted)", fontWeight: 400 }}>…</span>
+                                ? <span style={{ color: "var(--text-mute)", fontWeight: 400 }}>…</span>
                                 : p
                                   ? `₹${p.ltp.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                  : <span style={{ color: "var(--gs-muted)", fontWeight: 400 }}>—</span>
+                                  : <span style={{ color: "var(--text-mute)", fontWeight: 400 }}>—</span>
                               }
                             </td>
-                            {/* Change (abs + %) */}
-                            <td className="td-num" style={{ color: p ? (isPos ? "var(--sem-long)" : "var(--sem-short)") : "var(--gs-muted)" }}>
+                            <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: p ? (isPos ? "var(--green)" : "var(--red)") : "var(--text-mute)" }}>
                               {pricesLoading && !p
-                                ? <span style={{ color: "var(--gs-muted)" }}>…</span>
+                                ? <span style={{ color: "var(--text-mute)" }}>…</span>
                                 : p
                                   ? <>
                                       <span style={{ display: "block" }}>
@@ -535,24 +549,20 @@ export default function WatchlistPage() {
                           </>
                         )
                       })()}
-                      {/* 52W High */}
-                      <td className="td-num">—</td>
-                      {/* 52W Low */}
-                      <td className="td-num">—</td>
-                      {/* Alert column */}
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-mute)" }}>—</td>
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-mute)" }}>—</td>
                       <td style={{ textAlign: "left" }}>
                         {alerts ? (
                           <span style={{
                             fontFamily: "var(--font-mono)", fontSize: "11px",
-                            color: "var(--sem-warn)",
+                            color: "var(--amber)",
                           }}>
                             {alertSummary(item)}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--gs-light)", fontSize: "12px" }}>—</span>
+                          <span style={{ color: "var(--text-mute)", fontSize: "12px" }}>—</span>
                         )}
                       </td>
-                      {/* Action */}
                       <td style={{ textAlign: "center" }}>
                         <button
                           onClick={() => handleRemove(item.id)}
@@ -560,16 +570,15 @@ export default function WatchlistPage() {
                           title="Remove from watchlist"
                           style={{
                             width: "32px", height: "32px", borderRadius: "var(--r-sm)",
-                            border: "0.5px solid var(--gs-border)",
-                            background: "transparent",
+                            border: "none",
+                            background: "var(--bg-surface)",
+                            boxShadow: removingId === item.id ? "none" : "var(--neu-raised-sm)",
                             cursor: removingId === item.id ? "not-allowed" : "pointer",
-                            color: "var(--sem-short)",
+                            color: "var(--red)",
                             opacity: removingId === item.id ? 0.4 : 1,
                             display: "inline-flex", alignItems: "center", justifyContent: "center",
                             transition: "all 0.15s",
-                          }}
-                          onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,68,68,0.4)")}
-                          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+                          }}>
                           <IconTrash />
                         </button>
                       </td>
@@ -582,7 +591,6 @@ export default function WatchlistPage() {
         )}
       </div>
 
-      {/* ── Add Modal ── */}
       {showModal && (
         <AddWatchlistModal
           onClose={() => setShowModal(false)}

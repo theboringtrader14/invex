@@ -137,120 +137,154 @@ const IconClose = () => (
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
   </svg>
 )
+const IconBolt = () => (
+  <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+)
 
-// ─── MetricCard — matching PortfolioPage ───────────────────────────────────────
+// ─── MetricCard ───────────────────────────────────────────────────────────────
 
 function MetricCard({ label, value, sub, valueColor }: {
   label: string; value: string; sub?: string; valueColor?: string
 }) {
   return (
-    <div className="glass cloud-fill" style={{ padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
+    <div style={{
+      background: 'var(--bg-surface)',
+      boxShadow: 'var(--neu-raised)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid var(--border)',
+      padding: "18px 18px 16px",
+    }}>
       <div style={{
-        fontSize: "10px", fontWeight: 600, letterSpacing: "2px",
-        textTransform: "uppercase", color: "var(--gs-light)", marginBottom: "10px",
+        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        textTransform: "uppercase", color: "var(--text-mute)",
+        fontFamily: "var(--font-mono)", marginBottom: "10px",
       }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-display)",
-        fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: 800,
-        color: valueColor || "var(--ix-vivid)",
-        letterSpacing: "-1px", lineHeight: 1,
+        fontFamily: "var(--font-body)",
+        fontSize: "22px", fontWeight: 700,
+        color: valueColor || "var(--text)",
+        lineHeight: 1,
       }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: "11px", color: "var(--gs-muted)", marginTop: "5px" }}>{sub}</div>
+        <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
       )}
     </div>
   )
 }
 
-// ─── SIPCard — glass card per SIP ─────────────────────────────────────────────
+// ─── SIPCard ──────────────────────────────────────────────────────────────────
 
-function SIPCard({ sip, accountName, onToggle, onDelete, deleting }: {
+function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting, executingOne }: {
   sip: SIP
   accountName: string
   onToggle: () => void
   onDelete: () => void
+  onExecuteOne: () => void
   deleting: boolean
+  executingOne: boolean
 }) {
   const isActive = sip.status === "active"
+
+  const iconBtnStyle = (color: string, disabled: boolean): React.CSSProperties => ({
+    width: "32px", height: "32px", borderRadius: "var(--r-sm)",
+    border: "none",
+    background: "var(--bg-surface)",
+    boxShadow: disabled ? "none" : "var(--neu-raised-sm)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    color,
+    opacity: disabled ? 0.4 : 1,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.15s",
+  })
 
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap",
       padding: "14px 18px",
-      borderBottom: "0.5px solid rgba(255,255,255,0.03)",
+      borderBottom: "1px solid var(--border)",
     }}
-      onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,201,167,0.02)")}
+      onMouseEnter={e => (e.currentTarget.style.background = "rgba(45,212,191,0.03)")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
 
       {/* Symbol + Exchange */}
       <div style={{ minWidth: "110px" }}>
         <div style={{
-          fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 700,
-          color: "var(--ix-glow)", letterSpacing: "0.5px",
+          fontFamily: "var(--font-mono)", fontSize: "14px", fontWeight: 700,
+          color: "var(--accent)",
         }}>{sip.symbol}</div>
         <div style={{ marginTop: "3px" }}>
           <span style={{
             padding: "1px 6px", borderRadius: "var(--r-pill)",
             fontSize: "9px", fontWeight: 700, letterSpacing: "1px",
-            background: "rgba(0,201,167,0.12)", color: "var(--ix-ultra)",
-            border: "0.5px solid rgba(0,201,167,0.25)",
+            background: "var(--bg)", boxShadow: "var(--neu-inset)",
+            color: "var(--accent)",
+            fontFamily: "var(--font-mono)",
           }}>{sip.exchange}</span>
         </div>
       </div>
 
       {/* Amount */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Amount</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Amount</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600,
-          color: "var(--gs-muted)",
+          color: "var(--text-dim)",
         }}>{fmt(sip.amount)}</div>
       </div>
 
       {/* Frequency */}
       <div style={{ minWidth: "130px" }}>
-        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>Frequency</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Frequency</div>
         <span style={{
           padding: "3px 10px", borderRadius: "var(--r-pill)",
-          fontSize: "11px", fontWeight: 600,
-          background: "rgba(68,136,255,0.10)", color: "var(--sem-signal)",
-          border: "0.5px solid rgba(68,136,255,0.25)",
+          fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
+          background: "var(--bg-surface)", boxShadow: "var(--neu-raised-sm)",
+          color: "var(--text-dim)",
         }}>{freqLabel(sip)}</span>
       </div>
 
       {/* Next Execution */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Next Run</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Next Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
-          color: isActive ? "var(--ix-ultra)" : "var(--gs-light)",
+          color: isActive ? "var(--accent)" : "var(--text-mute)",
         }}>{nextDue(sip)}</div>
       </div>
 
       {/* Last Execution */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase" }}>Last Run</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Last Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
-          color: sip.last_executed_at ? "var(--gs-muted)" : "var(--gs-light)",
+          color: sip.last_executed_at ? "var(--text-dim)" : "var(--text-mute)",
         }}>{fmtLastRun(sip.last_executed_at)}</div>
       </div>
 
       {/* Account */}
       <div style={{ minWidth: "90px" }}>
-        <div style={{ fontSize: "10px", color: "var(--gs-light)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>Account</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Account</div>
         <span style={{
           padding: "3px 10px", borderRadius: "var(--r-pill)",
-          fontSize: "11px", fontWeight: 600,
-          background: "rgba(42,42,46,0.8)", color: "var(--gs-muted)",
-          border: "0.5px solid var(--gs-border)",
+          fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
+          background: "var(--bg-surface)", boxShadow: "var(--neu-raised-sm)",
+          color: "var(--text-dim)",
         }}>{accountName}</span>
       </div>
 
       {/* Status pill */}
       <div style={{ marginLeft: "auto" }}>
-        <span className={isActive ? "status-chip chip-active" : "status-chip chip-paused"}>
-          {isActive && <span className="dot-live" />}
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: "4px",
+          padding: "2px 8px", borderRadius: "var(--r-pill)",
+          fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+          background: "var(--bg)", boxShadow: "var(--neu-inset)",
+          color: isActive ? "var(--green)" : "var(--amber)",
+        }}>
+          {isActive && <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "currentColor", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />}
           {sip.status.toUpperCase()}
         </span>
       </div>
@@ -258,34 +292,23 @@ function SIPCard({ sip, accountName, onToggle, onDelete, deleting }: {
       {/* Actions */}
       <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
         <button
+          onClick={onExecuteOne}
+          disabled={executingOne || !isActive}
+          title="Execute Now"
+          style={iconBtnStyle("var(--accent)", executingOne || !isActive)}>
+          <IconBolt />
+        </button>
+        <button
           onClick={onToggle}
           title={isActive ? "Pause SIP" : "Resume SIP"}
-          style={{
-            width: "32px", height: "32px", borderRadius: "var(--r-sm)",
-            border: "0.5px solid var(--gs-border)",
-            background: "transparent", cursor: "pointer",
-            color: isActive ? "var(--sem-warn)" : "var(--sem-long)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = isActive ? "rgba(255,215,0,0.4)" : "rgba(34,221,136,0.4)")}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+          style={iconBtnStyle(isActive ? "var(--amber)" : "var(--green)", false)}>
           {isActive ? <IconPause /> : <IconPlay />}
         </button>
         <button
           onClick={onDelete}
           disabled={deleting}
           title="Delete SIP"
-          style={{
-            width: "32px", height: "32px", borderRadius: "var(--r-sm)",
-            border: "0.5px solid var(--gs-border)",
-            background: "transparent", cursor: deleting ? "not-allowed" : "pointer",
-            color: "var(--sem-short)", opacity: deleting ? 0.4 : 1,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,68,68,0.4)")}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--gs-border)")}>
+          style={iconBtnStyle("var(--red)", deleting)}>
           <IconTrash />
         </button>
       </div>
@@ -347,52 +370,51 @@ function AddSIPModal({ accounts, onClose, onSave }: {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
-    background: "rgba(22,22,25,0.80)", border: "0.5px solid var(--gs-border)",
-    borderRadius: "var(--r-sm)", color: "var(--gs-muted)", fontSize: "13px",
-    padding: "9px 12px", outline: "none", fontFamily: "var(--font-display)",
-    transition: "border-color 0.15s",
+    background: "var(--bg)", boxShadow: "var(--neu-inset)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--r-sm)", color: "var(--text)", fontSize: "13px",
+    padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)",
+    transition: "box-shadow 0.15s",
   }
   const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "10px", fontWeight: 600,
-    color: "var(--gs-light)", textTransform: "uppercase",
-    letterSpacing: "1.5px", marginBottom: "6px",
+    display: "block", fontSize: "10px", fontWeight: 700,
+    color: "var(--text-mute)", textTransform: "uppercase",
+    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)",
   }
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.70)", display: "flex",
+      background: "rgba(0,0,0,0.25)", display: "flex",
       alignItems: "center", justifyContent: "center",
-      backdropFilter: "blur(4px)",
     }}>
       <div style={{
-        background: "var(--bg-deep)", border: "0.5px solid var(--ix-border)",
+        background: "var(--bg-surface)",
+        boxShadow: "var(--neu-raised-lg)",
+        border: "1px solid var(--border)",
         borderRadius: "var(--r-xl)", width: "440px", maxHeight: "90vh", overflow: "auto",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(0,201,167,0.06)",
       }}>
         {/* Header */}
         <div style={{
           padding: "20px 24px 16px",
-          borderBottom: "0.5px solid rgba(0,201,167,0.10)",
+          borderBottom: "1px solid var(--border)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
             <div style={{
               fontFamily: "var(--font-display)", fontSize: "16px",
-              fontWeight: 700, color: "var(--ix-vivid)",
+              fontWeight: 700, color: "var(--text)",
             }}>New SIP</div>
-            <div style={{ fontSize: "11px", color: "var(--gs-light)", marginTop: "2px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "2px", fontFamily: "var(--font-body)" }}>
               Recurring investment order
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--gs-muted)", display: "flex", alignItems: "center",
-            padding: "4px", borderRadius: "var(--r-sm)",
-            transition: "color 0.15s",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--gs-muted)")}
-          >
+            background: "var(--bg-surface)", border: "none", cursor: "pointer",
+            color: "var(--text-dim)", display: "flex", alignItems: "center",
+            padding: "6px", borderRadius: "var(--r-sm)",
+            boxShadow: "var(--neu-raised-sm)",
+          }}>
             <IconClose />
           </button>
         </div>
@@ -405,9 +427,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
               <label style={labelStyle}>Symbol</label>
               <input style={inputStyle} placeholder="e.g. RELIANCE"
                 value={form.symbol}
-                onChange={e => set("symbol", e.target.value.toUpperCase())}
-                onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+                onChange={e => set("symbol", e.target.value.toUpperCase())} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Exchange</label>
@@ -424,9 +444,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
             <label style={labelStyle}>Amount (₹)</label>
             <input style={inputStyle} type="number" placeholder="10000"
               value={form.amount}
-              onChange={e => set("amount", e.target.value)}
-              onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-              onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+              onChange={e => set("amount", e.target.value)} />
           </div>
 
           {/* Frequency */}
@@ -437,11 +455,12 @@ function AddSIPModal({ accounts, onClose, onSave }: {
                 <button key={f} onClick={() => set("frequency", f)}
                   style={{
                     flex: 1, padding: "8px 0", borderRadius: "var(--r-sm)",
-                    border: `0.5px solid ${form.frequency === f ? "var(--ix-border-hi)" : "var(--gs-border)"}`,
-                    background: form.frequency === f ? "rgba(0,201,167,0.12)" : "rgba(22,22,25,0.8)",
-                    color: form.frequency === f ? "var(--ix-vivid)" : "var(--gs-light)",
+                    border: "none",
+                    background: form.frequency === f ? "var(--bg)" : "var(--bg-surface)",
+                    boxShadow: form.frequency === f ? "var(--neu-inset)" : "var(--neu-raised-sm)",
+                    color: form.frequency === f ? "var(--accent)" : "var(--text-dim)",
                     fontSize: "12px", fontWeight: 600, cursor: "pointer",
-                    textTransform: "capitalize", fontFamily: "var(--font-display)",
+                    textTransform: "capitalize", fontFamily: "var(--font-body)",
                     transition: "all 0.15s",
                   }}>
                   {f}
@@ -459,11 +478,12 @@ function AddSIPModal({ accounts, onClose, onSave }: {
                   <button key={i} onClick={() => set("frequency_day", String(i))}
                     style={{
                       flex: 1, padding: "7px 0", borderRadius: "var(--r-sm)",
-                      border: `0.5px solid ${form.frequency_day === String(i) ? "var(--ix-border-hi)" : "var(--gs-border)"}`,
-                      background: form.frequency_day === String(i) ? "rgba(0,201,167,0.12)" : "rgba(22,22,25,0.8)",
-                      color: form.frequency_day === String(i) ? "var(--ix-vivid)" : "var(--gs-light)",
+                      border: "none",
+                      background: form.frequency_day === String(i) ? "var(--bg)" : "var(--bg-surface)",
+                      boxShadow: form.frequency_day === String(i) ? "var(--neu-inset)" : "var(--neu-raised-sm)",
+                      color: form.frequency_day === String(i) ? "var(--accent)" : "var(--text-dim)",
                       fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                      fontFamily: "var(--font-display)", transition: "all 0.15s",
+                      fontFamily: "var(--font-body)", transition: "all 0.15s",
                     }}>
                     {d}
                   </button>
@@ -502,16 +522,14 @@ function AddSIPModal({ accounts, onClose, onSave }: {
           <div style={{ marginBottom: "20px" }}>
             <label style={labelStyle}>Start Date</label>
             <input style={inputStyle} type="date" value={form.start_date}
-              onChange={e => set("start_date", e.target.value)}
-              onFocus={e => (e.currentTarget.style.borderColor = "var(--ix-border)")}
-              onBlur={e => (e.currentTarget.style.borderColor = "var(--gs-border)")} />
+              onChange={e => set("start_date", e.target.value)} />
           </div>
 
           {err && (
             <div style={{
-              fontSize: "12px", color: "var(--sem-short)", marginBottom: "14px",
-              background: "rgba(255,68,68,0.08)", padding: "9px 12px",
-              borderRadius: "var(--r-sm)", border: "0.5px solid rgba(255,68,68,0.25)",
+              fontSize: "12px", color: "var(--red)", marginBottom: "14px",
+              background: "rgba(255,68,68,0.06)", padding: "9px 12px",
+              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)",
             }}>
               {err}
             </div>
@@ -521,14 +539,13 @@ function AddSIPModal({ accounts, onClose, onSave }: {
             style={{
               width: "100%", padding: "11px", borderRadius: "var(--r-md)",
               border: "none",
-              background: "linear-gradient(135deg, #00C9A7, #007A67)",
-              color: "#fff", fontSize: "13px", fontWeight: 700,
+              background: "var(--bg-surface)",
+              boxShadow: saving ? "none" : "var(--neu-raised)",
+              color: "var(--accent)", fontSize: "13px", fontWeight: 700,
               cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.7 : 1, fontFamily: "var(--font-display)",
-              letterSpacing: "0.5px", transition: "box-shadow 0.2s",
-            }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)" }}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+              opacity: saving ? 0.7 : 1, fontFamily: "var(--font-body)",
+              transition: "all 0.2s",
+            }}>
             {saving ? "Creating…" : "Create SIP"}
           </button>
         </div>
@@ -547,6 +564,8 @@ export default function SIPsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [executingOneId, setExecutingOneId] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [runningNow, setRunningNow] = useState(false)
 
   const load = async () => {
@@ -598,6 +617,29 @@ export default function SIPsPage() {
     }
   }
 
+  const showToast = (msg: string, ok: boolean) => {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  const handleExecuteOne = async (sip: SIP) => {
+    setExecutingOneId(sip.id)
+    try {
+      const res = await sipsAPI.executeNowForSip(sip.id)
+      const detail = res.data?.detail ?? {}
+      if (detail.status === "executed") {
+        showToast(`${sip.symbol} executed — qty ${detail.qty} @ ₹${detail.ltp?.toFixed(2)}`, true)
+      } else {
+        showToast(`${sip.symbol}: ${detail.reason ?? "skipped"}`, false)
+      }
+      await load()
+    } catch (e: any) {
+      showToast(e?.response?.data?.detail ?? `Failed to execute ${sip.symbol}`, false)
+    } finally {
+      setExecutingOneId(null)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this SIP?")) return
     setDeletingId(id)
@@ -613,11 +655,20 @@ export default function SIPsPage() {
   const monthlyTotal = sips.reduce((acc, s) => acc + monthlyEquiv(s), 0)
   const nextExec     = earliestNextDue(sips)
 
+  const btnBase: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: "6px",
+    padding: "8px 16px", borderRadius: "var(--r-md)",
+    fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+    background: "var(--bg-surface)", border: "none", cursor: "pointer",
+    boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
+    transition: "all 0.15s",
+  }
+
   if (loading) {
     return (
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100%", color: "var(--gs-light)", fontFamily: "var(--font-mono)",
+        height: "60vh", color: "var(--text-mute)", fontFamily: "var(--font-mono)",
         fontSize: "13px", gap: "10px",
       }}>
         <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
@@ -627,19 +678,35 @@ export default function SIPsPage() {
   }
 
   return (
-    <div style={{ padding: "24px 28px", animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
+    <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
+
+      {/* ── Toast notification ── */}
+      {toast && (
+        <div style={{
+          position: "fixed", top: "20px", right: "24px", zIndex: 2000,
+          padding: "12px 20px", borderRadius: "var(--r-md)",
+          fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+          background: "var(--bg-surface)",
+          boxShadow: "var(--neu-raised-lg)",
+          border: "1px solid var(--border)",
+          color: toast.ok ? "var(--green)" : "var(--red)",
+          maxWidth: "360px",
+        }}>
+          {toast.msg}
+        </div>
+      )}
 
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px",
+        marginBottom: "20px", paddingTop: "8px",
       }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 800,
-            color: "var(--ix-vivid)", letterSpacing: "-1px", marginBottom: "4px",
+            fontFamily: "var(--font-display)", fontSize: "28px", fontWeight: 800,
+            color: "var(--text)", marginBottom: "4px",
           }}>SIP Engine</div>
-          <div style={{ fontSize: "12px", color: "var(--gs-light)" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-dim)", fontFamily: "var(--font-body)" }}>
             Recurring investment scheduler
           </div>
         </div>
@@ -647,38 +714,19 @@ export default function SIPsPage() {
           <button
             onClick={handleRunNow}
             disabled={runningNow}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "8px 16px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: "transparent", color: "var(--ix-vivid)",
-              border: "0.5px solid var(--ix-border)",
-              cursor: runningNow ? "not-allowed" : "pointer",
-              opacity: runningNow ? 0.6 : 1,
-              transition: "box-shadow 0.2s, border-color 0.15s",
-            }}
-            onMouseEnter={e => { if (!runningNow) e.currentTarget.style.boxShadow = "0 0 14px rgba(0,201,167,0.25)" }}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            style={{ ...btnBase, color: "var(--accent)", opacity: runningNow ? 0.6 : 1, cursor: runningNow ? "not-allowed" : "pointer" }}>
             <IconPlay /> {runningNow ? "Running…" : "Run Now"}
           </button>
           <button
             onClick={() => setShowModal(true)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "8px 18px", borderRadius: "var(--r-md)",
-              fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 600,
-              background: "linear-gradient(135deg, #00C9A7, #007A67)", color: "#fff",
-              border: "none", cursor: "pointer", transition: "box-shadow 0.2s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 22px rgba(0,201,167,0.40)")}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
+            style={{ ...btnBase, color: "var(--accent)" }}>
             <IconPlus /> New SIP
           </button>
         </div>
       </div>
 
-      {/* ── Stats row — 3 MetricCards ── */}
-      <div className="grid-3" style={{ marginBottom: "20px" }}>
+      {/* ── Stats row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <MetricCard
           label="Active SIPs"
           value={String(activeSIPs.length)}
@@ -688,21 +736,32 @@ export default function SIPsPage() {
           label="Monthly Investment"
           value={fmt(monthlyTotal)}
           sub="across active SIPs"
-          valueColor="var(--sem-long)"
+          valueColor="var(--green)"
         />
         <MetricCard
           label="Next Execution"
           value={nextExec}
           sub="earliest active SIP"
-          valueColor="var(--ix-ultra)"
+          valueColor="var(--accent)"
         />
       </div>
 
       {/* ── SIP List ── */}
-      <div className="glass" style={{ overflow: "hidden", marginBottom: "20px" }}>
-        <div className="panel-hdr">
-          <div className="panel-title">SIP Schedule · {sips.length} SIP{sips.length !== 1 ? "s" : ""}</div>
-          <span style={{ fontSize: "10px", color: "var(--gs-light)" }}>
+      <div style={{
+        background: "var(--bg-surface)",
+        boxShadow: "var(--neu-raised)",
+        borderRadius: "var(--r-lg)",
+        border: "1px solid var(--border)",
+        overflow: "hidden", marginBottom: "20px",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 18px 12px",
+        }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+            SIP Schedule · {sips.length} SIP{sips.length !== 1 ? "s" : ""}
+          </div>
+          <span style={{ fontSize: "10px", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Executes at 09:20 IST
           </span>
         </div>
@@ -710,14 +769,14 @@ export default function SIPsPage() {
         {sips.length === 0 ? (
           <div style={{
             padding: "48px", textAlign: "center",
-            color: "var(--gs-light)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px",
           }}>
             No SIPs configured yet.{" "}
             <button
               onClick={() => setShowModal(true)}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "var(--ix-vivid)", fontFamily: "inherit", fontSize: "13px",
+                color: "var(--accent)", fontFamily: "inherit", fontSize: "13px",
                 textDecoration: "underline",
               }}>
               Create your first SIP →
@@ -731,29 +790,42 @@ export default function SIPsPage() {
               accountName={accountMap[sip.account_id] ?? sip.account_id.slice(0, 8) + "…"}
               onToggle={() => handleToggle(sip)}
               onDelete={() => handleDelete(sip.id)}
+              onExecuteOne={() => handleExecuteOne(sip)}
               deleting={deletingId === sip.id}
+              executingOne={executingOneId === sip.id}
             />
           ))
         )}
       </div>
 
       {/* ── Recent Executions ── */}
-      <div className="glass" style={{ overflow: "hidden" }}>
-        <div className="panel-hdr">
-          <div className="panel-title">Recent Executions</div>
-          <span style={{ fontSize: "10px", color: "var(--gs-light)" }}>last 10</span>
+      <div style={{
+        background: "var(--bg-surface)",
+        boxShadow: "var(--neu-raised)",
+        borderRadius: "var(--r-lg)",
+        border: "1px solid var(--border)",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 18px 12px",
+        }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+            Recent Executions
+          </div>
+          <span style={{ fontSize: "10px", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>last 10</span>
         </div>
 
         {executions.length === 0 ? (
           <div style={{
             padding: "36px", textAlign: "center",
-            color: "var(--gs-light)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px",
           }}>
             No executions recorded yet.
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table className="holdings-table">
+            <table className="ix-table">
               <thead>
                 <tr>
                   <th style={{ textAlign: "left" }}>Date</th>
@@ -766,7 +838,7 @@ export default function SIPsPage() {
               <tbody>
                 {executions.map(ex => (
                   <tr key={ex.id}>
-                    <td className="td-num" style={{ textAlign: "left" }}>
+                    <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "left" }}>
                       {ex.executed_at
                         ? new Date(ex.executed_at).toLocaleDateString("en-IN", {
                             day: "2-digit", month: "short", year: "numeric",
@@ -774,15 +846,21 @@ export default function SIPsPage() {
                         : "—"}
                     </td>
                     <td>
-                      <div className="td-sym">{ex.symbol}</div>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)" }}>{ex.symbol}</span>
                     </td>
-                    <td className="td-num">{fmt(ex.amount)}</td>
+                    <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>{fmt(ex.amount)}</td>
                     <td style={{ textAlign: "left" }}>
-                      <span className={ex.status === "placed" ? "status-chip chip-active" : "status-chip chip-paused"}>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        padding: "2px 8px", borderRadius: "var(--r-pill)",
+                        fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                        background: "var(--bg)", boxShadow: "var(--neu-inset)",
+                        color: ex.status === "placed" ? "var(--green)" : "var(--amber)",
+                      }}>
                         {ex.status}
                       </span>
                     </td>
-                    <td className="td-num" style={{ textAlign: "left", fontSize: "11px" }}>
+                    <td style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-mute)" }}>
                       {ex.broker_order_id ?? "—"}
                     </td>
                   </tr>

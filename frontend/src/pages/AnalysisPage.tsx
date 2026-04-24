@@ -4,76 +4,76 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
 type Tab = 'fundamental' | 'technical' | 'scorecard'
 
-// Score color helper
 function scoreColor(score: number) {
-  if (score >= 75) return 'var(--sem-long)'
-  if (score >= 55) return 'var(--sem-warn)'
-  return 'var(--sem-short)'
+  if (score >= 75) return 'var(--green)'
+  if (score >= 55) return 'var(--amber)'
+  return 'var(--red)'
 }
 
-// Recommendation chip
+function scoreHex(score: number) {
+  if (score >= 75) return '#22DD88'
+  if (score >= 55) return '#F59E0B'
+  return '#FF4444'
+}
+
 function RecChip({ rec }: { rec: string }) {
   const colors: Record<string, string> = {
-    BUY: 'var(--sem-long)', HOLD: 'var(--sem-warn)', WATCH: 'var(--sem-short)',
+    BUY: 'var(--green)', HOLD: 'var(--amber)', WATCH: 'var(--red)',
   }
   const hexColors: Record<string, string> = {
-    BUY: '#22DD88', HOLD: '#FFD700', WATCH: '#FF4444',
+    BUY: '#22DD88', HOLD: '#F59E0B', WATCH: '#FF4444',
   }
-  const color = colors[rec] || '#888'
-  const hex = hexColors[rec] || '#888'
+  const color = colors[rec] || 'var(--text-mute)'
+  const hex = hexColors[rec] || '#9CA3AF'
   return (
     <span style={{
-      background: hex + '22',
+      background: hex + '15',
       color,
-      border: `1px solid ${hex}44`,
+      border: `1px solid ${hex}33`,
       borderRadius: 'var(--r-sm)',
       padding: '2px 8px',
       fontSize: 11,
       fontWeight: 700,
       letterSpacing: 1,
-      fontFamily: 'var(--font-display)',
+      fontFamily: 'var(--font-mono)',
     }}>{rec}</span>
   )
 }
 
-// Signal chip
 function SignalChip({ signal }: { signal: string }) {
   const map: Record<string, { color: string; label: string }> = {
     STRONG_BULL: { color: '#22DD88', label: '▲▲ STRONG BULL' },
     BULL:        { color: '#22DD88', label: '▲ BULL' },
-    NEUTRAL:     { color: '#8A8A94', label: '— NEUTRAL' },
-    WEAK:        { color: '#FFD700', label: '▼ WEAK' },
+    NEUTRAL:     { color: 'var(--text-mute)', label: '— NEUTRAL' },
+    WEAK:        { color: '#F59E0B', label: '▼ WEAK' },
     BEAR:        { color: '#FF4444', label: '▼▼ BEAR' },
   }
-  const c = map[signal] || { color: '#8A8A94', label: signal }
+  const c = map[signal] || { color: 'var(--text-mute)', label: signal }
   return (
     <span style={{
-      background: c.color + '22',
+      background: c.color + '15',
       color: c.color,
-      border: `1px solid ${c.color}44`,
+      border: `1px solid ${c.color}33`,
       borderRadius: 'var(--r-sm)',
       padding: '2px 8px',
       fontSize: 11,
       fontWeight: 600,
-      fontFamily: 'var(--font-display)',
+      fontFamily: 'var(--font-mono)',
     }}>{c.label}</span>
   )
 }
 
-// Circular score arc (SVG)
 function ScoreArc({ score, size = 120, label }: { score: number; size?: number; label?: string }) {
   const r = size * 0.38
   const cx = size / 2
   const cy = size / 2
   const circ = 2 * Math.PI * r
   const dashOffset = circ - (score / 100) * circ
-  const color = scoreColor(score)
-  // map CSS var to a hex for SVG fill
-  const hexColor = score >= 75 ? '#22DD88' : score >= 55 ? '#FFD700' : '#FF4444'
+  const hexColor = scoreHex(score)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={8} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={8} />
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={8}
           strokeDasharray={circ} strokeDashoffset={dashOffset}
           strokeLinecap="round"
@@ -83,17 +83,17 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
           {score}
         </text>
         <text x={cx} y={cy + size * 0.2} textAnchor="middle" dominantBaseline="middle"
-          fill="#5A5A61" fontSize={size * 0.1} fontFamily="'Syne', sans-serif">
+          fill="var(--text-mute)" fontSize={size * 0.1} fontFamily="'Syne', sans-serif">
           /100
         </text>
       </svg>
       {label && (
         <span style={{
           fontSize: 10,
-          color: 'var(--gs-light)',
+          color: 'var(--text-mute)',
           letterSpacing: 2,
           textTransform: 'uppercase',
-          fontFamily: 'var(--font-display)',
+          fontFamily: 'var(--font-mono)',
           fontWeight: 600,
         }}>{label}</span>
       )}
@@ -101,33 +101,31 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
   )
 }
 
-// Score bar (horizontal)
 function ScoreBar({ score, label }: { score: number; label: string }) {
-  const hexColor = score >= 75 ? '#22DD88' : score >= 55 ? '#FFD700' : '#FF4444'
+  const hexColor = scoreHex(score)
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: 'var(--gs-muted)', fontFamily: 'var(--font-display)' }}>{label}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hexColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{score}</span>
       </div>
-      <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
         <div style={{
           width: `${Math.min(score, 100)}%`,
           background: hexColor,
           height: '100%',
           borderRadius: 4,
-          transition: 'width 0.6s var(--ease-smooth)',
+          transition: 'width 0.6s',
         }} />
       </div>
     </div>
   )
 }
 
-// Skeleton loader
 function Skeleton({ height = 120, width = '100%' }: { height?: number; width?: string | number }) {
   return (
     <div style={{
-      background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)',
+      background: 'linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.07) 50%, rgba(0,0,0,0.04) 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.5s infinite',
       borderRadius: 'var(--r-lg)',
@@ -137,11 +135,11 @@ function Skeleton({ height = 120, width = '100%' }: { height?: number; width?: s
   )
 }
 
-// Glass card style
-const glassCard: React.CSSProperties = {
-  background: 'var(--glass-bg)',
-  border: 'var(--glass-border)',
+const neuCard: React.CSSProperties = {
+  background: 'var(--bg-surface)',
+  boxShadow: 'var(--neu-raised)',
   borderRadius: 'var(--r-lg)',
+  border: '1px solid var(--border)',
   padding: 20,
 }
 
@@ -188,25 +186,27 @@ export default function AnalysisPage() {
     cursor: 'pointer',
     border: 'none',
     textTransform: 'uppercase',
-    background: tab === t ? 'var(--ix-vivid)' : 'transparent',
-    color: tab === t ? '#0a0a0b' : 'var(--gs-light)',
-    transition: 'all var(--dur-mid) var(--ease-smooth)',
-    fontFamily: 'var(--font-display)',
+    background: tab === t ? 'var(--bg)' : 'transparent',
+    boxShadow: tab === t ? 'var(--neu-inset)' : 'none',
+    color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
+    transition: 'all 0.15s',
+    fontFamily: 'var(--font-body)',
   })
 
   if (error) return (
     <div style={{ padding: 32, textAlign: 'center' }}>
-      <div style={{ color: 'var(--sem-short)', marginBottom: 16, fontFamily: 'var(--font-display)' }}>{error}</div>
+      <div style={{ color: 'var(--red)', marginBottom: 16, fontFamily: 'var(--font-body)' }}>{error}</div>
       <button onClick={() => window.location.reload()}
         style={{
-          background: 'var(--ix-vivid)',
-          color: '#0a0a0b',
+          background: 'var(--bg-surface)',
+          boxShadow: 'var(--neu-raised-sm)',
+          color: 'var(--accent)',
           border: 'none',
           borderRadius: 'var(--r-md)',
           padding: '8px 20px',
           cursor: 'pointer',
           fontWeight: 700,
-          fontFamily: 'var(--font-display)',
+          fontFamily: 'var(--font-body)',
         }}>
         Retry
       </button>
@@ -214,21 +214,20 @@ export default function AnalysisPage() {
   )
 
   return (
-    <div style={{ padding: '24px 28px', animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
+    <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, paddingTop: '8px' }}>
         <div style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 32,
+          fontSize: 28,
           fontWeight: 800,
-          color: 'var(--ix-vivid)',
-          letterSpacing: '-1px',
+          color: 'var(--text)',
           marginBottom: 4,
         }}>
           Analysis
         </div>
-        <div style={{ fontSize: 12, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
           {fundamental
             ? `${fundamental.total_holdings} holdings · ${formatVal(fundamental.total_value || 0)}`
             : 'Fundamental + Technical deep-dive'}
@@ -239,8 +238,9 @@ export default function AnalysisPage() {
       <div style={{
         display: 'flex',
         gap: 4,
-        background: 'rgba(0,201,167,0.05)',
-        border: '0.5px solid var(--ix-border)',
+        background: 'var(--bg-surface)',
+        boxShadow: 'var(--neu-raised-sm)',
+        border: '1px solid var(--border)',
         borderRadius: 'var(--r-lg)',
         padding: 4,
         width: 'fit-content',
@@ -267,14 +267,13 @@ export default function AnalysisPage() {
           {/* ═══ TAB 1: FUNDAMENTAL ═══ */}
           {tab === 'fundamental' && fundamental && (
             <div style={{ display: 'grid', gap: 20 }}>
-              {/* Health Score + Sector side by side */}
               <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
                 {/* Health Score Card */}
-                <div className="glass cloud-fill" style={{ ...glassCard }}>
+                <div style={{ ...neuCard }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                     marginBottom: 16, textTransform: 'uppercase',
-                    fontFamily: 'var(--font-display)', fontWeight: 600,
+                    fontFamily: 'var(--font-mono)', fontWeight: 700,
                   }}>Portfolio Health</div>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                     <ScoreArc score={fundamental.health_score.total} size={130} label="Health Score" />
@@ -294,25 +293,25 @@ export default function AnalysisPage() {
                 </div>
 
                 {/* Sector Allocation */}
-                <div className="glass cloud-fill" style={{ ...glassCard }}>
+                <div style={{ ...neuCard }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                     marginBottom: 16, textTransform: 'uppercase',
-                    fontFamily: 'var(--font-display)', fontWeight: 600,
+                    fontFamily: 'var(--font-mono)', fontWeight: 700,
                   }}>Sector Allocation</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {fundamental.sector_allocation.slice(0, 8).map((s: any) => (
                       <div key={s.sector}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                          <span style={{ color: 'var(--gs-muted)', fontFamily: 'var(--font-display)' }}>{s.sector}</span>
-                          <span style={{ color: 'var(--gs-light)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                          <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{s.sector}</span>
+                          <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                             {s.pct}% · {s.count} stocks · {formatVal(s.value)}
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 6 }}>
+                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6 }}>
                           <div style={{
                             width: `${s.pct}%`,
-                            background: 'linear-gradient(90deg, var(--ix-vivid), rgba(0,201,167,0.4))',
+                            background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
                             height: '100%',
                             borderRadius: 4,
                           }} />
@@ -324,11 +323,11 @@ export default function AnalysisPage() {
               </div>
 
               {/* Gain Distribution */}
-              <div className="glass cloud-fill" style={{ ...glassCard }}>
+              <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-display)', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
                 }}>Gain / Loss Distribution</div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 120 }}>
                   {fundamental.gain_distribution.map((b: any, i: number) => {
@@ -339,19 +338,19 @@ export default function AnalysisPage() {
                       <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: isNeg ? 'var(--sem-short)' : 'var(--sem-long)',
+                          color: isNeg ? 'var(--red)' : 'var(--green)',
                           fontFamily: 'var(--font-mono)',
                         }}>{b.count}</span>
                         <div style={{
                           width: '100%', height: barH, borderRadius: '4px 4px 0 0',
                           background: isNeg
-                            ? 'linear-gradient(0deg, rgba(255,68,68,0.53), rgba(255,68,68,0.20))'
-                            : 'linear-gradient(0deg, rgba(34,221,136,0.53), rgba(34,221,136,0.20))',
-                          border: `1px solid ${isNeg ? 'rgba(255,68,68,0.27)' : 'rgba(34,221,136,0.27)'}`,
+                            ? 'rgba(255,68,68,0.25)'
+                            : 'rgba(34,221,136,0.25)',
+                          border: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(34,221,136,0.20)'}`,
                         }} />
                         <span style={{
-                          fontSize: 10, color: 'var(--gs-light)', textAlign: 'center',
-                          lineHeight: 1.2, fontFamily: 'var(--font-display)',
+                          fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
+                          lineHeight: 1.2, fontFamily: 'var(--font-mono)',
                         }}>{b.label}</span>
                       </div>
                     )
@@ -360,39 +359,39 @@ export default function AnalysisPage() {
               </div>
 
               {/* Top Holdings Table */}
-              <div className="glass cloud-fill" style={{ ...glassCard }}>
+              <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-display)', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
                 }}>Top Holdings</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '0.5px solid var(--ix-border)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
                             textAlign: h === 'Symbol' ? 'left' : 'right',
-                            color: 'var(--gs-light)',
-                            fontWeight: 600, fontSize: 10, letterSpacing: 2,
+                            color: 'var(--text-mute)',
+                            fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
                             textTransform: 'uppercase',
-                            fontFamily: 'var(--font-display)',
+                            fontFamily: 'var(--font-mono)',
                           }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {fundamental.top_holdings.map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-light)', textAlign: 'right', fontFamily: 'var(--font-display)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-light)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
+                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
                           <td style={{
                             padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
-                            color: h.gain_pct >= 0 ? 'var(--sem-long)' : 'var(--sem-short)',
+                            color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)',
                           }}>
                             {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                           </td>
@@ -414,8 +413,8 @@ export default function AnalysisPage() {
                   const colorMap: Record<string, string> = {
                     STRONG_BULL: '#22DD88',
                     BULL: '#22DD88',
-                    NEUTRAL: '#8A8A94',
-                    WEAK: '#FFD700',
+                    NEUTRAL: 'var(--text-mute)',
+                    WEAK: '#F59E0B',
                     BEAR: '#FF4444',
                   }
                   const labels: Record<string, string> = {
@@ -425,22 +424,23 @@ export default function AnalysisPage() {
                     WEAK: '▼ Weak',
                     BEAR: '▼▼ Bear',
                   }
-                  const color = colorMap[sig] || '#8A8A94'
+                  const color = colorMap[sig] || 'var(--text-mute)'
                   return (
-                    <div key={sig} className="glass cloud-fill" style={{
-                      ...glassCard,
-                      borderTop: `2px solid ${color}`,
+                    <div key={sig} style={{
+                      ...neuCard,
+                      borderTop: `3px solid ${color}`,
                       padding: 16,
                     }}>
                       <div style={{
-                        fontSize: 10, color: 'var(--gs-light)', marginBottom: 8,
-                        fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: 1,
+                        fontSize: 10, color: 'var(--text-mute)', marginBottom: 8,
+                        fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
                       }}>{labels[sig] || sig}</div>
                       <div style={{
                         fontSize: 24, fontWeight: 700, color,
                         fontFamily: 'var(--font-mono)',
                       }}>{data.count}</div>
-                      <div style={{ fontSize: 11, color: 'var(--gs-light)', marginTop: 4, fontFamily: 'var(--font-display)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-mute)', marginTop: 4, fontFamily: 'var(--font-body)' }}>
                         stocks · {data.value_pct}%
                       </div>
                     </div>
@@ -449,23 +449,23 @@ export default function AnalysisPage() {
               </div>
 
               {/* Holdings table */}
-              <div className="glass cloud-fill" style={{ ...glassCard }}>
+              <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-display)', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
                 }}>Holdings by Signal</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '0.5px solid var(--ix-border)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         {['Symbol', 'Sector', 'Price', 'Avg Price', 'Gain%', 'Signal', 'RSI', 'MA50', 'MA200'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
                             textAlign: h === 'Symbol' || h === 'Sector' ? 'left' : 'right',
-                            color: 'var(--gs-light)', fontWeight: 600, fontSize: 10,
-                            letterSpacing: 2, textTransform: 'uppercase', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-display)',
+                            color: 'var(--text-mute)', fontWeight: 700, fontSize: 10,
+                            letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                            fontFamily: 'var(--font-mono)',
                           }}>{h}</th>
                         ))}
                       </tr>
@@ -475,28 +475,28 @@ export default function AnalysisPage() {
                         const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
                         return order.indexOf(a.signal) - order.indexOf(b.signal)
                       }).map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-light)', fontFamily: 'var(--font-display)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-light)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
+                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
                           <td style={{
                             padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
-                            color: h.gain_pct >= 0 ? 'var(--sem-long)' : 'var(--sem-short)',
+                            color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)',
                           }}>
                             {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-mid)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-mid)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--gs-mid)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
+                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
                   · RSI, MA50, MA200 will be populated via price history feed in Phase 2
                 </div>
               </div>
@@ -514,8 +514,8 @@ export default function AnalysisPage() {
                   { label: 'Technical', value: scorecard.portfolio.technical_score, arc: true },
                   { label: 'Recommendation', value: null, arc: false, recs: scorecard.portfolio },
                 ].map((card, i) => (
-                  <div key={i} className="glass cloud-fill" style={{
-                    ...glassCard,
+                  <div key={i} style={{
+                    ...neuCard,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -526,18 +526,18 @@ export default function AnalysisPage() {
                     ) : (
                       <>
                         <div style={{
-                          fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                          fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                           marginBottom: 12, textTransform: 'uppercase',
-                          fontFamily: 'var(--font-display)', fontWeight: 600,
+                          fontFamily: 'var(--font-mono)', fontWeight: 700,
                         }}>{card.label}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-                          <span style={{ color: 'var(--sem-long)', fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 13 }}>
+                          <span style={{ color: 'var(--green)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
                             ▲ {card.recs?.buy_count} BUY
                           </span>
-                          <span style={{ color: 'var(--sem-warn)', fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 13 }}>
+                          <span style={{ color: 'var(--amber)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
                             ◆ {card.recs?.hold_count} HOLD
                           </span>
-                          <span style={{ color: 'var(--sem-short)', fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 13 }}>
+                          <span style={{ color: 'var(--red)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
                             ● {card.recs?.watch_count} WATCH
                           </span>
                         </div>
@@ -553,42 +553,42 @@ export default function AnalysisPage() {
                   { title: 'Strongest Holdings', holdings: scorecard.portfolio.top_3 },
                   { title: 'Needs Attention', holdings: scorecard.portfolio.bottom_3 },
                 ].map(({ title, holdings }) => (
-                  <div key={title} className="glass cloud-fill" style={{ ...glassCard }}>
+                  <div key={title} style={{ ...neuCard }}>
                     <div style={{
-                      fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
+                      fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
                       marginBottom: 16, textTransform: 'uppercase',
-                      fontFamily: 'var(--font-display)', fontWeight: 600,
+                      fontFamily: 'var(--font-mono)', fontWeight: 700,
                     }}>{title}</div>
                     {(holdings || []).map((h: any) => (
                       <div key={h.symbol} style={{ marginBottom: 14 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                           <div>
                             <span style={{
-                              color: 'var(--gs-muted)', fontWeight: 600, fontSize: 14,
+                              color: 'var(--accent)', fontWeight: 600, fontSize: 14,
                               fontFamily: 'var(--font-mono)',
                             }}>{h.symbol}</span>
                             <span style={{
-                              color: 'var(--gs-light)', fontSize: 11, marginLeft: 8,
-                              fontFamily: 'var(--font-display)',
+                              color: 'var(--text-mute)', fontSize: 11, marginLeft: 8,
+                              fontFamily: 'var(--font-body)',
                             }}>{h.sector}</span>
                           </div>
                           <RecChip rec={h.recommendation} />
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 11, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
-                            Fund: <b style={{ color: h.fundamental_score >= 75 ? '#22DD88' : h.fundamental_score >= 55 ? '#FFD700' : '#FF4444' }}>{h.fundamental_score}</b>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+                            Fund: <b style={{ color: scoreHex(h.fundamental_score) }}>{h.fundamental_score}</b>
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
-                            Tech: <b style={{ color: h.technical_score >= 75 ? '#22DD88' : h.technical_score >= 55 ? '#FFD700' : '#FF4444' }}>{h.technical_score}</b>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+                            Tech: <b style={{ color: scoreHex(h.technical_score) }}>{h.technical_score}</b>
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
-                            Overall: <b style={{ color: h.overall_score >= 75 ? '#22DD88' : h.overall_score >= 55 ? '#FFD700' : '#FF4444' }}>{h.overall_score}</b>
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+                            Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 5 }}>
+                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 5 }}>
                           <div style={{
                             width: `${h.overall_score}%`,
-                            background: h.overall_score >= 75 ? '#22DD88' : h.overall_score >= 55 ? '#FFD700' : '#FF4444',
+                            background: scoreHex(h.overall_score),
                             height: '100%', borderRadius: 4,
                           }} />
                         </div>
@@ -599,21 +599,22 @@ export default function AnalysisPage() {
               </div>
 
               {/* Filter + Full Scorecard Table */}
-              <div className="glass cloud-fill" style={{ ...glassCard }}>
+              <div style={{ ...neuCard }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--gs-light)', letterSpacing: 2,
-                    textTransform: 'uppercase', fontFamily: 'var(--font-display)', fontWeight: 600,
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                    textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700,
                   }}>Full Scorecard</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {['ALL', 'BUY', 'HOLD', 'WATCH'].map(f => (
                       <button key={f} onClick={() => setRecFilter(f)} style={{
-                        background: recFilter === f ? 'var(--ix-vivid)' : 'rgba(255,255,255,0.07)',
-                        color: recFilter === f ? '#0a0a0b' : 'var(--gs-light)',
+                        background: recFilter === f ? 'var(--bg)' : 'var(--bg-surface)',
+                        boxShadow: recFilter === f ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                        color: recFilter === f ? 'var(--accent)' : 'var(--text-dim)',
                         border: 'none', borderRadius: 'var(--r-sm)',
                         padding: '4px 12px', fontSize: 12, fontWeight: 600,
-                        cursor: 'pointer', fontFamily: 'var(--font-display)',
-                        transition: 'all var(--dur-mid) var(--ease-smooth)',
+                        cursor: 'pointer', fontFamily: 'var(--font-body)',
+                        transition: 'all 0.15s',
                       }}>{f}</button>
                     ))}
                   </div>
@@ -621,7 +622,7 @@ export default function AnalysisPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: '0.5px solid var(--ix-border)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         {[
                           { k: 'symbol', label: 'Symbol' },
                           { k: 'sector', label: 'Sector' },
@@ -638,10 +639,10 @@ export default function AnalysisPage() {
                           }} style={{
                             padding: '8px 12px',
                             textAlign: col.k === 'symbol' || col.k === 'sector' ? 'left' : 'right',
-                            color: sortCol === col.k ? 'var(--ix-vivid)' : 'var(--gs-light)',
-                            fontWeight: 600, fontSize: 10, letterSpacing: 2,
+                            color: sortCol === col.k ? 'var(--accent)' : 'var(--text-mute)',
+                            fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
                             textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-display)',
+                            fontFamily: 'var(--font-mono)',
                           }}>
                             {col.label} {sortCol === col.k ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                           </th>
@@ -659,31 +660,31 @@ export default function AnalysisPage() {
                             : String(bv).localeCompare(String(av))
                         })
                         .map((h: any) => (
-                          <tr key={h.symbol} style={{ borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                            <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--gs-light)', fontFamily: 'var(--font-display)', fontSize: 12 }}>{h.sector}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--gs-muted)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                             <td style={{
                               padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                               fontFamily: 'var(--font-mono)',
-                              color: h.gain_pct >= 0 ? 'var(--sem-long)' : 'var(--sem-short)',
+                              color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)',
                             }}>
                               {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                             </td>
                             <td style={{
                               padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                               fontFamily: 'var(--font-mono)',
-                              color: h.fundamental_score >= 75 ? '#22DD88' : h.fundamental_score >= 55 ? '#FFD700' : '#FF4444',
+                              color: scoreHex(h.fundamental_score),
                             }}>{h.fundamental_score}</td>
                             <td style={{
                               padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                               fontFamily: 'var(--font-mono)',
-                              color: h.technical_score >= 75 ? '#22DD88' : h.technical_score >= 55 ? '#FFD700' : '#FF4444',
+                              color: scoreHex(h.technical_score),
                             }}>{h.technical_score}</td>
                             <td style={{
                               padding: '10px 12px', textAlign: 'right', fontWeight: 700,
                               fontFamily: 'var(--font-mono)',
-                              color: h.overall_score >= 75 ? '#22DD88' : h.overall_score >= 55 ? '#FFD700' : '#FF4444',
+                              color: scoreHex(h.overall_score),
                             }}>{h.overall_score}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'right' }}><RecChip rec={h.recommendation} /></td>
                           </tr>
@@ -691,7 +692,7 @@ export default function AnalysisPage() {
                     </tbody>
                   </table>
                 </div>
-                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--gs-light)', fontFamily: 'var(--font-display)' }}>
+                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
                   · P/E, P/B, ROE, Promoter%, FCF will be pulled from Screener.in in Phase 2
                 </div>
               </div>
