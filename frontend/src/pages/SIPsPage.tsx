@@ -705,7 +705,7 @@ export default function SIPsPage() {
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--accent)", marginBottom: "4px",
+            color: "var(--text)", marginBottom: "4px",
           }}>SIP Engine</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", fontFamily: "var(--font-body)" }}>
             Recurring investment scheduler

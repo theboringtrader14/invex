@@ -383,7 +383,7 @@ export default function WatchlistPage() {
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--accent)", marginBottom: "4px",
+            color: "var(--text)", marginBottom: "4px",
           }}>Watchlist</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "10px", fontFamily: "var(--font-body)" }}>
             Price &amp; technical alerts
