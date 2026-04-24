@@ -356,7 +356,7 @@ export default function IPOBotsPage() {
 
       {/* ── Add symbol row ── */}
       <div style={{ ...neuCard, padding: '18px 20px', marginBottom: '16px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '12px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '16px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
           ADD TO WATCHLIST
         </div>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -625,7 +625,7 @@ export default function IPOBotsPage() {
                               </div>
                             ) : (
                               <>
-                                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
                                   {[
                                     { label: 'Open', val: ytr.dopen },
                                     { label: 'PR', val: ytr.PR },

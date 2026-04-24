@@ -205,7 +205,7 @@ function AddWatchlistModal({ onClose, onSave }: {
         {/* Body */}
         <div style={{ padding: "20px 24px" }}>
           {/* Symbol + Exchange */}
-          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
             <div style={{ flex: 2 }}>
               <label style={labelStyle}>Symbol</label>
               <input style={inputStyle} placeholder="e.g. INFY"
@@ -230,7 +230,7 @@ function AddWatchlistModal({ onClose, onSave }: {
           }}>
             <div style={{
               fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: "var(--accent)", marginBottom: "12px",
+              textTransform: "uppercase", color: "var(--accent)", marginBottom: "16px",
               display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)"
             }}>
               <IconBell /> Price Alerts (optional)
@@ -415,7 +415,7 @@ export default function WatchlistPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
         <MetricCard
           label="Watching"
           value={String(items.length)}

@@ -420,7 +420,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
         {/* Body */}
         <div style={{ padding: "20px 24px" }}>
           {/* Symbol + Exchange */}
-          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
             <div style={{ flex: 2 }}>
               <label style={labelStyle}>Symbol</label>
               <input style={inputStyle} placeholder="e.g. RELIANCE"
@@ -723,7 +723,7 @@ export default function SIPsPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
         <MetricCard
           label="Active SIPs"
           value={String(activeSIPs.length)}

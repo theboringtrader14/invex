@@ -135,7 +135,7 @@ export default function Layout() {
         }}>
           {/* Left — Welcome · name · separator · IST */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <span style={{ fontSize: "12px", color: "rgba(240,237,232,0.38)", fontFamily: "'DM Sans','Calibri',sans-serif" }}>
+            <span style={{ fontSize: "12px", color: "rgba(240,237,232,0.38)", fontFamily: "var(--font-body)" }}>
               Welcome, <span style={{ color: "#F0EDE8", fontWeight: 600 }}>Karthikeyan</span>
             </span>
             <span style={{ width: "1px", height: "16px", background: "rgba(0,201,167,0.25)", display: "inline-block" }} />

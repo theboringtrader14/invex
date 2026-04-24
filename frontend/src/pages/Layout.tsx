@@ -47,7 +47,7 @@ export default function Layout() {
 
           {/* LEFT — Wordmark */}
           <div style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            <span style={{ fontFamily: "'Space Grotesk', 'Inter', system-ui, sans-serif", fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.03em' }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.03em' }}>
               <span style={{
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
                 WebkitBackgroundClip: 'text',
@@ -75,7 +75,7 @@ export default function Layout() {
                   textDecoration: 'none',
                   fontSize: 14,
                   fontWeight: 500,
-                  fontFamily: "'DM Sans', 'Space Grotesk', sans-serif",
+                  fontFamily: "var(--font-body)",
                   color: isActive ? 'var(--accent)' : 'var(--text-dim)',
                   whiteSpace: 'nowrap',
                   transition: 'color 0.18s ease'

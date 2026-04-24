@@ -116,7 +116,7 @@ function SkeletonCard() {
       borderRadius: 'var(--r-lg)',
       padding: "18px 18px 16px"
     }}>
-      <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "16px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
       <div style={{ height: "22px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
     </div>
   )
@@ -593,7 +593,7 @@ export default function PortfolioPage() {
           <div style={{ height: "32px", width: "180px", background: "rgba(0,0,0,0.07)", borderRadius: "6px", marginBottom: "8px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
           <div style={{ height: "12px", width: "140px", background: "rgba(0,0,0,0.05)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
         <div style={{
@@ -664,7 +664,7 @@ export default function PortfolioPage() {
       </div>
 
       {/* ── 4-column Metric Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "16px" }}>
         <MetricCard
           label="Total Portfolio"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
@@ -729,7 +729,7 @@ export default function PortfolioPage() {
       {activeTab === "equity" && (
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 2fr",
-          gap: "12px", marginBottom: "14px",
+          gap: "16px", marginBottom: "14px",
           alignItems: "stretch"
         }}>
           {/* Col 1 — 5 insight cards */}
