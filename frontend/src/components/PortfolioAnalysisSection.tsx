@@ -23,6 +23,68 @@ function formatVal(v: number) {
   return `₹${v.toLocaleString('en-IN')}`
 }
 
+const fmtH = (n?: number) =>
+  n != null ? `₹${Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'
+const fmtPctH = (n?: number) =>
+  n != null ? `${n >= 0 ? '+' : ''}${n.toFixed(2)}%` : '—'
+const dispSym = (s: string) => s.replace(/-EQ$/i, '').replace(/-BE$/i, '')
+
+const HIGHLIGHT_ROWS: Array<{
+  label: string
+  pick: (hs: any[]) => any
+  val: (h: any) => string
+  color: (h: any) => string
+}> = [
+  {
+    label: 'Top Holding',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.current_value ?? 0) > (b.current_value ?? 0) ? h : b, hs[0]) : null,
+    val: h => fmtH(h.current_value),
+    color: () => 'var(--text)'
+  },
+  {
+    label: 'Best Return',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.pnl_pct ?? -Infinity) > (b.pnl_pct ?? -Infinity) ? h : b, hs[0]) : null,
+    val: h => fmtPctH(h.pnl_pct),
+    color: () => 'var(--green)'
+  },
+  {
+    label: 'Worst Return',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.pnl_pct ?? Infinity) < (b.pnl_pct ?? Infinity) ? h : b, hs[0]) : null,
+    val: h => fmtPctH(h.pnl_pct),
+    color: () => 'var(--red)'
+  },
+  {
+    label: 'Best P&L ₹',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.pnl ?? -Infinity) > (b.pnl ?? -Infinity) ? h : b, hs[0]) : null,
+    val: h => h.pnl != null ? `+${fmtH(h.pnl)}` : '—',
+    color: () => 'var(--green)'
+  },
+  {
+    label: 'Worst P&L ₹',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.pnl ?? Infinity) < (b.pnl ?? Infinity) ? h : b, hs[0]) : null,
+    val: h => fmtH(h.pnl),
+    color: () => 'var(--red)'
+  },
+  {
+    label: 'Biggest Bet',
+    pick: hs => hs.length ? hs.reduce((b: any, h: any) => (h.invested_value ?? 0) > (b.invested_value ?? 0) ? h : b, hs[0]) : null,
+    val: h => fmtH(h.invested_value),
+    color: () => 'var(--text-dim)'
+  },
+  {
+    label: 'Day Gainer',
+    pick: hs => { const w = hs.filter((h: any) => h.day_change != null); return w.length ? w.reduce((b: any, h: any) => (h.day_change ?? -Infinity) > (b.day_change ?? -Infinity) ? h : b, w[0]) : null },
+    val: h => h.day_change != null ? `+${fmtH(h.day_change)}` : '—',
+    color: () => 'var(--green)'
+  },
+  {
+    label: 'Day Loser',
+    pick: hs => { const w = hs.filter((h: any) => h.day_change != null); return w.length ? w.reduce((b: any, h: any) => (h.day_change ?? Infinity) < (b.day_change ?? Infinity) ? h : b, w[0]) : null },
+    val: h => h.day_change != null ? fmtH(h.day_change) : '—',
+    color: () => 'var(--red)'
+  },
+]
+
 /* ─── Sub-components ─────────────────────────────── */
 function RecChip({ rec }: { rec: string }) {
   const colors: Record<string, string> = {
@@ -59,11 +121,12 @@ function SignalChip({ signal }: { signal: string }) {
   const c = map[signal] || { color: 'var(--text-mute)', label: signal }
   return (
     <span style={{
-      background: c.color + '15',
+      background: 'var(--bg)',
+      boxShadow: 'var(--neu-inset)',
       color: c.color,
-      border: `1px solid ${c.color}33`,
+      border: 'none',
       borderRadius: 'var(--r-sm)',
-      padding: '2px 8px',
+      padding: '3px 10px',
       fontSize: 11,
       fontWeight: 600,
       fontFamily: 'var(--font-mono)'
@@ -81,18 +144,33 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={8} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={8}
+        {/*
+          Inset groove — split into two semicircles:
+          · Top half  → darker stroke  (shadow cast inward from above, like neu-inset top shadow)
+          · Bottom half → lighter stroke (reflected highlight from below, like neu-inset bottom highlight)
+          Circle starts at 3 o'clock; dashoffset -½ circ moves start to 9 o'clock → top half
+        */}
+        {/* Top semicircle — shadow (inset dark) */}
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="rgba(130,148,145,0.55)" strokeWidth={10}
+          strokeDasharray={`${circ * 0.5} ${circ * 0.5}`}
+          strokeDashoffset={`${-circ * 0.5}`} />
+        {/* Bottom semicircle — highlight (inset light) */}
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="rgba(255,255,255,0.72)" strokeWidth={10}
+          strokeDasharray={`${circ * 0.5} ${circ * 0.5}`} />
+        {/* Neutral base overlay — blends the two halves */}
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="rgba(185,202,199,0.55)" strokeWidth={8} />
+        {/* Score arc */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={10}
           strokeDasharray={circ} strokeDashoffset={dashOffset}
           strokeLinecap="round"
           transform={`rotate(-90 ${cx} ${cy})`} />
+        {/* Score number */}
         <text x={cx} y={cy + 2} textAnchor="middle" dominantBaseline="middle"
           fill={hexColor} fontSize={size * 0.22} fontWeight={700} style={{ fontFamily: 'var(--font-mono)' }}>
           {score}
-        </text>
-        <text x={cx} y={cy + size * 0.2} textAnchor="middle" dominantBaseline="middle"
-          fill="var(--text-mute)" fontSize={size * 0.1} style={{ fontFamily: 'var(--font-display)' }}>
-          /100
         </text>
       </svg>
       {label && (
@@ -117,7 +195,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
         <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hexColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{score}</span>
       </div>
-      <div style={{ borderRadius: 4, height: 6, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
+      <div style={{ borderRadius: 6, height: 10, boxShadow: 'var(--neu-inset)', background: 'var(--bg)', padding: '2px 3px' }}>
         <div style={{
           width: `${Math.min(score, 100)}%`,
           background: hexColor,
@@ -201,10 +279,10 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
         Portfolio Analysis
       </div>
 
-      {/* Sliding pill tab bar — matches STAAX Orders days tab */}
+      {/* Sliding pill tab bar — full width */}
       <div style={{
         position: 'relative',
-        display: 'inline-flex',
+        display: 'flex',
         background: 'var(--bg)',
         boxShadow: 'var(--neu-inset)',
         borderRadius: 100,
@@ -229,7 +307,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
             onClick={() => setTab(t)}
             style={{
               position: 'relative',
-              width: TAB_W,
+              flex: 1,
               height: TAB_H,
               border: 'none',
               background: 'transparent',
@@ -281,7 +359,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
           {/* ═══ TAB 1: FUNDAMENTAL ═══ */}
           {tab === 'fundamental' && fundamental && (
             <div style={{ display: 'grid', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 260px', gap: 20 }}>
                 {/* Health Score Card */}
                 <div style={{ ...neuCard }}>
                   <div style={{
@@ -322,7 +400,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                             {s.pct}% · {s.count} stocks · {formatVal(s.value)}
                           </span>
                         </div>
-                        <div style={{ borderRadius: 4, height: 6, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
+                        <div style={{ borderRadius: 6, height: 10, boxShadow: 'var(--neu-inset)', background: 'var(--bg)', padding: '2px 3px' }}>
                           <div style={{
                             width: `${s.pct}%`,
                             background: 'var(--accent)',
@@ -336,85 +414,37 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Gain Distribution */}
-              <div style={{ ...neuCard }}>
-                <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
-                  marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 700
-                }}>Gain / Loss Distribution</div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 120 }}>
-                  {fundamental.gain_distribution.map((b: any, i: number) => {
-                    const maxCount = Math.max(...fundamental.gain_distribution.map((x: any) => x.count), 1)
-                    const barH = Math.max((b.count / maxCount) * 90, b.count > 0 ? 8 : 0)
-                    const isNeg = i < 2
-                    return (
-                      <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <span style={{
-                          fontSize: 12, fontWeight: 700,
-                          color: isNeg ? 'var(--red)' : 'var(--green)',
-                          fontFamily: 'var(--font-mono)'
-                        }}>{b.count}</span>
-                        <div style={{
-                          width: '100%', height: barH, borderRadius: '4px 4px 0 0',
-                          background: b.count > 0
-                            ? (isNeg
-                                ? 'linear-gradient(to top, rgba(255,68,68,0.5), rgba(255,68,68,0.9))'
-                                : 'linear-gradient(to top, rgba(14,166,110,0.5), rgba(14,166,110,0.9))')
-                            : (isNeg ? 'rgba(255,68,68,0.12)' : 'rgba(14,166,110,0.12)'),
-                          boxShadow: b.count > 0
-                            ? `0 0 6px ${isNeg ? '#FF444455' : '#0EA66E55'}`
-                            : 'none',
-                          transition: 'height 0.4s cubic-bezier(0.4,0,0.2,1)'
-                        }} />
-                        <span style={{
-                          fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
-                          lineHeight: 1.2, fontFamily: 'var(--font-mono)'
-                        }}>{b.label}</span>
-                      </div>
-                    )
-                  })}
+                {/* Highlights */}
+                <div style={{ ...neuCard, padding: 0, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 18px 10px', fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                    Highlights
+                  </div>
+                  <div style={{ padding: '0 18px 6px' }}>
+                    {HIGHLIGHT_ROWS.map((row, i) => {
+                      const h = _holdings.length ? row.pick(_holdings) : null
+                      return (
+                        <div key={row.label} style={{
+                          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+                          alignItems: 'center', padding: '8px 0',
+                          borderBottom: i < HIGHLIGHT_ROWS.length - 1 ? '1px solid var(--border)' : 'none'
+                        }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-mute)' }}>
+                            {row.label}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'var(--accent)', textAlign: 'center' }}>
+                            {h ? dispSym(h.symbol) : '—'}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: h ? row.color(h) : 'var(--text-mute)', textAlign: 'right' }}>
+                            {h ? row.val(h) : '—'}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Top Holdings Table */}
-              <div style={{ ...neuCard }}>
-                <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
-                  marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 700
-                }}>Top Holdings</div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="ix-table">
-                    <thead>
-                      <tr>
-                        {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%'].map(h => (
-                          <th key={h} style={{ textAlign: h === 'Symbol' ? 'left' : 'right' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fundamental.top_holdings.map((h: any) => (
-                        <tr key={h.symbol}>
-                          <td style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                          <td style={{ textAlign: 'right' }}>{h.sector}</td>
-                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }}>{h.weight_pct}%</td>
-                          <td style={{
-                            textAlign: 'right', fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
-                          }}>
-                            {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
 
@@ -593,7 +623,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                             Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
                           </span>
                         </div>
-                        <div style={{ borderRadius: 4, height: 5, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
+                        <div style={{ borderRadius: 6, height: 10, boxShadow: 'var(--neu-inset)', background: 'var(--bg)', padding: '2px 3px' }}>
                           <div style={{
                             width: `${h.overall_score}%`,
                             background: scoreHex(h.overall_score),

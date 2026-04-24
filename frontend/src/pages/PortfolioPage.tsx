@@ -470,7 +470,10 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
       borderRadius: 16,
-      overflow: "hidden"
+      overflow: "hidden",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column"
     }}>
       <div style={{ padding: "14px 18px 12px" }}>
         <div style={{
@@ -802,34 +805,6 @@ export default function PortfolioPage() {
             )}
           </p>
         </div>
-        {/* Account filter — sliding pill (right side, matches STAAX page-header-actions) */}
-        <div className="page-header-actions">
-          <div style={{ position: 'relative', display: 'inline-flex', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 100, padding: 4 }}>
-            <div style={{
-              position: 'absolute', top: 4,
-              left: `calc(4px + ${ACCOUNTS.indexOf(activeAccount)} * (100% - 8px) / ${ACCOUNTS.length})`,
-              width: `calc((100% - 8px) / ${ACCOUNTS.length})`,
-              height: 28, borderRadius: 100,
-              background: 'var(--bg-surface)',
-              boxShadow: 'var(--neu-raised-sm)',
-              transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none'
-            }} />
-            {ACCOUNTS.map(a => (
-              <button key={a} onClick={() => setActiveAccount(a)}
-                style={{
-                  position: 'relative', zIndex: 1,
-                  padding: '0 18px', height: 28,
-                  border: 'none', background: 'transparent', cursor: 'pointer',
-                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                  textTransform: 'uppercase', letterSpacing: '0.5px',
-                  color: activeAccount === a ? 'var(--accent)' : 'var(--text-dim)',
-                  borderRadius: 100, transition: 'color 0.18s', whiteSpace: 'nowrap',
-                  outline: 'none'
-                }}>{a}</button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ══ ROW 1: KPI STRIP ══ */}
@@ -857,11 +832,11 @@ export default function PortfolioPage() {
         />
       </div>
 
-      {/* ══ ROW 2: HOLDINGS TABLE + SIDEBAR (65/35) ══ */}
-      <div style={{ display: "flex", gap: "16px", marginBottom: "16px", alignItems: "flex-start" }}>
+      {/* ══ ROW 2: HOLDINGS TABLE (full width) ══ */}
+      <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
 
-        {/* Left: Holdings table (65%) */}
-        <div style={{ flex: "0 0 65%" }}>
+        {/* Holdings table — full width */}
+        <div style={{ flex: 1 }}>
           <div style={{
             background: 'var(--bg-surface)',
             boxShadow: 'var(--neu-raised)',
@@ -889,18 +864,26 @@ export default function PortfolioPage() {
                   </button>
                 ))}
               </div>
-              {activeTab === "equity" && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  padding: "2px 8px", borderRadius: "var(--r-pill)",
-                  fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
-                  background: "var(--bg)", boxShadow: "var(--neu-inset)",
-                  color: "var(--accent)", marginBottom: "10px"
-                }}>
-                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
-                  Live
-                </span>
-              )}
+              {/* Account filter — chips */}
+              <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+                {ACCOUNTS.map(acct => (
+                  <button key={acct} onClick={() => setActiveAccount(acct)}
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: "var(--r-pill)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px", fontWeight: 600,
+                      border: "none",
+                      background: activeAccount === acct ? "var(--bg)" : "transparent",
+                      boxShadow: activeAccount === acct ? "var(--neu-inset)" : "none",
+                      color: activeAccount === acct ? "var(--accent)" : "var(--text-mute)",
+                      cursor: "pointer",
+                      transition: "all 0.15s"
+                    }}>
+                    {acct.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
             <div style={{
               margin: "0 12px 12px",
@@ -922,10 +905,6 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* Right: Highlights (35%) */}
-        <div style={{ flex: "0 0 35%" }}>
-          <HighlightsCard holdings={filteredHoldings} />
-        </div>
       </div>
 
       {/* ══ ROW 3: PORTFOLIO ANALYSIS SECTION ══ */}
