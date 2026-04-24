@@ -217,7 +217,7 @@ export default function AnalysisPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 20, paddingTop: '8px' }}>
+      <div style={{ marginBottom: 20 }}>
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22,
