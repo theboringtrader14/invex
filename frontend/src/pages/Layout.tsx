@@ -103,7 +103,7 @@ export default function Layout() {
       </div>
 
       {/* Page content — matches STAAX Layout padding */}
-      <main style={{ flex: 1, padding: '16px 24px 20px 24px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, padding: '16px 28px 20px 28px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
 

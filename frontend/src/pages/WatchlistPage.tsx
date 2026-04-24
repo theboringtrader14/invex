@@ -79,7 +79,7 @@ function MetricCard({ label, value, sub, valueColor }: {
         fontFamily: "var(--font-mono)", marginBottom: "10px"
       }}>{label}</div>
       <div style={{
-        fontFamily: "var(--font-body)",
+        fontFamily: "var(--font-mono)",
         fontSize: "22px", fontWeight: 700,
         color: valueColor || "var(--text)",
         lineHeight: 1

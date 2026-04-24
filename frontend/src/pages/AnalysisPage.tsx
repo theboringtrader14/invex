@@ -79,11 +79,11 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
           strokeLinecap="round"
           transform={`rotate(-90 ${cx} ${cy})`} />
         <text x={cx} y={cy + 2} textAnchor="middle" dominantBaseline="middle"
-          fill={hexColor} fontSize={size * 0.22} fontWeight={700} fontFamily="'JetBrains Mono', monospace">
+          fill={hexColor} fontSize={size * 0.22} fontWeight={700} style={{ fontFamily: 'var(--font-mono)' }}>
           {score}
         </text>
         <text x={cx} y={cy + size * 0.2} textAnchor="middle" dominantBaseline="middle"
-          fill="var(--text-mute)" fontSize={size * 0.1} fontFamily="'Syne', sans-serif">
+          fill="var(--text-mute)" fontSize={size * 0.1} style={{ fontFamily: 'var(--font-display)' }}>
           /100
         </text>
       </svg>
