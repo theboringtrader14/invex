@@ -788,49 +788,48 @@ export default function PortfolioPage() {
     <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
       {/* ══ HEADER ══ */}
-      <div style={{ marginBottom: "20px" }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-          color: "var(--text)", margin: 0, marginBottom: "4px"
-        }}>Portfolio</h1>
-        <div style={{
-          fontSize: "13px", color: "var(--text-dim)",
-          display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)",
-          marginBottom: "12px"
-        }}>
-          {filteredHoldings.length} stocks · {filteredMF.length} funds
-          {syncing && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--text-mute)", fontSize: "11px" }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
-              syncing
-            </span>
-          )}
+      <div className="page-header">
+        <div>
+          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
+            Portfolio
+          </h1>
+          <p style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 3, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {filteredHoldings.length} stocks · {filteredMF.length} funds
+            {syncing && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
+                syncing
+              </span>
+            )}
+          </p>
         </div>
-        {/* Account filter — sliding pill matching STAAX Orders days tab */}
-        <div style={{ position: 'relative', display: 'inline-flex', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 100, padding: 4 }}>
-          <div style={{
-            position: 'absolute', top: 4,
-            left: `calc(4px + ${ACCOUNTS.indexOf(activeAccount)} * (100% - 8px) / ${ACCOUNTS.length})`,
-            width: `calc((100% - 8px) / ${ACCOUNTS.length})`,
-            height: 28, borderRadius: 100,
-            background: 'var(--bg-surface)',
-            boxShadow: 'var(--neu-raised-sm)',
-            transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
-            pointerEvents: 'none'
-          }} />
-          {ACCOUNTS.map(a => (
-            <button key={a} onClick={() => setActiveAccount(a)}
-              style={{
-                position: 'relative', zIndex: 1,
-                padding: '0 18px', height: 28,
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
-                textTransform: 'uppercase', letterSpacing: '0.5px',
-                color: activeAccount === a ? 'var(--accent)' : 'var(--text-dim)',
-                borderRadius: 100, transition: 'color 0.18s', whiteSpace: 'nowrap',
-                outline: 'none'
-              }}>{a}</button>
-          ))}
+        {/* Account filter — sliding pill (right side, matches STAAX page-header-actions) */}
+        <div className="page-header-actions">
+          <div style={{ position: 'relative', display: 'inline-flex', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 100, padding: 4 }}>
+            <div style={{
+              position: 'absolute', top: 4,
+              left: `calc(4px + ${ACCOUNTS.indexOf(activeAccount)} * (100% - 8px) / ${ACCOUNTS.length})`,
+              width: `calc((100% - 8px) / ${ACCOUNTS.length})`,
+              height: 28, borderRadius: 100,
+              background: 'var(--bg-surface)',
+              boxShadow: 'var(--neu-raised-sm)',
+              transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none'
+            }} />
+            {ACCOUNTS.map(a => (
+              <button key={a} onClick={() => setActiveAccount(a)}
+                style={{
+                  position: 'relative', zIndex: 1,
+                  padding: '0 18px', height: 28,
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  color: activeAccount === a ? 'var(--accent)' : 'var(--text-dim)',
+                  borderRadius: 100, transition: 'color 0.18s', whiteSpace: 'nowrap',
+                  outline: 'none'
+                }}>{a}</button>
+            ))}
+          </div>
         </div>
       </div>
 

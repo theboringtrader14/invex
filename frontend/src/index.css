@@ -105,6 +105,10 @@ body {
 .ix-table tr:last-child td { border-bottom: none; }
 .ix-table tr:hover td { background: rgba(128,128,128,0.04); }
 
+/* Page header — matches STAAX .page-header pattern */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; min-height: 40px; }
+.page-header-actions { display: flex; align-items: center; gap: 8px; }
+
 /* Chip */
 .chip {
   display: inline-flex; align-items: center;
