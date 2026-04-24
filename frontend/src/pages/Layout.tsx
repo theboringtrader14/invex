@@ -2,7 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
-  { to: '/',          label: 'Portfolio' },
+  { to: '/portfolio', label: 'Portfolio' },
   { to: '/sips',      label: 'SIPs' },
   { to: '/ipo-bots',  label: 'IPO' },
   { to: '/watchlist', label: 'Watchlist' },
@@ -51,7 +51,7 @@ export default function Layout() {
           {/* Nav links */}
           <nav style={{ display: 'flex', gap: 3, flex: 1 }}>
             {NAV_LINKS.map(({ to, label }) => (
-              <NavLink key={to} to={to} end={to === '/'}
+              <NavLink key={to} to={to}
                 style={({ isActive }) => ({
                   padding: '5px 12px',
                   borderRadius: 8,
