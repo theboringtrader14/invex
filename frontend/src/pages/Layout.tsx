@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { SignOut } from '@phosphor-icons/react'
+import { SignOut, Sun, Moon } from '@phosphor-icons/react'
 
 const NAV_LINKS = [
   { to: '/portfolio', label: 'Portfolio' },
@@ -26,6 +27,20 @@ const iconBtnStyle: React.CSSProperties = {
 }
 
 export default function Layout() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    (localStorage.getItem('invex_theme') as 'light' | 'dark') || 'light'
+  )
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    localStorage.setItem('invex_theme', next)
+    setTheme(next)
+  }
+
   const logout = () => { localStorage.removeItem('invex_token'); window.location.href = '/login' }
 
   return (
@@ -86,8 +101,17 @@ export default function Layout() {
             ))}
           </nav>
 
-          {/* RIGHT — Exit */}
+          {/* RIGHT — Theme + Exit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              style={iconBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}
+            >
+              {theme === 'dark' ? <Sun size={16} weight="regular" /> : <Moon size={16} weight="regular" />}
+            </button>
             <button
               onClick={logout}
               title="Exit"
