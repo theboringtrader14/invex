@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Lightning } from '@phosphor-icons/react'
 
 /* ─── API helpers ──────────────────────────────────────────── */
-const API =
-  import.meta.env.VITE_API_URL?.replace('api.', 'invex-api.') ||
-  'https://invex.lifexos.co.in'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
 function authHeaders() {
   const token = localStorage.getItem('staax_token')

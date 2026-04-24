@@ -570,7 +570,7 @@ export default function SIPsPage() {
     const token = localStorage.getItem("staax_token")
     try {
       const [acctRes, sipRes, execRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_STAAX_API_URL || 'https://api.lifexos.co.in'}/api/v1/accounts/`, {
+        fetch(`${import.meta.env.VITE_STAAX_API_URL || 'http://localhost:8000'}/api/v1/accounts/`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
         sipsAPI.list(),

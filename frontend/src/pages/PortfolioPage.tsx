@@ -513,7 +513,7 @@ export default function PortfolioPage() {
     const token = localStorage.getItem("staax_token")
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
-    const acctPromise = fetch(`${import.meta.env.VITE_STAAX_API_URL || 'https://api.lifexos.co.in'}/api/v1/accounts/`, { headers })
+    const acctPromise = fetch(`${import.meta.env.VITE_STAAX_API_URL || 'http://localhost:8000'}/api/v1/accounts/`, { headers })
       .then(async r => {
         if (!r.ok) return
         const accts: Array<{ id: string; nickname: string }> = await r.json()
