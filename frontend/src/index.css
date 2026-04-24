@@ -6,20 +6,20 @@
   --accent-rgb:    45, 212, 191;
   --accent-light:  #5eead4;
   --accent-dark:   #14b8a6;
-  --bg:            #ebefee;
-  --bg-surface:    #ebefee;
+  --bg:            #e4eeed;
+  --bg-surface:    #d4dbd9;
   --text:          #1A1A1E;
   --text-dim:      #6E6E78;
   --text-mute:     #9CA3AF;
-  --border:        rgba(0,0,0,0.05);
+  --border:        rgba(0,0,0,0.07);
   --green:         #0EA66E;
   --red:           #FF4444;
   --amber:         #F59E0B;
 
-  --neu-raised:    -6px -6px 12px rgba(255,255,255,0.88), 6px 6px 12px rgba(148,158,155,0.45);
-  --neu-raised-sm: -3px -3px 6px rgba(255,255,255,0.82), 3px 3px 6px rgba(148,158,155,0.35);
-  --neu-raised-lg: -8px -8px 16px rgba(255,255,255,0.88), 8px 8px 16px rgba(148,158,155,0.52);
-  --neu-inset:     inset 3px 3px 6px rgba(148,158,155,0.38), inset -3px -3px 6px rgba(255,255,255,0.82);
+  --neu-raised:    -6px -6px 12px rgba(255,255,255,0.92), 6px 6px 12px rgba(140,158,155,0.5);
+  --neu-raised-sm: -3px -3px 6px rgba(255,255,255,0.88), 3px 3px 6px rgba(140,158,155,0.4);
+  --neu-raised-lg: -8px -8px 16px rgba(255,255,255,0.95), 8px 8px 16px rgba(140,158,155,0.55);
+  --neu-inset:     inset 3px 3px 6px rgba(140,158,155,0.4), inset -3px -3px 6px rgba(255,255,255,0.8);
 
   --font-display: 'Syne', sans-serif;
   --font-body:    'Space Grotesk', sans-serif;
