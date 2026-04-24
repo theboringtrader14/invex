@@ -24,29 +24,28 @@ export default function LoginPage() {
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
     background: "var(--bg)", boxShadow: "var(--neu-inset)",
-    border: "1px solid var(--border)",
     borderRadius: "var(--r-md)", color: "var(--text)", fontSize: "14px",
     padding: "11px 14px", outline: "none", fontFamily: "var(--font-body)",
-    transition: "box-shadow 0.15s",
+    transition: "box-shadow 0.15s"
   }
 
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "var(--bg)",
+      background: "var(--bg)"
     }}>
       <div style={{ width: "360px" }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "36px",
-            fontWeight: 800, color: "var(--text)", marginBottom: "4px",
+            fontWeight: 800, color: "var(--text)", marginBottom: "4px"
           }}>
             LIFEX OS · <span style={{ color: "var(--accent)" }}>INVEX</span>
           </div>
           <div style={{
             fontSize: "12px", color: "var(--text-mute)",
             letterSpacing: "0.12em", fontFamily: "var(--font-mono)",
-            textTransform: "uppercase",
+            textTransform: "uppercase"
           }}>PORTFOLIO INTELLIGENCE</div>
         </div>
 
@@ -54,15 +53,14 @@ export default function LoginPage() {
           background: "var(--bg-surface)",
           boxShadow: "var(--neu-raised-lg)",
           borderRadius: "var(--r-xl)",
-          border: "1px solid var(--border)",
-          padding: "28px",
+          padding: "28px"
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
               <label style={{
                 fontSize: "10px", color: "var(--text-mute)", fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.08em",
-                display: "block", marginBottom: "8px", fontFamily: "var(--font-mono)",
+                display: "block", marginBottom: "8px", fontFamily: "var(--font-mono)"
               }}>Username</label>
               <input
                 style={inputStyle}
@@ -76,7 +74,7 @@ export default function LoginPage() {
               <label style={{
                 fontSize: "10px", color: "var(--text-mute)", fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.08em",
-                display: "block", marginBottom: "8px", fontFamily: "var(--font-mono)",
+                display: "block", marginBottom: "8px", fontFamily: "var(--font-mono)"
               }}>Password</label>
               <input
                 style={inputStyle}
@@ -92,7 +90,7 @@ export default function LoginPage() {
                 fontSize: "12px", color: "var(--red)",
                 background: "rgba(255,68,68,0.06)", padding: "9px 12px",
                 borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)",
-                fontFamily: "var(--font-body)",
+                fontFamily: "var(--font-body)"
               }}>
                 {error}
               </div>
@@ -107,7 +105,7 @@ export default function LoginPage() {
                 color: "var(--accent)", cursor: loading ? "not-allowed" : "pointer",
                 opacity: loading ? 0.7 : 1,
                 fontFamily: "var(--font-body)",
-                transition: "all 0.2s",
+                transition: "all 0.2s"
               }}
               onClick={handleLogin}
               disabled={loading}>

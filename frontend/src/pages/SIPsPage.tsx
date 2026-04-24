@@ -155,19 +155,18 @@ function MetricCard({ label, value, sub, valueColor }: {
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
       borderRadius: 'var(--r-lg)',
-      border: '1px solid var(--border)',
-      padding: "18px 18px 16px",
+      padding: "18px 18px 16px"
     }}>
       <div style={{
         fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
         textTransform: "uppercase", color: "var(--text-mute)",
-        fontFamily: "var(--font-mono)", marginBottom: "10px",
+        fontFamily: "var(--font-mono)", marginBottom: "10px"
       }}>{label}</div>
       <div style={{
         fontFamily: "var(--font-body)",
         fontSize: "22px", fontWeight: 700,
         color: valueColor || "var(--text)",
-        lineHeight: 1,
+        lineHeight: 1
       }}>{value}</div>
       {sub && (
         <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
@@ -198,14 +197,14 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
     color,
     opacity: disabled ? 0.4 : 1,
     display: "flex", alignItems: "center", justifyContent: "center",
-    transition: "all 0.15s",
+    transition: "all 0.15s"
   })
 
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap",
       padding: "14px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--border)"
     }}
       onMouseEnter={e => (e.currentTarget.style.background = "rgba(45,212,191,0.03)")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
@@ -214,7 +213,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
       <div style={{ minWidth: "110px" }}>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "14px", fontWeight: 700,
-          color: "var(--accent)",
+          color: "var(--accent)"
         }}>{sip.symbol}</div>
         <div style={{ marginTop: "3px" }}>
           <span style={{
@@ -222,7 +221,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
             fontSize: "9px", fontWeight: 700, letterSpacing: "1px",
             background: "var(--bg)", boxShadow: "var(--neu-inset)",
             color: "var(--accent)",
-            fontFamily: "var(--font-mono)",
+            fontFamily: "var(--font-mono)"
           }}>{sip.exchange}</span>
         </div>
       </div>
@@ -232,7 +231,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
         <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Amount</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600,
-          color: "var(--text-dim)",
+          color: "var(--text-dim)"
         }}>{fmt(sip.amount)}</div>
       </div>
 
@@ -243,7 +242,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
           padding: "3px 10px", borderRadius: "var(--r-pill)",
           fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
           background: "var(--bg-surface)", boxShadow: "var(--neu-raised-sm)",
-          color: "var(--text-dim)",
+          color: "var(--text-dim)"
         }}>{freqLabel(sip)}</span>
       </div>
 
@@ -252,7 +251,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
         <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Next Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
-          color: isActive ? "var(--accent)" : "var(--text-mute)",
+          color: isActive ? "var(--accent)" : "var(--text-mute)"
         }}>{nextDue(sip)}</div>
       </div>
 
@@ -261,7 +260,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
         <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Last Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
-          color: sip.last_executed_at ? "var(--text-dim)" : "var(--text-mute)",
+          color: sip.last_executed_at ? "var(--text-dim)" : "var(--text-mute)"
         }}>{fmtLastRun(sip.last_executed_at)}</div>
       </div>
 
@@ -272,7 +271,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
           padding: "3px 10px", borderRadius: "var(--r-pill)",
           fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
           background: "var(--bg-surface)", boxShadow: "var(--neu-raised-sm)",
-          color: "var(--text-dim)",
+          color: "var(--text-dim)"
         }}>{accountName}</span>
       </div>
 
@@ -283,7 +282,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
           padding: "2px 8px", borderRadius: "var(--r-pill)",
           fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
           background: "var(--bg)", boxShadow: "var(--neu-inset)",
-          color: isActive ? "var(--green)" : "var(--amber)",
+          color: isActive ? "var(--green)" : "var(--amber)"
         }}>
           {isActive && <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "currentColor", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />}
           {sip.status.toUpperCase()}
@@ -329,7 +328,7 @@ const BLANK_FORM: FormData = {
   symbol: "", amount: "", frequency: "monthly",
   frequency_day: "0", frequency_date: "1",
   account_id: "", start_date: new Date().toISOString().slice(0, 10),
-  exchange: "NSE",
+  exchange: "NSE"
 }
 
 function AddSIPModal({ accounts, onClose, onSave }: {
@@ -359,7 +358,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
         frequency_date: form.frequency === "monthly" ? Number(form.frequency_date) : null,
         account_id: form.account_id,
         start_date: form.start_date,
-        exchange: form.exchange,
+        exchange: form.exchange
       })
       onClose()
     } catch (e: any) {
@@ -372,39 +371,37 @@ function AddSIPModal({ accounts, onClose, onSave }: {
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
     background: "var(--bg)", boxShadow: "var(--neu-inset)",
-    border: "1px solid var(--border)",
     borderRadius: "var(--r-sm)", color: "var(--text)", fontSize: "13px",
     padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)",
-    transition: "box-shadow 0.15s",
+    transition: "box-shadow 0.15s"
   }
   const labelStyle: React.CSSProperties = {
     display: "block", fontSize: "10px", fontWeight: 700,
     color: "var(--text-mute)", textTransform: "uppercase",
-    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)",
+    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)"
   }
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
       background: "rgba(0,0,0,0.25)", display: "flex",
-      alignItems: "center", justifyContent: "center",
+      alignItems: "center", justifyContent: "center"
     }}>
       <div style={{
         background: "var(--bg-surface)",
         boxShadow: "var(--neu-raised-lg)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-xl)", width: "440px", maxHeight: "90vh", overflow: "auto",
+        borderRadius: "var(--r-xl)", width: "440px", maxHeight: "90vh", overflow: "auto"
       }}>
         {/* Header */}
         <div style={{
           padding: "20px 24px 16px",
           borderBottom: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", alignItems: "center", justifyContent: "space-between"
         }}>
           <div>
             <div style={{
               fontFamily: "var(--font-display)", fontSize: "16px",
-              fontWeight: 700, color: "var(--text)",
+              fontWeight: 700, color: "var(--text)"
             }}>New SIP</div>
             <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "2px", fontFamily: "var(--font-body)" }}>
               Recurring investment order
@@ -414,7 +411,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
             background: "var(--bg-surface)", border: "none", cursor: "pointer",
             color: "var(--text-dim)", display: "flex", alignItems: "center",
             padding: "6px", borderRadius: "var(--r-sm)",
-            boxShadow: "var(--neu-raised-sm)",
+            boxShadow: "var(--neu-raised-sm)"
           }}>
             <IconClose />
           </button>
@@ -462,7 +459,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
                     color: form.frequency === f ? "var(--accent)" : "var(--text-dim)",
                     fontSize: "12px", fontWeight: 600, cursor: "pointer",
                     textTransform: "capitalize", fontFamily: "var(--font-body)",
-                    transition: "all 0.15s",
+                    transition: "all 0.15s"
                   }}>
                   {f}
                 </button>
@@ -484,7 +481,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
                       boxShadow: form.frequency_day === String(i) ? "var(--neu-inset)" : "var(--neu-raised-sm)",
                       color: form.frequency_day === String(i) ? "var(--accent)" : "var(--text-dim)",
                       fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                      fontFamily: "var(--font-body)", transition: "all 0.15s",
+                      fontFamily: "var(--font-body)", transition: "all 0.15s"
                     }}>
                     {d}
                   </button>
@@ -530,7 +527,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
             <div style={{
               fontSize: "12px", color: "var(--red)", marginBottom: "14px",
               background: "rgba(255,68,68,0.06)", padding: "9px 12px",
-              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)",
+              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)"
             }}>
               {err}
             </div>
@@ -545,7 +542,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
               color: "var(--accent)", fontSize: "13px", fontWeight: 700,
               cursor: saving ? "not-allowed" : "pointer",
               opacity: saving ? 0.7 : 1, fontFamily: "var(--font-body)",
-              transition: "all 0.2s",
+              transition: "all 0.2s"
             }}>
             {saving ? "Creating…" : "Create SIP"}
           </button>
@@ -574,7 +571,7 @@ export default function SIPsPage() {
     try {
       const [acctRes, sipRes, execRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_STAAX_API_URL || 'https://api.lifexos.co.in'}/api/v1/accounts/`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
         sipsAPI.list(),
         sipsAPI.allExecutions(),
@@ -662,7 +659,7 @@ export default function SIPsPage() {
     fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
     background: "var(--bg-surface)", border: "none", cursor: "pointer",
     boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
-    transition: "all 0.15s",
+    transition: "all 0.15s"
   }
 
   if (loading) {
@@ -670,7 +667,7 @@ export default function SIPsPage() {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         height: "60vh", color: "var(--text-mute)", fontFamily: "var(--font-mono)",
-        fontSize: "13px", gap: "10px",
+        fontSize: "13px", gap: "10px"
       }}>
         <ArrowsClockwise size={16} style={{ animation: "spin 1s linear infinite" }} />
         Loading SIPs…
@@ -689,9 +686,8 @@ export default function SIPsPage() {
           fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
           background: "var(--bg-surface)",
           boxShadow: "var(--neu-raised-lg)",
-          border: "1px solid var(--border)",
           color: toast.ok ? "var(--green)" : "var(--red)",
-          maxWidth: "360px",
+          maxWidth: "360px"
         }}>
           {toast.msg}
         </div>
@@ -700,12 +696,12 @@ export default function SIPsPage() {
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px",
+        marginBottom: "20px"
       }}>
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--accent)", marginBottom: "4px",
+            color: "var(--accent)", marginBottom: "4px"
           }}>SIP Engine</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", fontFamily: "var(--font-body)" }}>
             Recurring investment scheduler
@@ -752,12 +748,11 @@ export default function SIPsPage() {
         background: "var(--bg-surface)",
         boxShadow: "var(--neu-raised)",
         borderRadius: "var(--r-lg)",
-        border: "1px solid var(--border)",
-        overflow: "hidden", marginBottom: "20px",
+        overflow: "hidden", marginBottom: "20px"
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 18px 12px",
+          padding: "14px 18px 12px"
         }}>
           <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             SIP Schedule · {sips.length} SIP{sips.length !== 1 ? "s" : ""}
@@ -770,7 +765,7 @@ export default function SIPsPage() {
         {sips.length === 0 ? (
           <div style={{
             padding: "48px", textAlign: "center",
-            color: "var(--text-mute)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px"
           }}>
             No SIPs configured yet.{" "}
             <button
@@ -778,7 +773,7 @@ export default function SIPsPage() {
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: "var(--accent)", fontFamily: "inherit", fontSize: "13px",
-                textDecoration: "underline",
+                textDecoration: "underline"
               }}>
               Create your first SIP →
             </button>
@@ -804,12 +799,11 @@ export default function SIPsPage() {
         background: "var(--bg-surface)",
         boxShadow: "var(--neu-raised)",
         borderRadius: "var(--r-lg)",
-        border: "1px solid var(--border)",
-        overflow: "hidden",
+        overflow: "hidden"
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 18px 12px",
+          padding: "14px 18px 12px"
         }}>
           <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Recent Executions
@@ -820,7 +814,7 @@ export default function SIPsPage() {
         {executions.length === 0 ? (
           <div style={{
             padding: "36px", textAlign: "center",
-            color: "var(--text-mute)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px"
           }}>
             No executions recorded yet.
           </div>
@@ -842,7 +836,7 @@ export default function SIPsPage() {
                     <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "left" }}>
                       {ex.executed_at
                         ? new Date(ex.executed_at).toLocaleDateString("en-IN", {
-                            day: "2-digit", month: "short", year: "numeric",
+                            day: "2-digit", month: "short", year: "numeric"
                           })
                         : "—"}
                     </td>
@@ -856,7 +850,7 @@ export default function SIPsPage() {
                         padding: "2px 8px", borderRadius: "var(--r-pill)",
                         fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
                         background: "var(--bg)", boxShadow: "var(--neu-inset)",
-                        color: ex.status === "placed" ? "var(--green)" : "var(--amber)",
+                        color: ex.status === "placed" ? "var(--green)" : "var(--amber)"
                       }}>
                         {ex.status}
                       </span>

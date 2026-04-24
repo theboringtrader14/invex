@@ -10,7 +10,7 @@ function authHeaders() {
   const token = localStorage.getItem('staax_token')
   return {
     Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   }
 }
 
@@ -64,7 +64,7 @@ function signalStyle(signal: string | undefined): React.CSSProperties {
     case 'STRONG_BEARISH':
       return { color: '#cc0000', background: 'rgba(204,0,0,0.08)', border: '1px solid rgba(204,0,0,0.20)' }
     default:
-      return { color: 'var(--text-mute)', background: 'var(--bg)', border: '1px solid var(--border)' }
+      return { color: 'var(--text-mute)', background: 'var(--bg)' }
   }
 }
 
@@ -76,7 +76,7 @@ const chipBase: React.CSSProperties = {
   borderRadius: 'var(--r-pill)',
   fontSize: '10px',
   fontWeight: 700,
-  fontFamily: 'var(--font-mono)',
+  fontFamily: 'var(--font-mono)'
 }
 
 /* ─── YTR Level Bar ─────────────────────────────────────────── */
@@ -110,19 +110,19 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: '0%', width: `${lppPct}%`,
-          background: 'rgba(255,68,68,0.12)', borderRadius: '4px 0 0 4px',
+          background: 'rgba(255,68,68,0.12)', borderRadius: '4px 0 0 4px'
         }} />
         {/* Neutral zone */}
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: `${lppPct}%`, width: `${uppPct - lppPct}%`,
-          background: 'rgba(0,0,0,0.05)',
+          background: 'rgba(0,0,0,0.05)'
         }} />
         {/* Bullish zone */}
         <div style={{
           position: 'absolute', top: 0, height: '100%',
           left: `${uppPct}%`, width: `${100 - uppPct}%`,
-          background: 'rgba(45,212,191,0.15)', borderRadius: '0 4px 4px 0',
+          background: 'rgba(45,212,191,0.15)', borderRadius: '0 4px 4px 0'
         }} />
 
         {levels.map(l => (
@@ -130,7 +130,7 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
             position: 'absolute', top: 0, bottom: 0,
             left: `${pct(l.val)}%`,
             width: '1px',
-            background: 'rgba(0,0,0,0.15)',
+            background: 'rgba(0,0,0,0.15)'
           }} />
         ))}
 
@@ -140,7 +140,7 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
           top: '50%',
           left: `${ltpPct}%`,
           transform: 'translate(-50%, -50%)',
-          zIndex: 10,
+          zIndex: 10
         }}>
           <span style={{
             display: 'block',
@@ -148,7 +148,7 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
             borderRadius: '50%',
             background: 'var(--accent)',
             boxShadow: '0 0 0 3px rgba(45,212,191,0.25)',
-            animation: 'pulseLive 1.5s ease-in-out infinite',
+            animation: 'pulseLive 1.5s ease-in-out infinite'
           }} />
         </div>
       </div>
@@ -163,7 +163,7 @@ function YTRBar({ ytr }: { ytr: YTRData }) {
             fontSize: '9px',
             color: 'var(--text-mute)',
             whiteSpace: 'nowrap',
-            fontFamily: 'var(--font-mono)',
+            fontFamily: 'var(--font-mono)'
           }}>
             {l.label}
             <br />
@@ -221,8 +221,8 @@ export default function IPOBotsPage() {
         body: JSON.stringify({
           symbol: addSymbol.trim().toUpperCase(),
           account_id: addAccountId.trim(),
-          trade_amount: 10000,
-        }),
+          trade_amount: 10000
+        })
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -242,7 +242,7 @@ export default function IPOBotsPage() {
     setRefreshing(r => ({ ...r, [bot.id]: true }))
     try {
       const res = await fetch(`${API}/api/v1/ipo-bots/ytr/${bot.symbol.toUpperCase()}`, {
-        headers: authHeaders(),
+        headers: authHeaders()
       })
       const data: YTRData = await res.json()
       setRowYTR(prev => ({ ...prev, [bot.id]: data }))
@@ -260,7 +260,7 @@ export default function IPOBotsPage() {
     try {
       const res = await fetch(`${API}/api/v1/ipo-bots/scan`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: authHeaders()
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -287,21 +287,19 @@ export default function IPOBotsPage() {
   const neuCard: React.CSSProperties = {
     background: 'var(--bg-surface)',
     boxShadow: 'var(--neu-raised)',
-    borderRadius: 'var(--r-lg)',
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--r-lg)'
   }
 
   const inputStyleLocal: React.CSSProperties = {
     background: 'var(--bg)',
     boxShadow: 'var(--neu-inset)',
-    border: '1px solid var(--border)',
     borderRadius: '7px',
     padding: '7px 12px',
     color: 'var(--text)',
     fontSize: '12px',
     width: '148px',
     outline: 'none',
-    fontFamily: 'var(--font-body)',
+    fontFamily: 'var(--font-body)'
   }
 
   const addBtnStyleLocal = (disabled: boolean): React.CSSProperties => ({
@@ -315,7 +313,7 @@ export default function IPOBotsPage() {
     cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'all 150ms',
     alignSelf: 'flex-end',
-    fontFamily: 'var(--font-body)',
+    fontFamily: 'var(--font-body)'
   })
 
   const toggleChipStyle = (active: boolean, colorActive: string): React.CSSProperties => ({
@@ -324,7 +322,7 @@ export default function IPOBotsPage() {
     border: 'none',
     background: active ? 'var(--bg)' : 'var(--bg-surface)',
     boxShadow: active ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
-    color: active ? colorActive : 'var(--text-mute)',
+    color: active ? colorActive : 'var(--text-mute)'
   })
 
   return (
@@ -335,7 +333,7 @@ export default function IPOBotsPage() {
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{
             fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800,
-            color: 'var(--accent)', marginBottom: '4px',
+            color: 'var(--accent)', marginBottom: '4px'
           }}>
             IPO Bot
           </div>
@@ -413,7 +411,7 @@ export default function IPOBotsPage() {
                 borderRadius: '8px',
                 background: 'var(--bg)',
                 boxShadow: 'var(--neu-inset)',
-                display: 'flex', alignItems: 'center', gap: '8px',
+                display: 'flex', alignItems: 'center', gap: '8px'
               }}>
                 <span style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
                   {s.symbol}
@@ -441,7 +439,7 @@ export default function IPOBotsPage() {
       <div style={{ ...neuCard, overflow: 'hidden', marginBottom: '16px' }}>
         <div style={{
           padding: '14px 20px', borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-mute)', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
             WATCHLIST · {bots.length} bot{bots.length !== 1 ? 's' : ''}
@@ -449,7 +447,7 @@ export default function IPOBotsPage() {
           <span style={{
             ...chipBase,
             background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-            color: isPractix ? 'var(--amber)' : 'var(--accent)',
+            color: isPractix ? 'var(--amber)' : 'var(--accent)'
           }}>
             {!isPractix && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', animation: 'pulseLive 2s ease-out infinite', display: 'inline-block' }} />}
             {isPractix ? 'PRACTIX' : 'LIVE'}
@@ -474,7 +472,7 @@ export default function IPOBotsPage() {
                       letterSpacing: '0.06em',
                       borderBottom: '1px solid var(--border)',
                       whiteSpace: 'nowrap',
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'var(--font-mono)'
                     }}>{h}</th>
                   ))}
                 </tr>
@@ -492,7 +490,7 @@ export default function IPOBotsPage() {
                           cursor: 'pointer',
                           background: isSelected ? 'rgba(45,212,191,0.04)' : 'transparent',
                           transition: 'background 150ms',
-                          borderBottom: '1px solid var(--border)',
+                          borderBottom: '1px solid var(--border)'
                         }}
                         onMouseEnter={e => {
                           if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0,0,0,0.02)'
@@ -535,7 +533,7 @@ export default function IPOBotsPage() {
                                 ...chipBase,
                                 background: 'rgba(45,212,191,0.08)',
                                 color: 'var(--accent)',
-                                border: '1px solid rgba(45,212,191,0.20)',
+                                border: '1px solid rgba(45,212,191,0.20)'
                               }}>
                                 UPP {fmt(ytr.UPP)}
                               </span>
@@ -545,7 +543,7 @@ export default function IPOBotsPage() {
                                 ...chipBase,
                                 background: 'rgba(255,68,68,0.08)',
                                 color: 'var(--red)',
-                                border: '1px solid rgba(255,68,68,0.20)',
+                                border: '1px solid rgba(255,68,68,0.20)'
                               }}>
                                 LPP {fmt(ytr.LPP)}
                               </span>
@@ -576,7 +574,7 @@ export default function IPOBotsPage() {
                           <span style={{
                             ...chipBase,
                             background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                            color: bot.status === 'watching' ? 'var(--green)' : 'var(--amber)',
+                            color: bot.status === 'watching' ? 'var(--green)' : 'var(--amber)'
                           }}>
                             {bot.status === 'watching' && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', animation: 'pulseLive 2s ease-out infinite', display: 'inline-block' }} />}
                             {bot.status.toUpperCase()}
@@ -599,7 +597,7 @@ export default function IPOBotsPage() {
                               cursor: refreshing[bot.id] ? 'not-allowed' : 'pointer',
                               transition: 'all 150ms',
                               whiteSpace: 'nowrap',
-                              fontFamily: 'var(--font-mono)',
+                              fontFamily: 'var(--font-mono)'
                             }}
                           >
                             {refreshing[bot.id] ? '…' : '↻ Refresh'}
@@ -614,7 +612,7 @@ export default function IPOBotsPage() {
                             colSpan={7}
                             style={{
                               padding: '16px 20px 20px',
-                              borderBottom: '1px solid var(--border)',
+                              borderBottom: '1px solid var(--border)'
                             }}
                           >
                             {!ytr ? (

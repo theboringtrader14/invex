@@ -71,19 +71,18 @@ function MetricCard({ label, value, sub, valueColor }: {
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
       borderRadius: 'var(--r-lg)',
-      border: '1px solid var(--border)',
-      padding: "18px 18px 16px",
+      padding: "18px 18px 16px"
     }}>
       <div style={{
         fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
         textTransform: "uppercase", color: "var(--text-mute)",
-        fontFamily: "var(--font-mono)", marginBottom: "10px",
+        fontFamily: "var(--font-mono)", marginBottom: "10px"
       }}>{label}</div>
       <div style={{
         fontFamily: "var(--font-body)",
         fontSize: "22px", fontWeight: 700,
         color: valueColor || "var(--text)",
-        lineHeight: 1,
+        lineHeight: 1
       }}>{value}</div>
       {sub && (
         <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{sub}</div>
@@ -131,7 +130,7 @@ function AddWatchlistModal({ onClose, onSave }: {
 }) {
   const [form, setForm] = useState<AddForm>({
     symbol: "", exchange: "NSE",
-    price_alert_above: "", price_alert_below: "",
+    price_alert_above: "", price_alert_below: ""
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState("")
@@ -146,7 +145,7 @@ function AddWatchlistModal({ onClose, onSave }: {
         symbol: form.symbol.toUpperCase().trim(),
         exchange: form.exchange,
         price_alert_above: form.price_alert_above ? Number(form.price_alert_above) : null,
-        price_alert_below: form.price_alert_below ? Number(form.price_alert_below) : null,
+        price_alert_below: form.price_alert_below ? Number(form.price_alert_below) : null
       })
       onClose()
     } catch (e: any) {
@@ -159,38 +158,36 @@ function AddWatchlistModal({ onClose, onSave }: {
   const inputStyle: React.CSSProperties = {
     width: "100%", boxSizing: "border-box",
     background: "var(--bg)", boxShadow: "var(--neu-inset)",
-    border: "1px solid var(--border)",
     borderRadius: "var(--r-sm)", color: "var(--text)", fontSize: "13px",
-    padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)",
+    padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)"
   }
   const labelStyle: React.CSSProperties = {
     display: "block", fontSize: "10px", fontWeight: 700,
     color: "var(--text-mute)", textTransform: "uppercase",
-    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)",
+    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)"
   }
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
       background: "rgba(0,0,0,0.25)", display: "flex",
-      alignItems: "center", justifyContent: "center",
+      alignItems: "center", justifyContent: "center"
     }}>
       <div style={{
         background: "var(--bg-surface)",
         boxShadow: "var(--neu-raised-lg)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-xl)", width: "400px", maxHeight: "90vh", overflow: "auto",
+        borderRadius: "var(--r-xl)", width: "400px", maxHeight: "90vh", overflow: "auto"
       }}>
         {/* Header */}
         <div style={{
           padding: "20px 24px 16px",
           borderBottom: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", alignItems: "center", justifyContent: "space-between"
         }}>
           <div>
             <div style={{
               fontFamily: "var(--font-display)", fontSize: "16px",
-              fontWeight: 700, color: "var(--text)",
+              fontWeight: 700, color: "var(--text)"
             }}>Add to Watchlist</div>
             <div style={{ fontSize: "11px", color: "var(--text-mute)", marginTop: "2px", fontFamily: "var(--font-body)" }}>
               Track a stock with optional price alerts
@@ -199,7 +196,7 @@ function AddWatchlistModal({ onClose, onSave }: {
           <button onClick={onClose} style={{
             background: "var(--bg-surface)", border: "none", cursor: "pointer",
             color: "var(--text-dim)", display: "flex", alignItems: "center", padding: "6px",
-            borderRadius: "var(--r-sm)", boxShadow: "var(--neu-raised-sm)",
+            borderRadius: "var(--r-sm)", boxShadow: "var(--neu-raised-sm)"
           }}>
             <IconClose />
           </button>
@@ -229,12 +226,12 @@ function AddWatchlistModal({ onClose, onSave }: {
           <div style={{
             padding: "14px 16px", borderRadius: "var(--r-md)",
             background: "var(--bg)", boxShadow: "var(--neu-inset)",
-            marginBottom: "16px",
+            marginBottom: "16px"
           }}>
             <div style={{
               fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
               textTransform: "uppercase", color: "var(--accent)", marginBottom: "12px",
-              display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)",
+              display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)"
             }}>
               <IconBell /> Price Alerts (optional)
             </div>
@@ -258,7 +255,7 @@ function AddWatchlistModal({ onClose, onSave }: {
             <div style={{
               fontSize: "12px", color: "var(--red)", marginBottom: "14px",
               background: "rgba(255,68,68,0.06)", padding: "9px 12px",
-              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)",
+              borderRadius: "var(--r-sm)", border: "1px solid rgba(255,68,68,0.20)"
             }}>
               {err}
             </div>
@@ -273,7 +270,7 @@ function AddWatchlistModal({ onClose, onSave }: {
               color: "var(--accent)", fontSize: "13px", fontWeight: 700,
               cursor: saving ? "not-allowed" : "pointer",
               opacity: saving ? 0.7 : 1, fontFamily: "var(--font-body)",
-              transition: "all 0.2s",
+              transition: "all 0.2s"
             }}>
             {saving ? "Adding…" : "Add to Watchlist"}
           </button>
@@ -356,7 +353,7 @@ export default function WatchlistPage() {
     fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
     background: "var(--bg-surface)", border: "none", cursor: "pointer",
     boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
-    transition: "all 0.15s",
+    transition: "all 0.15s"
   }
 
   if (loading) {
@@ -364,7 +361,7 @@ export default function WatchlistPage() {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         height: "60vh", color: "var(--text-mute)", fontFamily: "var(--font-mono)",
-        fontSize: "13px", gap: "10px",
+        fontSize: "13px", gap: "10px"
       }}>
         <ArrowsClockwise size={16} style={{ animation: "spin 1s linear infinite" }} />
         Loading watchlist…
@@ -378,12 +375,12 @@ export default function WatchlistPage() {
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px",
+        marginBottom: "20px"
       }}>
         <div>
           <div style={{
             fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--accent)", marginBottom: "4px",
+            color: "var(--accent)", marginBottom: "4px"
           }}>Watchlist</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "10px", fontFamily: "var(--font-body)" }}>
             Price &amp; technical alerts
@@ -392,7 +389,7 @@ export default function WatchlistPage() {
               padding: "2px 8px", borderRadius: "var(--r-pill)",
               fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
               background: "var(--bg)", boxShadow: "var(--neu-inset)",
-              color: "var(--green)",
+              color: "var(--green)"
             }}>
               <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "currentColor", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
               {lastUpdated
@@ -443,12 +440,11 @@ export default function WatchlistPage() {
         background: "var(--bg-surface)",
         boxShadow: "var(--neu-raised)",
         borderRadius: "var(--r-lg)",
-        border: "1px solid var(--border)",
-        overflow: "hidden",
+        overflow: "hidden"
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 18px 12px",
+          padding: "14px 18px 12px"
         }}>
           <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Watchlist · {items.length} stock{items.length !== 1 ? "s" : ""}
@@ -459,7 +455,7 @@ export default function WatchlistPage() {
               padding: "2px 9px", borderRadius: "var(--r-pill)",
               fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
               background: "var(--bg)", boxShadow: "var(--neu-inset)",
-              color: "var(--amber)",
+              color: "var(--amber)"
             }}>
               <IconBell /> {withAlerts} alert{withAlerts !== 1 ? "s" : ""} active
             </span>
@@ -469,7 +465,7 @@ export default function WatchlistPage() {
         {items.length === 0 ? (
           <div style={{
             padding: "56px", textAlign: "center",
-            color: "var(--text-mute)", fontSize: "13px",
+            color: "var(--text-mute)", fontSize: "13px"
           }}>
             No stocks in watchlist.{" "}
             <button
@@ -477,7 +473,7 @@ export default function WatchlistPage() {
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: "var(--accent)", fontFamily: "inherit", fontSize: "13px",
-                textDecoration: "underline",
+                textDecoration: "underline"
               }}>
               Add your first stock →
             </button>
@@ -512,7 +508,7 @@ export default function WatchlistPage() {
                               padding: "1px 6px", borderRadius: "var(--r-pill)",
                               fontSize: "9px", fontWeight: 700, fontFamily: "var(--font-mono)",
                               background: "rgba(245,158,11,0.10)", color: "var(--amber)",
-                              border: "1px solid rgba(245,158,11,0.20)",
+                              border: "1px solid rgba(245,158,11,0.20)"
                             }}>
                               ALERT
                             </span>
@@ -556,7 +552,7 @@ export default function WatchlistPage() {
                         {alerts ? (
                           <span style={{
                             fontFamily: "var(--font-mono)", fontSize: "11px",
-                            color: "var(--amber)",
+                            color: "var(--amber)"
                           }}>
                             {alertSummary(item)}
                           </span>
@@ -578,7 +574,7 @@ export default function WatchlistPage() {
                             color: "var(--red)",
                             opacity: removingId === item.id ? 0.4 : 1,
                             display: "inline-flex", alignItems: "center", justifyContent: "center",
-                            transition: "all 0.15s",
+                            transition: "all 0.15s"
                           }}>
                           <IconTrash />
                         </button>

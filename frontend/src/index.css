@@ -50,13 +50,11 @@ body {
   background: var(--bg-surface);
   box-shadow: var(--neu-raised);
   border-radius: var(--r-lg);
-  border: 1px solid var(--border);
 }
 .neu-card-sm {
   background: var(--bg-surface);
   box-shadow: var(--neu-raised-sm);
   border-radius: var(--r-md);
-  border: 1px solid var(--border);
 }
 .neu-inset {
   background: var(--bg);

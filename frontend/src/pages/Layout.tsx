@@ -22,7 +22,7 @@ const iconBtnStyle: React.CSSProperties = {
   color: 'var(--text-dim)',
   cursor: 'pointer',
   flexShrink: 0,
-  transition: 'color 0.18s ease',
+  transition: 'color 0.18s ease'
 }
 
 export default function Layout() {
@@ -42,7 +42,7 @@ export default function Layout() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 24px',
+          padding: '14px 24px'
         }}>
 
           {/* LEFT — Wordmark */}
@@ -52,7 +52,7 @@ export default function Layout() {
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                backgroundClip: 'text'
               }}>
                 LIFEX OS
               </span>
@@ -78,7 +78,7 @@ export default function Layout() {
                   fontFamily: "'DM Sans', 'Space Grotesk', sans-serif",
                   color: isActive ? 'var(--accent)' : 'var(--text-dim)',
                   whiteSpace: 'nowrap',
-                  transition: 'color 0.18s ease',
+                  transition: 'color 0.18s ease'
                 })}
               >
                 {label}
