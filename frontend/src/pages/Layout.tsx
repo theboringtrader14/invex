@@ -1,13 +1,30 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { SignOut } from '@phosphor-icons/react'
 
 const NAV_LINKS = [
   { to: '/portfolio', label: 'Portfolio' },
-  { to: '/sips',      label: 'SIPs' },
-  { to: '/ipo-bots',  label: 'IPO' },
+  { to: '/sips',      label: 'SIPs'      },
+  { to: '/ipo-bots',  label: 'IPO'       },
   { to: '/watchlist', label: 'Watchlist' },
-  { to: '/analysis',  label: 'Analysis' },
+  { to: '/analysis',  label: 'Analysis'  },
 ]
+
+const iconBtnStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 32,
+  height: 32,
+  borderRadius: '50%',
+  background: 'var(--bg)',
+  boxShadow: 'var(--neu-raised-sm)',
+  border: 'none',
+  color: 'var(--text-dim)',
+  cursor: 'pointer',
+  flexShrink: 0,
+  transition: 'color 0.18s ease',
+}
 
 export default function Layout() {
   const [time, setTime] = useState('')
@@ -24,70 +41,87 @@ export default function Layout() {
   const logout = () => { localStorage.removeItem('invex_token'); window.location.href = '/login' }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Top Nav */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        padding: '10px 20px',
-        background: 'var(--bg)',
-      }}>
-        <div style={{
-          background: 'var(--bg-surface)',
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* ── Sticky pill topnav — matches STAAX exactly ── */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 320, padding: '20px 20px 0' }}>
+        <header style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          borderRadius: 100,
+          background: 'var(--bg)',
           boxShadow: 'var(--neu-raised)',
-          borderRadius: 16,
-          padding: '0 20px',
-          height: 52,
           display: 'flex',
           alignItems: 'center',
-          gap: 20,
+          justifyContent: 'space-between',
+          padding: '14px 24px',
         }}>
-          {/* Logo */}
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--text-dim)', whiteSpace: 'nowrap', flexShrink: 0, letterSpacing: '0.02em' }}>
-            LIFEX · <strong style={{ color: 'var(--accent)' }}>INVEX</strong>
-          </span>
 
-          <div style={{ width: 1, height: 18, background: 'var(--border)', flexShrink: 0 }} />
+          {/* LEFT — Wordmark */}
+          <div style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Space Grotesk', 'Inter', system-ui, sans-serif", fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.03em' }}>
+              <span style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                LIFEX OS
+              </span>
+              <span style={{ color: 'var(--text-dim)', WebkitTextFillColor: 'var(--text-dim)' }}>{' · '}</span>
+              <span style={{ color: 'var(--accent)', WebkitTextFillColor: 'var(--accent)' }}>INVEX</span>
+            </span>
+          </div>
 
-          {/* Nav links */}
-          <nav style={{ display: 'flex', gap: 3, flex: 1 }}>
+          {/* CENTER — Nav tabs */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 32, height: '100%' }}>
             {NAV_LINKS.map(({ to, label }) => (
-              <NavLink key={to} to={to}
+              <NavLink
+                key={to}
+                to={to}
                 style={({ isActive }) => ({
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-display)',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
                   textDecoration: 'none',
-                  letterSpacing: '0.02em',
-                  color: isActive ? 'var(--accent)' : 'var(--text-mute)',
-                  background: 'var(--bg)',
-                  boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
-                  transition: 'all 0.15s',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  fontFamily: 'Inter, var(--font-body), sans-serif',
+                  color: isActive ? 'var(--accent)' : 'var(--text-dim)',
+                  whiteSpace: 'nowrap',
+                  transition: 'color 0.18s ease',
                 })}
-              >{label}</NavLink>
+              >
+                {label}
+              </NavLink>
             ))}
           </nav>
 
-          {/* Right: IST clock + logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+          {/* RIGHT — IST clock + Exit */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: '0.04em' }}>
-              IST {time}
+              {time}
             </span>
-            <button onClick={logout} style={{
-              height: 28, padding: '0 12px', borderRadius: 8,
-              border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-              background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
-              color: 'var(--text-mute)',
-            }}>Exit</button>
+            <button
+              onClick={logout}
+              title="Exit"
+              style={iconBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.color = '#FF4444' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}
+            >
+              <SignOut size={16} weight="regular" />
+            </button>
           </div>
-        </div>
+
+        </header>
       </div>
 
-      {/* Page content */}
-      <div style={{ padding: '0 20px 32px' }}>
+      {/* Page content — matches STAAX Layout padding */}
+      <main style={{ flex: 1, padding: '16px 24px 20px 24px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
-      </div>
+      </main>
+
     </div>
   )
 }
