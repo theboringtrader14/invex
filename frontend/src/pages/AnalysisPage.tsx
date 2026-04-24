@@ -220,7 +220,7 @@ export default function AnalysisPage() {
       <div style={{ marginBottom: 20, paddingTop: '8px' }}>
         <div style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 28,
+          fontSize: 22,
           fontWeight: 800,
           color: 'var(--accent)',
           marginBottom: 4,

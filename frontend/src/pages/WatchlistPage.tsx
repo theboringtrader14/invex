@@ -378,11 +378,11 @@ export default function WatchlistPage() {
       {/* ── Page header ── */}
       <div style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px", paddingTop: "8px",
+        marginBottom: "20px",
       }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-display)", fontSize: "28px", fontWeight: 800,
+            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
             color: "var(--accent)", marginBottom: "4px",
           }}>Watchlist</div>
           <div style={{ fontSize: "12px", color: "var(--text-dim)", display: "flex", alignItems: "center", gap: "10px", fontFamily: "var(--font-body)" }}>

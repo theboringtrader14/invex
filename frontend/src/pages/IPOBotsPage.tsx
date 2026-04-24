@@ -331,10 +331,10 @@ export default function IPOBotsPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap', paddingTop: '8px' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{
-            fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 800,
+            fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800,
             color: 'var(--accent)', marginBottom: '4px',
           }}>
             IPO Bot
