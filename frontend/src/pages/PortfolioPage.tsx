@@ -695,7 +695,6 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
   const [showEquityModal, setShowEquityModal] = useState(false)
-  const [showSectorModal, setShowSectorModal] = useState(false)
 
   const load = useCallback(async () => {
     const token = localStorage.getItem("staax_token")
@@ -923,12 +922,8 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* Right: Sector + Highlights (35%) */}
-        <div style={{ flex: "0 0 35%", display: "flex", flexDirection: "column", gap: "16px" }}>
-          <SectorAllocationCard
-            holdings={filteredHoldings}
-            onOpenModal={() => setShowSectorModal(true)}
-          />
+        {/* Right: Highlights (35%) */}
+        <div style={{ flex: "0 0 35%" }}>
           <HighlightsCard holdings={filteredHoldings} />
         </div>
       </div>
@@ -939,9 +934,6 @@ export default function PortfolioPage() {
       {/* ══ MODALS ══ */}
       {showEquityModal && (
         <EquityCurveModal snapshots={snapshots} onClose={() => setShowEquityModal(false)} />
-      )}
-      {showSectorModal && (
-        <SectorModal holdings={filteredHoldings} onClose={() => setShowSectorModal(false)} />
       )}
 
     </div>

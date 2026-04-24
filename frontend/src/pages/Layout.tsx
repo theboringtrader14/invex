@@ -46,7 +46,7 @@ export default function Layout() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* ── Sticky pill topnav — matches STAAX exactly ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 320, padding: '20px 20px 0' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 320, padding: '20px 20px 12px' }}>
         <header style={{
           maxWidth: 1200,
           margin: '0 auto',
