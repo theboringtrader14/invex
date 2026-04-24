@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 const NAV_LINKS = [
   { to: '/',          label: 'Portfolio' },
   { to: '/sips',      label: 'SIPs' },
-  { to: '/ipo-bots',  label: 'IPO Bot' },
+  { to: '/ipo-bots',  label: 'IPO' },
   { to: '/watchlist', label: 'Watchlist' },
   { to: '/analysis',  label: 'Analysis' },
 ]

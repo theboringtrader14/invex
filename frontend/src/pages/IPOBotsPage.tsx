@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Lightning } from '@phosphor-icons/react'
 
 /* ─── API helpers ──────────────────────────────────────────── */
 const API =
@@ -388,7 +389,7 @@ export default function IPOBotsPage() {
             disabled={scanning}
             style={{ ...addBtnStyleLocal(scanning), color: scanning ? 'var(--text-mute)' : 'var(--accent)' }}
           >
-            {scanning ? 'Scanning…' : '⚡ Scan All'}
+            {scanning ? 'Scanning…' : <><Lightning size={12} weight="fill" /> Scan All</>}
           </button>
         </form>
         {addError && (

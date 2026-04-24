@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { ArrowsClockwise } from "@phosphor-icons/react"
 import { sipsAPI } from "../services/api"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -671,7 +672,7 @@ export default function SIPsPage() {
         height: "60vh", color: "var(--text-mute)", fontFamily: "var(--font-mono)",
         fontSize: "13px", gap: "10px",
       }}>
-        <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
+        <ArrowsClockwise size={16} style={{ animation: "spin 1s linear infinite" }} />
         Loading SIPs…
       </div>
     )

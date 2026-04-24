@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { ArrowsClockwise } from "@phosphor-icons/react"
 import { portfolioAPI } from "../services/api"
 
 /* ─── Types ─────────────────────────────────────── */
@@ -605,7 +606,7 @@ export default function PortfolioPage() {
           color: "var(--text-mute)", fontSize: "12px", fontFamily: "var(--font-mono)", gap: "8px",
           padding: "40px 0",
         }}>
-          <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
+          <ArrowsClockwise size={16} style={{ animation: "spin 1s linear infinite" }} />
           Fetching holdings...
         </div>
       </div>
