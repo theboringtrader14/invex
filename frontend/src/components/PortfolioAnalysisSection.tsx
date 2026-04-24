@@ -359,8 +359,15 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                         }}>{b.count}</span>
                         <div style={{
                           width: '100%', height: barH, borderRadius: '4px 4px 0 0',
-                          background: isNeg ? '#FF4444' : '#0EA66E',
-                          opacity: b.count > 0 ? 0.75 : 0.15
+                          background: b.count > 0
+                            ? (isNeg
+                                ? 'linear-gradient(to top, rgba(255,68,68,0.5), rgba(255,68,68,0.9))'
+                                : 'linear-gradient(to top, rgba(14,166,110,0.5), rgba(14,166,110,0.9))')
+                            : (isNeg ? 'rgba(255,68,68,0.12)' : 'rgba(14,166,110,0.12)'),
+                          boxShadow: b.count > 0
+                            ? `0 0 6px ${isNeg ? '#FF444455' : '#0EA66E55'}`
+                            : 'none',
+                          transition: 'height 0.4s cubic-bezier(0.4,0,0.2,1)'
                         }} />
                         <span style={{
                           fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
