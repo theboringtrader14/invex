@@ -182,11 +182,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
     })
   }, [])
 
-  /* ── Tab pill style ── */
   const TAB_LABELS: Tab[] = ['fundamental', 'technical', 'scorecard']
-  const activeIdx = TAB_LABELS.indexOf(tab)
-  const TAB_W = 110
-  const TAB_H = 32
 
   return (
     <div>
@@ -202,49 +198,33 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
         Portfolio Analysis
       </div>
 
-      {/* Neumorphic sliding pill tab bar */}
+      {/* Full-width underline tab bar */}
       <div style={{
-        position: 'relative',
-        display: 'inline-flex',
-        background: 'var(--bg-surface)',
-        boxShadow: 'var(--neu-inset)',
-        borderRadius: 100,
-        padding: 4,
-        marginBottom: 20
+        display: 'flex',
+        width: '100%',
+        borderBottom: '2px solid var(--border)',
+        marginBottom: 24
       }}>
-        {/* Sliding pill */}
-        <div style={{
-          position: 'absolute',
-          top: 4,
-          left: 4 + activeIdx * TAB_W,
-          width: TAB_W,
-          height: TAB_H,
-          borderRadius: 100,
-          background: 'var(--bg)',
-          boxShadow: 'var(--neu-raised-sm)',
-          transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
-          pointerEvents: 'none'
-        }} />
         {TAB_LABELS.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             style={{
-              position: 'relative',
-              width: TAB_W,
-              height: TAB_H,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
+              flex: 1,
+              textAlign: 'center',
+              padding: '10px 0',
               fontFamily: 'var(--font-mono)',
               fontSize: 11,
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: 1,
               textTransform: 'uppercase',
+              cursor: 'pointer',
+              background: 'none',
+              border: 'none',
+              borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
+              marginBottom: -2,
               color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
-              transition: 'color 0.18s',
-              borderRadius: 100,
-              zIndex: 1
+              transition: 'color 0.18s, border-color 0.18s'
             }}
           >
             {t}

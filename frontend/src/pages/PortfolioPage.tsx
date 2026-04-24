@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { ArrowsClockwise } from "@phosphor-icons/react"
+import { ArrowsClockwise, X, ChartLine } from "@phosphor-icons/react"
 import { portfolioAPI } from "../services/api"
 import PortfolioAnalysisSection from "../components/PortfolioAnalysisSection"
 
@@ -54,46 +54,80 @@ const fmtPct = (n?: number) =>
 const pnlColor = (n?: number) =>
   !n ? "var(--text-mute)" : n >= 0 ? "var(--green)" : "var(--red)"
 
+/* ─── Sector computation helper ──────────────────── */
+function computeSectors(holdings: Holding[]) {
+  const grouped: Record<string, { value: number; count: number }> = {}
+  let total = 0
+  for (const h of holdings) {
+    const key = h.sector || "Others"
+    const val = h.current_value ?? h.invested_value
+    if (!grouped[key]) grouped[key] = { value: 0, count: 0 }
+    grouped[key].value += val
+    grouped[key].count += 1
+    total += val
+  }
+  return Object.entries(grouped)
+    .map(([key, { value, count }]) => ({
+      key, value, count, pct: total > 0 ? (value / total) * 100 : 0
+    }))
+    .sort((a, b) => b.pct - a.pct)
+}
+
 /* ─── SkeletonCard ───────────────────────────────── */
 function SkeletonCard() {
   return (
     <div style={{
       background: 'var(--bg-surface)',
       boxShadow: 'var(--neu-raised)',
-      borderRadius: 12,
-      padding: "14px 16px"
+      borderRadius: 14,
+      padding: "16px 20px",
+      flex: 1
     }}>
       <div style={{ height: "10px", width: "55%", background: "rgba(0,0,0,0.06)", borderRadius: "3px", marginBottom: "12px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
-      <div style={{ height: "20px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
+      <div style={{ height: "22px", width: "70%", background: "rgba(0,0,0,0.09)", borderRadius: "4px", animation: "pulseLive 1.5s ease-in-out infinite" }} />
     </div>
   )
 }
 
 /* ─── KPI Strip Card ─────────────────────────────── */
 function KPICard({
-  label, value, sub, valueColor
+  label, value, sub, valueColor, onClick, hint
 }: {
   label: string; value: string; sub?: string; valueColor?: string
+  onClick?: () => void; hint?: string
 }) {
   return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      boxShadow: 'var(--neu-raised-sm)',
-      borderRadius: 12,
-      padding: "14px 16px",
-      flex: 1
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        background: 'var(--bg-surface)',
+        boxShadow: 'var(--neu-raised)',
+        borderRadius: 14,
+        border: '1px solid var(--border)',
+        padding: "16px 20px",
+        flex: 1,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow 0.15s'
+      }}
+    >
       <div style={{
-        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        display: "flex", alignItems: "center", gap: "5px",
+        fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
         textTransform: "uppercase", color: "var(--text-mute)",
         fontFamily: "var(--font-mono)", marginBottom: "4px"
-      }}>{label}</div>
+      }}>
+        {label}
+        {onClick && <ChartLine size={11} style={{ opacity: 0.6 }} />}
+      </div>
       <div style={{
         fontFamily: "var(--font-mono)",
-        fontSize: "20px", fontWeight: 700,
+        fontSize: "22px", fontWeight: 700,
         color: valueColor || "var(--text)",
         lineHeight: 1
       }}>{value}</div>
+      {hint && (
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginTop: "5px", fontFamily: "var(--font-mono)" }}>{hint}</div>
+      )}
       {sub && (
         <div style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px", fontFamily: "var(--font-body)" }}>{sub}</div>
       )}
@@ -101,8 +135,8 @@ function KPICard({
   )
 }
 
-/* ─── EquityCurve ────────────────────────────────── */
-function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
+/* ─── Equity Curve Modal ─────────────────────────── */
+function EquityCurveModal({ snapshots, onClose }: { snapshots: Snapshot[]; onClose: () => void }) {
   const [range, setRange] = useState<TimeRange>("3M")
 
   const filtered = (() => {
@@ -120,98 +154,216 @@ function EquityCurve({ snapshots }: { snapshots: Snapshot[] }) {
   const min = Math.min(...(data.length ? data : [0]))
   const max = Math.max(...(data.length ? data : [1]))
   const range_ = max - min || 1
-  const W = 800; const H = 160
+  const W = 800; const H = 200
   const pts = data.map((v, i) => {
     const x = data.length > 1 ? (i / (data.length - 1)) * W : W / 2
-    const y = H - ((v - min) / range_) * (H - 8) - 4
+    const y = H - ((v - min) / range_) * (H - 12) - 6
     return `${x},${y}`
   })
   const ptsStr = pts.join(" ")
   const fillStr = pts.length ? `${ptsStr} ${W},${H} 0,${H}` : `0,${H} ${W},${H}`
 
   return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      boxShadow: 'var(--neu-raised)',
-      borderRadius: 16,
-      overflow: "hidden"
-    }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 20px 10px"
-      }}>
-        <div style={{
-          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
-          textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
-        }}>Equity Curve</div>
-        <div style={{ display: "flex", gap: "4px" }}>
-          {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
-            <button key={r} onClick={() => setRange(r)}
-              style={{
-                padding: "3px 10px", borderRadius: "var(--r-pill)",
-                fontSize: "11px", fontWeight: 600,
-                fontFamily: "var(--font-body)",
-                border: "none",
-                background: range === r ? "var(--bg)" : "transparent",
-                boxShadow: range === r ? "var(--neu-inset)" : "none",
-                color: range === r ? "var(--accent)" : "var(--text-dim)",
-                cursor: "pointer", transition: "all 0.2s"
-              }}>{r}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ padding: "10px 20px 20px" }}>
-        {data.length < 2 ? (
-          <div style={{
-            height: "200px", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "12px", color: "var(--text-mute)"
-          }}>
-            No snapshot data available
-          </div>
-        ) : (
-          <svg width="100%" height="200" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(45,212,191,0.18)" />
-                <stop offset="100%" stopColor="rgba(45,212,191,0)" />
-              </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75].map(f => (
-              <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
-                stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
+        zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: 20,
+          boxShadow: 'var(--neu-raised-lg)',
+          padding: 28,
+          width: 'min(700px, 90vw)',
+          position: 'relative'
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+            Equity Curve
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
+              <button key={r} onClick={() => setRange(r)}
+                style={{
+                  padding: "3px 12px", borderRadius: "var(--r-pill)",
+                  fontSize: "11px", fontWeight: 600,
+                  fontFamily: "var(--font-mono)",
+                  border: "none",
+                  background: range === r ? "var(--bg)" : "transparent",
+                  boxShadow: range === r ? "var(--neu-inset)" : "none",
+                  color: range === r ? "var(--accent)" : "var(--text-dim)",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}>{r}</button>
             ))}
-            <polyline points={fillStr} fill="url(#curveGrad)" stroke="none" />
-            <polyline points={ptsStr} fill="none" stroke="#2dd4bf" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
+            <button
+              onClick={onClose}
+              style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: 'var(--bg-surface)',
+                boxShadow: 'var(--neu-raised-sm)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--text-dim)', marginLeft: 4
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div style={{ background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 12, padding: '16px 8px 8px' }}>
+          {data.length < 2 ? (
+            <div style={{
+              height: "300px", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "12px", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
+            }}>
+              No snapshot data available
+            </div>
+          ) : (
+            <svg width="100%" height="300" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="modalCurveGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(45,212,191,0.15)" />
+                  <stop offset="100%" stopColor="rgba(45,212,191,0)" />
+                </linearGradient>
+              </defs>
+              {[0.25, 0.5, 0.75].map(f => (
+                <line key={f} x1="0" y1={H * f} x2={W} y2={H * f}
+                  stroke="var(--border)" strokeWidth="0.5" />
+              ))}
+              <polyline points={fillStr} fill="url(#modalCurveGrad)" stroke="none" />
+              <polyline points={ptsStr} fill="none" stroke="#2dd4bf" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-mute)',
+          textAlign: 'center', marginTop: 12
+        }}>
+          Click anywhere outside to close
+        </div>
       </div>
     </div>
   )
 }
 
-/* ─── SectorAllocationCard ───────────────────────── */
-const SECTOR_PALETTE = [
-  "#2dd4bf", "#4488FF", "#F59E0B", "#FF6B6B", "#A78BFA",
-  "#34D399", "#FB923C", "#38BDF8", "#F472B6", "#9CA3AF",
-]
+/* ─── Sector Allocation Modal ────────────────────── */
+function SectorModal({ holdings, onClose }: { holdings: Holding[]; onClose: () => void }) {
+  const sectors = computeSectors(holdings)
 
-function SectorAllocationCard({ holdings }: { holdings: Holding[] }) {
-  const grouped: Record<string, number> = {}
-  let total = 0
-  for (const h of holdings) {
-    const key = h.sector || "Others"
-    const val = h.current_value ?? h.invested_value
-    grouped[key] = (grouped[key] ?? 0) + val
-    total += val
-  }
-  const allKeys = Object.keys(grouped).sort()
-  const colorMap: Record<string, string> = {}
-  allKeys.forEach((k, i) => { colorMap[k] = SECTOR_PALETTE[i % SECTOR_PALETTE.length] })
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
+        zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: 20,
+          boxShadow: 'var(--neu-raised-lg)',
+          padding: 28,
+          width: 'min(500px, 90vw)',
+          position: 'relative'
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+            Sector Allocation
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'var(--bg-surface)',
+              boxShadow: 'var(--neu-raised-sm)',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-dim)'
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
 
-  const entries = Object.entries(grouped)
-    .map(([k, v]) => ({ key: k, value: v, pct: total > 0 ? (v / total) * 100 : 0 }))
-    .sort((a, b) => b.pct - a.pct)
+        {/* Sector rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sectors.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-mute)', fontSize: 13, padding: '24px 0' }}>
+              No holdings data
+            </div>
+          ) : sectors.map(({ key, value, count, pct }) => (
+            <div key={key}>
+              {/* Row 1: name + count chip + value */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                    {key}
+                  </span>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    background: 'rgba(45,212,191,0.1)', color: 'var(--accent)',
+                    borderRadius: 20, padding: '2px 8px'
+                  }}>
+                    {count} stock{count !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-dim)' }}>
+                  {fmt(value)}
+                </span>
+              </div>
+              {/* Bar */}
+              <div style={{ height: 6, background: 'rgba(0,0,0,0.07)', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+                <div style={{
+                  width: `${pct}%`, height: '100%', borderRadius: 3,
+                  background: 'rgba(45,212,191,0.8)',
+                  transition: 'width 0.5s'
+                }} />
+              </div>
+              {/* Sub-row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                  {pct.toFixed(1)}%
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-dim)' }}>
+                  {fmt(value)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-mute)',
+          textAlign: 'center', marginTop: 20
+        }}>
+          Click anywhere outside to close
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── SectorAllocationCard (compact sidebar) ─────── */
+function SectorAllocationCard({
+  holdings, onOpenModal
+}: { holdings: Holding[]; onOpenModal: () => void }) {
+  const entries = computeSectors(holdings)
 
   return (
     <div style={{
@@ -220,13 +372,26 @@ function SectorAllocationCard({ holdings }: { holdings: Holding[] }) {
       borderRadius: 16,
       overflow: "hidden"
     }}>
-      <div style={{ padding: "14px 18px 12px" }}>
+      <div style={{ padding: "14px 18px 12px", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{
           fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
           textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
         }}>
           Sector Allocation
         </div>
+        {entries.length > 0 && (
+          <button
+            onClick={onOpenModal}
+            style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10,
+              background: 'rgba(45,212,191,0.1)', color: 'var(--accent)',
+              borderRadius: 20, padding: '2px 8px',
+              border: 'none', cursor: 'pointer'
+            }}
+          >
+            {entries.length} sectors
+          </button>
+        )}
       </div>
       <div style={{ padding: "0 18px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {entries.length === 0 ? (
@@ -234,24 +399,18 @@ function SectorAllocationCard({ holdings }: { holdings: Holding[] }) {
             No holdings data
           </div>
         ) : entries.map(({ key, pct }) => (
-          <div key={key} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{
-              width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
-              background: colorMap[key]
-            }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
-                <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>{key}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--accent)" }}>
-                  {pct.toFixed(1)}%
-                </span>
-              </div>
-              <div style={{ height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.08)" }}>
-                <div style={{
-                  width: `${pct}%`, height: "4px", borderRadius: "2px",
-                  background: colorMap[key], transition: "width 0.5s"
-                }} />
-              </div>
+          <div key={key}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+              <span style={{ fontSize: "12px", color: "var(--text-dim)", fontFamily: "var(--font-body)" }}>{key}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600, color: "var(--accent)" }}>
+                {pct.toFixed(1)}%
+              </span>
+            </div>
+            <div style={{ height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.08)" }}>
+              <div style={{
+                width: `${pct}%`, height: "4px", borderRadius: "2px",
+                background: "rgba(45,212,191,0.7)", transition: "width 0.5s"
+              }} />
             </div>
           </div>
         ))}
@@ -272,7 +431,7 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
       label: "Top Holding",
       pick: hs => hs.length ? hs.reduce((b, h) => (h.current_value ?? 0) > (b.current_value ?? 0) ? h : b, hs[0]) : null,
       valFn: h => fmt(h.current_value),
-      color: "var(--text-dim)"
+      color: "var(--text)"
     },
     {
       label: "Best Return",
@@ -538,6 +697,8 @@ export default function PortfolioPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
+  const [showEquityModal, setShowEquityModal] = useState(false)
+  const [showSectorModal, setShowSectorModal] = useState(false)
 
   const load = useCallback(async () => {
     const token = localStorage.getItem("staax_token")
@@ -649,11 +810,11 @@ export default function PortfolioPage() {
         <div>
           <h1 style={{
             fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--accent)", margin: 0, marginBottom: "4px"
+            color: "var(--text)", margin: 0, marginBottom: "4px"
           }}>Portfolio</h1>
           <div style={{
-            fontSize: "12px", color: "var(--text-dim)",
-            display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)"
+            fontSize: "13px", color: "var(--text-dim)",
+            display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)"
           }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
             {syncing && (
@@ -665,22 +826,26 @@ export default function PortfolioPage() {
             <span style={{
               padding: "1px 7px", borderRadius: "var(--r-pill)",
               background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)",
-              color: "var(--amber)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px"
+              color: "var(--amber)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px",
+              fontFamily: "var(--font-mono)"
             }}>BETA</span>
           </div>
           {/* Account filter chips */}
-          <div style={{ display: "flex", gap: "4px", marginTop: "10px" }}>
+          <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
             {ACCOUNTS.map(a => (
               <button key={a} onClick={() => setActiveAccount(a)}
                 style={{
-                  padding: "5px 12px", borderRadius: "var(--r-pill)",
-                  fontSize: "11px", fontWeight: 600,
-                  fontFamily: "var(--font-body)",
-                  background: activeAccount === a ? "var(--bg)" : "var(--bg-surface)",
-                  boxShadow: activeAccount === a ? "var(--neu-inset)" : "var(--neu-raised-sm)",
-                  border: "none",
-                  color: activeAccount === a ? "var(--accent)" : "var(--text-dim)",
-                  cursor: "pointer", transition: "all 0.2s"
+                  padding: "4px 12px", borderRadius: "20px",
+                  fontSize: "10px", fontWeight: 600,
+                  fontFamily: "var(--font-mono)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  background: activeAccount === a ? "var(--accent)" : "var(--bg-surface)",
+                  boxShadow: activeAccount === a ? "none" : "var(--neu-raised-sm)",
+                  border: activeAccount === a ? "none" : "1px solid var(--border)",
+                  color: activeAccount === a ? "white" : "var(--text-dim)",
+                  cursor: "pointer", transition: "all 0.2s",
+                  outline: "none"
                 }}>{a}</button>
             ))}
           </div>
@@ -708,11 +873,12 @@ export default function PortfolioPage() {
       </div>
 
       {/* ══ ROW 1: KPI STRIP ══ */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
         <KPICard
           label="Portfolio Value"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
-          sub="across 3 accounts"
+          hint="view chart →"
+          onClick={() => setShowEquityModal(true)}
         />
         <KPICard
           label="Invested"
@@ -722,7 +888,6 @@ export default function PortfolioPage() {
         <KPICard
           label="Total P&L"
           value={summary ? `${summary.total_pnl >= 0 ? "+" : ""}${fmt(summary.total_pnl)}` : "—"}
-          sub={summary ? fmtPct(summary.total_pnl_pct) : undefined}
           valueColor={pnlColor(summary?.total_pnl)}
         />
         <KPICard
@@ -737,12 +902,7 @@ export default function PortfolioPage() {
         />
       </div>
 
-      {/* ══ ROW 2: EQUITY CURVE (full width) ══ */}
-      <div style={{ marginBottom: "16px" }}>
-        <EquityCurve snapshots={snapshots} />
-      </div>
-
-      {/* ══ ROW 3: TWO COLUMNS — Holdings 65% / Right panel 35% ══ */}
+      {/* ══ ROW 2: HOLDINGS TABLE + SIDEBAR (65/35) ══ */}
       <div style={{ display: "flex", gap: "16px", marginBottom: "16px", alignItems: "flex-start" }}>
 
         {/* Left: Holdings table (65%) */}
@@ -795,11 +955,11 @@ export default function PortfolioPage() {
               overflow: "hidden"
             }}>
               {activeTab === "equity" ? (
-                <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 480px)" }}>
+                <div style={{ overflowX: "auto" }}>
                   <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
                 </div>
               ) : (
-                <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: "calc(100vh - 480px)" }}>
+                <div style={{ overflowX: "auto" }}>
                   <MFTable mf={filteredMF} />
                 </div>
               )}
@@ -809,13 +969,24 @@ export default function PortfolioPage() {
 
         {/* Right: Sector + Highlights (35%) */}
         <div style={{ flex: "0 0 35%", display: "flex", flexDirection: "column", gap: "16px" }}>
-          <SectorAllocationCard holdings={filteredHoldings} />
+          <SectorAllocationCard
+            holdings={filteredHoldings}
+            onOpenModal={() => setShowSectorModal(true)}
+          />
           <HighlightsCard holdings={filteredHoldings} />
         </div>
       </div>
 
-      {/* ══ ROW 4: PORTFOLIO ANALYSIS SECTION ══ */}
+      {/* ══ ROW 3: PORTFOLIO ANALYSIS SECTION ══ */}
       <PortfolioAnalysisSection holdings={filteredHoldings} accountFilter={activeAccount} />
+
+      {/* ══ MODALS ══ */}
+      {showEquityModal && (
+        <EquityCurveModal snapshots={snapshots} onClose={() => setShowEquityModal(false)} />
+      )}
+      {showSectorModal && (
+        <SectorModal holdings={filteredHoldings} onClose={() => setShowSectorModal(false)} />
+      )}
 
     </div>
   )
