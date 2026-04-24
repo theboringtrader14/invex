@@ -222,7 +222,7 @@ export default function AnalysisPage() {
           fontFamily: 'var(--font-display)',
           fontSize: 28,
           fontWeight: 800,
-          color: 'var(--text)',
+          color: 'var(--accent)',
           marginBottom: 4,
         }}>
           Analysis

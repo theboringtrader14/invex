@@ -87,7 +87,7 @@ export default function Layout() {
                   textDecoration: 'none',
                   fontSize: 14,
                   fontWeight: 500,
-                  fontFamily: 'Inter, var(--font-body), sans-serif',
+                  fontFamily: "'DM Sans', 'Space Grotesk', sans-serif",
                   color: isActive ? 'var(--accent)' : 'var(--text-dim)',
                   whiteSpace: 'nowrap',
                   transition: 'color 0.18s ease',
