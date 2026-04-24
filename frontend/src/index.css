@@ -79,26 +79,31 @@ body {
   border-radius: var(--r-md);
 }
 
-/* Table styles */
-.ix-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+/* Table styles — matches STAAX .staax-table pattern */
+.ix-table { width: 100%; border-collapse: collapse; }
 .ix-table th {
-  padding: 6px 12px;
-  font-family: var(--font-mono);
+  background: var(--bg);
+  padding: 10px 20px;
+  font-family: var(--font-display);
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text-mute);
   border-bottom: 1px solid var(--border);
   text-align: left;
+  white-space: nowrap;
 }
 .ix-table td {
-  padding: 8px 12px;
+  padding: 11px 20px;
   border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 400;
   color: var(--text-dim);
+  transition: background 120ms;
 }
 .ix-table tr:last-child td { border-bottom: none; }
-.ix-table tr:hover td { background: rgba(45,212,191,0.04); }
+.ix-table tr:hover td { background: rgba(128,128,128,0.04); }
 
 /* Chip */
 .chip {

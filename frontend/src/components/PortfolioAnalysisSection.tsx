@@ -117,7 +117,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
         <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hexColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{score}</span>
       </div>
-      <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+      <div style={{ borderRadius: 4, height: 6, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
         <div style={{
           width: `${Math.min(score, 100)}%`,
           background: hexColor,
@@ -183,6 +183,9 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
   }, [])
 
   const TAB_LABELS: Tab[] = ['fundamental', 'technical', 'scorecard']
+  const activeIdx = TAB_LABELS.indexOf(tab)
+  const TAB_W = 120
+  const TAB_H = 32
 
   return (
     <div>
@@ -198,33 +201,48 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
         Portfolio Analysis
       </div>
 
-      {/* Full-width underline tab bar */}
+      {/* Sliding pill tab bar — matches STAAX Orders days tab */}
       <div style={{
-        display: 'flex',
-        width: '100%',
-        borderBottom: '2px solid var(--border)',
-        marginBottom: 24
+        position: 'relative',
+        display: 'inline-flex',
+        background: 'var(--bg)',
+        boxShadow: 'var(--neu-inset)',
+        borderRadius: 100,
+        padding: 4,
+        marginBottom: 20
       }}>
+        <div style={{
+          position: 'absolute',
+          top: 4,
+          left: `calc(4px + ${activeIdx} * (100% - 8px) / ${TAB_LABELS.length})`,
+          width: `calc((100% - 8px) / ${TAB_LABELS.length})`,
+          height: TAB_H,
+          borderRadius: 100,
+          background: 'var(--bg-surface)',
+          boxShadow: 'var(--neu-raised-sm)',
+          transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: 'none'
+        }} />
         {TAB_LABELS.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '10px 0',
+              position: 'relative',
+              width: TAB_W,
+              height: TAB_H,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 700,
               letterSpacing: 1,
               textTransform: 'uppercase',
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
-              marginBottom: -2,
               color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
-              transition: 'color 0.18s, border-color 0.18s'
+              transition: 'color 0.18s',
+              borderRadius: 100,
+              zIndex: 1
             }}
           >
             {t}
@@ -304,12 +322,14 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                             {s.pct}% · {s.count} stocks · {formatVal(s.value)}
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6 }}>
+                        <div style={{ borderRadius: 4, height: 6, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
                           <div style={{
                             width: `${s.pct}%`,
-                            background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
+                            background: 'var(--accent)',
                             height: '100%',
-                            borderRadius: 4
+                            borderRadius: 4,
+                            opacity: 0.75,
+                            transition: 'width 0.5s'
                           }} />
                         </div>
                       </div>
@@ -339,10 +359,8 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                         }}>{b.count}</span>
                         <div style={{
                           width: '100%', height: barH, borderRadius: '4px 4px 0 0',
-                          background: isNeg
-                            ? 'rgba(255,68,68,0.25)'
-                            : 'rgba(34,221,136,0.25)',
-                          border: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(34,221,136,0.20)'}`
+                          background: isNeg ? '#FF4444' : '#0EA66E',
+                          opacity: b.count > 0 ? 0.75 : 0.15
                         }} />
                         <span style={{
                           fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
@@ -362,30 +380,23 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                   fontFamily: 'var(--font-mono)', fontWeight: 700
                 }}>Top Holdings</div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <table className="ix-table">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <tr>
                         {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%'].map(h => (
-                          <th key={h} style={{
-                            padding: '8px 12px',
-                            textAlign: h === 'Symbol' ? 'left' : 'right',
-                            color: 'var(--text-mute)',
-                            fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                            fontFamily: 'var(--font-mono)'
-                          }}>{h}</th>
+                          <th key={h} style={{ textAlign: h === 'Symbol' ? 'left' : 'right' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {fundamental.top_holdings.map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
+                        <tr key={h.symbol}>
+                          <td style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td style={{ textAlign: 'right' }}>{h.sector}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }}>{h.weight_pct}%</td>
                           <td style={{
-                            padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                            textAlign: 'right', fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
                             color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
                           }}>
@@ -452,17 +463,11 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                   fontFamily: 'var(--font-mono)', fontWeight: 700
                 }}>Holdings by Signal</div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <table className="ix-table">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <tr>
                         {['Symbol', 'Sector', 'Price', 'Avg Price', 'Gain%', 'Signal', 'RSI', 'MA50', 'MA200'].map(h => (
-                          <th key={h} style={{
-                            padding: '8px 12px',
-                            textAlign: h === 'Symbol' || h === 'Sector' ? 'left' : 'right',
-                            color: 'var(--text-mute)', fontWeight: 700, fontSize: 10,
-                            letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)'
-                          }}>{h}</th>
+                          <th key={h} style={{ textAlign: h === 'Symbol' || h === 'Sector' ? 'left' : 'right' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -471,22 +476,22 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                         const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
                         return order.indexOf(a.signal) - order.indexOf(b.signal)
                       }).map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
+                        <tr key={h.symbol}>
+                          <td style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td>{h.sector}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
                           <td style={{
-                            padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                            textAlign: 'right', fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
                             color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
                           }}>
                             {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                           </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
+                          <td style={{ textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }} title="Phase 2">—</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }} title="Phase 2">—</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }} title="Phase 2">—</td>
                         </tr>
                       ))}
                     </tbody>
@@ -581,7 +586,7 @@ export default function PortfolioAnalysisSection({ holdings: _holdings, accountF
                             Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 5 }}>
+                        <div style={{ borderRadius: 4, height: 5, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
                           <div style={{
                             width: `${h.overall_score}%`,
                             background: scoreHex(h.overall_score),

@@ -103,7 +103,7 @@ function KPICard({
         background: 'var(--bg-surface)',
         boxShadow: 'var(--neu-raised)',
         borderRadius: 14,
-        border: '1px solid var(--border)',
+        border: 'none',
         padding: "16px 20px",
         flex: 1,
         cursor: onClick ? 'pointer' : 'default',
@@ -406,10 +406,10 @@ function SectorAllocationCard({
                 {pct.toFixed(1)}%
               </span>
             </div>
-            <div style={{ height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.08)" }}>
+            <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', boxShadow: 'var(--neu-inset)', background: 'var(--bg)' }}>
               <div style={{
-                width: `${pct}%`, height: "4px", borderRadius: "2px",
-                background: "rgba(45,212,191,0.7)", transition: "width 0.5s"
+                width: `${pct}%`, height: '100%', borderRadius: 3,
+                background: 'var(--accent)', opacity: 0.75, transition: "width 0.5s"
               }} />
             </div>
           </div>
@@ -478,29 +478,27 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
           textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
         }}>Highlights</div>
       </div>
-      <div style={{ padding: "0 18px 16px" }}>
+      <div style={{ padding: "0 18px 4px" }}>
         {rows.map((row, i) => {
           const h = holdings.length ? row.pick(holdings) : null
           return (
             <div key={row.label} style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "8px 0",
+              display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+              alignItems: "center", padding: "9px 0",
               borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none"
             }}>
               <span style={{
                 fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-mute)"
               }}>{row.label}</span>
-              <div style={{ textAlign: "right" }}>
-                <div style={{
-                  fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
-                  color: "var(--accent)"
-                }}>{h ? displaySym(h.symbol) : "—"}</div>
-                <div style={{
-                  fontFamily: "var(--font-mono)", fontSize: "11px",
-                  color: h ? row.color : "var(--text-mute)"
-                }}>{h ? row.valFn(h) : "—"}</div>
-              </div>
+              <span style={{
+                fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
+                color: "var(--accent)", textAlign: "center"
+              }}>{h ? displaySym(h.symbol) : "—"}</span>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600,
+                color: h ? row.color : "var(--text-mute)", textAlign: "right"
+              }}>{h ? row.valFn(h) : "—"}</span>
             </div>
           )
         })}
@@ -694,7 +692,6 @@ export default function PortfolioPage() {
   const [accountMap, setAccountMap] = useState<Record<string, string>>({})
   const [loading, setLoading]     = useState(() => readCache() === null)
   const [syncing, setSyncing]     = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
   const [showEquityModal, setShowEquityModal] = useState(false)
@@ -743,16 +740,13 @@ export default function PortfolioPage() {
     } else {
       load().finally(() => setLoading(false))
     }
+    // auto-refresh every 60s
+    const interval = setInterval(() => {
+      setSyncing(true)
+      load().finally(() => setSyncing(false))
+    }, 60_000)
+    return () => clearInterval(interval)
   }, [load])
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await portfolioAPI.refresh()
-      await load()
-    } catch { /* ignore */ }
-    finally { setRefreshing(false) }
-  }
 
   const filteredHoldings = activeAccount === "All"
     ? holdings
@@ -765,15 +759,6 @@ export default function PortfolioPage() {
     : mf.filter(f =>
         (accountMap[f.account_id ?? ""] || "").toLowerCase() === activeAccount.toLowerCase()
       )
-
-  const btnBase: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: "6px",
-    padding: "8px 16px", borderRadius: "var(--r-md)",
-    fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
-    background: "var(--bg-surface)", border: "none", cursor: "pointer",
-    boxShadow: "var(--neu-raised-sm)", color: "var(--text-dim)",
-    transition: "all 0.15s"
-  }
 
   /* ── Loading skeleton ── */
   if (loading) {
@@ -803,72 +788,49 @@ export default function PortfolioPage() {
     <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
       {/* ══ HEADER ══ */}
-      <div style={{
-        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px"
-      }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
-            color: "var(--text)", margin: 0, marginBottom: "4px"
-          }}>Portfolio</h1>
-          <div style={{
-            fontSize: "13px", color: "var(--text-dim)",
-            display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)"
-          }}>
-            {filteredHoldings.length} stocks · {filteredMF.length} funds
-            {syncing && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--text-mute)", fontSize: "11px" }}>
-                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
-                syncing
-              </span>
-            )}
-            <span style={{
-              padding: "1px 7px", borderRadius: "var(--r-pill)",
-              background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)",
-              color: "var(--amber)", fontSize: "10px", fontWeight: 700, letterSpacing: "1px",
-              fontFamily: "var(--font-mono)"
-            }}>BETA</span>
-          </div>
-          {/* Account filter chips */}
-          <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
-            {ACCOUNTS.map(a => (
-              <button key={a} onClick={() => setActiveAccount(a)}
-                style={{
-                  padding: "4px 12px", borderRadius: "20px",
-                  fontSize: "10px", fontWeight: 600,
-                  fontFamily: "var(--font-mono)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  background: activeAccount === a ? "var(--accent)" : "var(--bg-surface)",
-                  boxShadow: activeAccount === a ? "none" : "var(--neu-raised-sm)",
-                  border: activeAccount === a ? "none" : "1px solid var(--border)",
-                  color: activeAccount === a ? "white" : "var(--text-dim)",
-                  cursor: "pointer", transition: "all 0.2s",
-                  outline: "none"
-                }}>{a}</button>
-            ))}
-          </div>
+      <div style={{ marginBottom: "20px" }}>
+        <h1 style={{
+          fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 800,
+          color: "var(--text)", margin: 0, marginBottom: "4px"
+        }}>Portfolio</h1>
+        <div style={{
+          fontSize: "13px", color: "var(--text-dim)",
+          display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)",
+          marginBottom: "12px"
+        }}>
+          {filteredHoldings.length} stocks · {filteredMF.length} funds
+          {syncing && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--text-mute)", fontSize: "11px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent)", animation: "pulseLive 2s ease-out infinite", display: "inline-block" }} />
+              syncing
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={handleRefresh} disabled={refreshing} style={btnBase}>
-            <svg style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }}
-              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-            </svg>
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          <button style={{ ...btnBase, color: "var(--accent)" }} onClick={() => alert('Export coming soon')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export
-          </button>
+        {/* Account filter — sliding pill matching STAAX Orders days tab */}
+        <div style={{ position: 'relative', display: 'inline-flex', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 100, padding: 4 }}>
+          <div style={{
+            position: 'absolute', top: 4,
+            left: `calc(4px + ${ACCOUNTS.indexOf(activeAccount)} * (100% - 8px) / ${ACCOUNTS.length})`,
+            width: `calc((100% - 8px) / ${ACCOUNTS.length})`,
+            height: 28, borderRadius: 100,
+            background: 'var(--bg-surface)',
+            boxShadow: 'var(--neu-raised-sm)',
+            transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+            pointerEvents: 'none'
+          }} />
+          {ACCOUNTS.map(a => (
+            <button key={a} onClick={() => setActiveAccount(a)}
+              style={{
+                position: 'relative', zIndex: 1,
+                padding: '0 18px', height: 28,
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+                color: activeAccount === a ? 'var(--accent)' : 'var(--text-dim)',
+                borderRadius: 100, transition: 'color 0.18s', whiteSpace: 'nowrap',
+                outline: 'none'
+              }}>{a}</button>
+          ))}
         </div>
       </div>
 
@@ -883,17 +845,12 @@ export default function PortfolioPage() {
         <KPICard
           label="Invested"
           value={summary ? fmt(summary.total_invested) : "—"}
-          sub="total cost basis"
         />
         <KPICard
           label="Total P&L"
           value={summary ? `${summary.total_pnl >= 0 ? "+" : ""}${fmt(summary.total_pnl)}` : "—"}
+          sub={summary ? fmtPct(summary.total_pnl_pct) : undefined}
           valueColor={pnlColor(summary?.total_pnl)}
-        />
-        <KPICard
-          label="Return %"
-          value={summary ? fmtPct(summary.total_pnl_pct) : "—"}
-          valueColor={pnlColor(summary?.total_pnl_pct)}
         />
         <KPICard
           label="Day P&L"
