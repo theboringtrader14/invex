@@ -409,7 +409,6 @@ export default function AnalysisPage() {
                         const isNeg = i < 2
                         const barH = b.count > 0 ? Math.max(Math.round((b.count / maxCount) * BAR_MAX_H), 6) : 2
                         const color = isNeg ? 'var(--red)' : 'var(--green)'
-                        const barBg = isNeg ? 'rgba(255,68,68,0.22)' : 'rgba(14,166,110,0.20)'
                         return (
                           <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             {/* Count label */}
@@ -421,11 +420,10 @@ export default function AnalysisPage() {
                             {/* Bar */}
                             <div style={{
                               width: 48, height: barH,
-                              borderRadius: '3px 3px 0 0',
-                              background: barBg,
-                              borderTop: `2px solid ${isNeg ? 'rgba(255,68,68,0.55)' : 'rgba(14,166,110,0.50)'}`,
-                              borderLeft: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(14,166,110,0.18)'}`,
-                              borderRight: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(14,166,110,0.18)'}`,
+                              borderRadius: '4px 4px 0 0',
+                              background: isNeg
+                                ? 'linear-gradient(to bottom, rgba(255,68,68,0.75) 0%, rgba(255,68,68,0.08) 100%)'
+                                : 'linear-gradient(to bottom, rgba(14,166,110,0.72) 0%, rgba(14,166,110,0.06) 100%)',
                             }} />
                             {/* Baseline rule */}
                             <div style={{ width: '100%', height: 1, background: 'var(--border)', marginBottom: 8 }} />
