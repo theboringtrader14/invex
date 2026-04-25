@@ -827,7 +827,7 @@ export default function AnalysisPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {quadrants.map(q => (
                         <div key={q.key} style={{
-                          display: 'flex', alignItems: 'baseline', gap: 0,
+                          display: 'flex', alignItems: 'center', gap: 0,
                           background: 'var(--bg-surface)',
                           boxShadow: 'var(--neu-raised)',
                           borderRadius: 10,
@@ -846,23 +846,23 @@ export default function AnalysisPage() {
                             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: q.color, lineHeight: 1 }}>{q.key}</span>
                             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: q.color, letterSpacing: '0.5px', opacity: 0.7 }}>{q.label.slice(0, 3)}</span>
                           </div>
-                          {/* Content */}
-                          <div style={{ flex: 1, padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+                          {/* Content — flex-wrap so row 2 aligns with row 1 start */}
+                          <div style={{ flex: 1, padding: '10px 16px', display: 'flex', flexWrap: 'wrap', alignContent: 'center', gap: '5px 20px' }}>
                             {q.items.length === 0 ? (
                               <span style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>No significant items identified</span>
                             ) : q.items.map((item, i) => (
-                              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
-                                {i > 0 && <span style={{ margin: '0 8px', color: q.color, opacity: 0.5, fontSize: 10 }}>·</span>}
+                              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+                                <span style={{ color: q.color, fontSize: 7, lineHeight: 1, opacity: 0.8 }}>●</span>
                                 {item}
                               </span>
                             ))}
                           </div>
-                          {/* Count badge */}
-                          <div style={{ padding: '0 14px', alignSelf: 'center', flexShrink: 0 }}>
+                          {/* Count badge — larger */}
+                          <div style={{ padding: '0 16px', flexShrink: 0 }}>
                             <span style={{
                               background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                              borderRadius: 'var(--r-pill)', padding: '2px 8px',
-                              fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: q.color,
+                              borderRadius: 'var(--r-pill)', padding: '4px 12px',
+                              fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700, color: q.color,
                             }}>{q.items.length}</span>
                           </div>
                         </div>
