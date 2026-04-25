@@ -1,5 +1,6 @@
 """Analysis API — fundamental, technical, scorecard views of the portfolio."""
 import json
+import logging
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +9,8 @@ from app.core.redis_client import redis_client
 from app.models.holdings import Holdings
 from app.core.nse_sector_fetcher import get_sector_from_map
 from app.api.v1.portfolio import HOLDINGS_CACHE_KEY, _build_holding
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -249,3 +252,97 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         },
         'holdings': scored,
     }
+
+
+@router.get("/holdings-enriched")
+async def get_holdings_enriched(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Each holding enriched with Yahoo Finance fundamentals from cache.
+    Fundamentals are populated by background prefetch after /refresh.
+    Returns immediately even if cache is cold (fundamentals will be None).
+    """
+    from app.adapters.market_data_adapter import market_data
+
+    holdings = await _get_holdings(request, db)
+    total_value = sum(h.get('current_value', 0) or 0 for h in holdings)
+
+    result = []
+    for h in holdings:
+        symbol_clean = h.get('symbol', '').replace('-EQ', '').replace('-BE', '')
+        pnl_pct = h.get('gain_pct', 0) or 0
+        current_value = h.get('current_value', 0) or 0
+        weight_pct = round(current_value / total_value * 100, 1) if total_value else 0
+
+        # Pull from cache only — never fetch inline
+        fund = await market_data._cache_get(f"fundamentals:{symbol_clean}")
+
+        pe = fund.get('pe') if fund else None
+        pb = fund.get('pb') if fund else None
+        market_cap_cat = fund.get('market_cap_category') if fund else None
+        market_cap_cr = fund.get('market_cap_cr') if fund else None
+        week52_high = fund.get('week52_high') if fund else None
+        week52_low = fund.get('week52_low') if fund else None
+        roe = fund.get('roe') if fund else None
+        beta = fund.get('beta') if fund else None
+        div_yield = fund.get('dividend_yield') if fund else None
+
+        # Grade scoring
+        score = 0
+        if pnl_pct > 30:
+            score += 3
+        elif pnl_pct > 0:
+            score += 1
+        if pe and pe < 20:
+            score += 2
+        elif pe and pe < 35:
+            score += 1
+        if market_cap_cat == 'Large Cap':
+            score += 1
+
+        grade = 'A' if score >= 5 else 'B' if score >= 3 else 'C' if score >= 1 else 'D'
+
+        # Signal label
+        if pnl_pct > 100:
+            signal = 'Multibagger'
+        elif pnl_pct > 30 and pe and pe < 20:
+            signal = 'Strong Compounder'
+        elif pnl_pct > 30:
+            signal = 'Momentum Leader'
+        elif pnl_pct < -20:
+            signal = 'Under Watch'
+        elif pnl_pct < 0:
+            signal = 'Laggard'
+        else:
+            signal = 'Steady'
+
+        result.append({
+            'symbol': symbol_clean,
+            'symbol_raw': h.get('symbol', ''),
+            'sector': h.get('sector', 'Others') or 'Others',
+            'account_id': h.get('account_id', ''),
+            'qty': h.get('qty', 0),
+            'avg_price': h.get('avg_price', 0),
+            'ltp': h.get('ltp'),
+            'current_value': current_value,
+            'invested_value': h.get('invested_value', 0),
+            'weight_pct': weight_pct,
+            'pnl': h.get('pnl'),
+            'pnl_pct': pnl_pct,
+            # Fundamentals (None if not yet cached)
+            'pe': pe,
+            'pb': pb,
+            'roe': roe,
+            'beta': beta,
+            'dividend_yield': div_yield,
+            'market_cap_cr': market_cap_cr,
+            'market_cap_category': market_cap_cat,
+            'week52_high': week52_high,
+            'week52_low': week52_low,
+            # Computed
+            'grade': grade,
+            'signal': signal,
+            'fundamentals_cached': fund is not None,
+        })
+
+    result.sort(key=lambda x: -(x['current_value'] or 0))
+    return result
