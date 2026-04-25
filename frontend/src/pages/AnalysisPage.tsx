@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
+const cleanSym = (s: string) =>
+  s?.replace(/-EQ$/i, '').replace(/-BE$/i, '').replace(/\.NS$/i, '').replace(/\.BO$/i, '') || s
+
 type Tab = 'fundamental' | 'technical' | 'scorecard'
 
 function scoreColor(score: number) {
@@ -382,7 +385,7 @@ export default function AnalysisPage() {
                     <tbody>
                       {fundamental.top_holdings.map((h: any) => (
                         <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
@@ -474,7 +477,7 @@ export default function AnalysisPage() {
                         return order.indexOf(a.signal) - order.indexOf(b.signal)
                       }).map((h: any) => (
                         <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
@@ -564,7 +567,7 @@ export default function AnalysisPage() {
                             <span style={{
                               color: 'var(--accent)', fontWeight: 600, fontSize: 14,
                               fontFamily: 'var(--font-mono)'
-                            }}>{h.symbol}</span>
+                            }}>{cleanSym(h.symbol)}</span>
                             <span style={{
                               color: 'var(--text-mute)', fontSize: 11, marginLeft: 8,
                               fontFamily: 'var(--font-body)'
@@ -659,7 +662,7 @@ export default function AnalysisPage() {
                         })
                         .map((h: any) => (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{h.symbol}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
                             <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                             <td style={{

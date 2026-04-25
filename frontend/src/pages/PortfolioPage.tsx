@@ -23,7 +23,7 @@ type Summary = {
   xirr?: number; holdings_count: number; mf_count: number
 }
 type Snapshot = { date: string; total_value: number; invested?: number; pnl?: number }
-type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
+type SortKey = "symbol" | "qty" | "avg_price" | "ltp" | "pnl" | "pnl_pct" | "day_change" | "account" | "current_value"
 type TimeRange = "1M" | "3M" | "1Y" | "All"
 type ActiveTab = "equity" | "mf"
 
@@ -45,7 +45,8 @@ function writeCache(d: PortfolioCache) {
 }
 
 /* ─── Helpers ────────────────────────────────────── */
-const displaySym = (s: string) => s.replace(/-EQ$/i, "").replace(/-BE$/i, "")
+const displaySym = (s: string) =>
+  s?.replace(/-EQ$/i, "").replace(/-BE$/i, "").replace(/\.NS$/i, "").replace(/\.BO$/i, "") || s
 
 const fmt = (n?: number) =>
   n != null ? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"
@@ -526,13 +527,10 @@ function HoldingsTable({
     return saved !== null ? saved === "true" : true
   })
 
+  const TEXT_KEYS: SortKey[] = ["symbol", "account"]
+
   const toggleSort = (key: SortKey) => {
-    let nextAsc: boolean
-    if (sortKey === key) {
-      nextAsc = !sortAsc
-    } else {
-      nextAsc = key === "symbol"
-    }
+    const nextAsc = sortKey === key ? !sortAsc : TEXT_KEYS.includes(key)
     setSortKey(key)
     setSortAsc(nextAsc)
     localStorage.setItem(LS_SORT_KEY, key)
@@ -541,10 +539,18 @@ function HoldingsTable({
 
   const sorted = [...holdings].sort((a, b) => {
     let va: number | string = 0; let vb: number | string = 0
-    if (sortKey === "symbol") { va = displaySym(a.symbol); vb = displaySym(b.symbol) }
-    else if (sortKey === "pnl") { va = a.pnl ?? 0; vb = b.pnl ?? 0 }
-    else if (sortKey === "pnl_pct") { va = a.pnl_pct ?? 0; vb = b.pnl_pct ?? 0 }
-    else if (sortKey === "current_value") { va = a.current_value ?? 0; vb = b.current_value ?? 0 }
+    if      (sortKey === "symbol")        { va = displaySym(a.symbol);    vb = displaySym(b.symbol) }
+    else if (sortKey === "qty")           { va = a.qty;                   vb = b.qty }
+    else if (sortKey === "avg_price")     { va = a.avg_price;             vb = b.avg_price }
+    else if (sortKey === "ltp")           { va = a.ltp ?? 0;             vb = b.ltp ?? 0 }
+    else if (sortKey === "pnl")           { va = a.pnl ?? 0;             vb = b.pnl ?? 0 }
+    else if (sortKey === "pnl_pct")       { va = a.pnl_pct ?? 0;         vb = b.pnl_pct ?? 0 }
+    else if (sortKey === "day_change")    { va = a.day_change ?? 0;       vb = b.day_change ?? 0 }
+    else if (sortKey === "current_value") { va = a.current_value ?? 0;   vb = b.current_value ?? 0 }
+    else if (sortKey === "account") {
+      va = accountMap[a.account_id] ?? a.account_id
+      vb = accountMap[b.account_id] ?? b.account_id
+    }
     if (typeof va === "string") return sortAsc ? va.localeCompare(vb as string) : (vb as string).localeCompare(va)
     return sortAsc ? va - (vb as number) : (vb as number) - va
   })
@@ -568,27 +574,33 @@ function HoldingsTable({
   }
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="ix-table">
+    <table className="ix-table">
         <thead>
           <tr>
-            <th onClick={() => toggleSort("symbol")}
-              style={{ cursor: "pointer", textAlign: "left" }}>
+            <th onClick={() => toggleSort("symbol")} style={{ cursor: "pointer", textAlign: "left" }}>
               Stock <SortIcon k="symbol" />
             </th>
-            <th style={{ textAlign: "center" }}>Qty</th>
-            <th style={{ textAlign: "center" }}>Avg Price</th>
-            <th style={{ textAlign: "center" }}>LTP</th>
-            <th onClick={() => toggleSort("pnl")}
-              style={{ cursor: "pointer", textAlign: "center" }}>
+            <th onClick={() => toggleSort("qty")} style={{ cursor: "pointer", textAlign: "center" }}>
+              Qty <SortIcon k="qty" />
+            </th>
+            <th onClick={() => toggleSort("avg_price")} style={{ cursor: "pointer", textAlign: "center" }}>
+              Avg Price <SortIcon k="avg_price" />
+            </th>
+            <th onClick={() => toggleSort("ltp")} style={{ cursor: "pointer", textAlign: "center" }}>
+              LTP <SortIcon k="ltp" />
+            </th>
+            <th onClick={() => toggleSort("pnl")} style={{ cursor: "pointer", textAlign: "center" }}>
               P&amp;L <SortIcon k="pnl" />
             </th>
-            <th onClick={() => toggleSort("pnl_pct")}
-              style={{ cursor: "pointer", textAlign: "center" }}>
+            <th onClick={() => toggleSort("pnl_pct")} style={{ cursor: "pointer", textAlign: "center" }}>
               P&amp;L% <SortIcon k="pnl_pct" />
             </th>
-            <th style={{ textAlign: "center" }}>Day Chg</th>
-            <th style={{ textAlign: "center" }}>Account</th>
+            <th onClick={() => toggleSort("day_change")} style={{ cursor: "pointer", textAlign: "center" }}>
+              Day Chg <SortIcon k="day_change" />
+            </th>
+            <th onClick={() => toggleSort("account")} style={{ cursor: "pointer", textAlign: "center" }}>
+              Account <SortIcon k="account" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -633,7 +645,6 @@ function HoldingsTable({
           })}
         </tbody>
       </table>
-    </div>
   )
 }
 
@@ -650,8 +661,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
     fontFamily: "var(--font-mono)", fontSize: "12px", textAlign: "center"
   }
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="ix-table">
+    <table className="ix-table">
         <thead>
           <tr>
             <th style={{ textAlign: "left" }}>Fund</th>
@@ -682,7 +692,6 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
           ))}
         </tbody>
       </table>
-    </div>
   )
 }
 
@@ -849,31 +858,50 @@ export default function PortfolioPage() {
             background: 'var(--bg-surface)',
             boxShadow: 'var(--neu-raised)',
             borderRadius: 16,
-            overflow: "hidden"
+            overflow: "clip"
           }}>
-            {/* Table header with [Equity][MF] underline-style tabs */}
+            {/* Table header: sliding pill tabs + account filter chips */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px 18px 0"
+              padding: "14px 18px 12px"
             }}>
-              <div style={{ display: "flex", gap: 0 }}>
+              {/* Segmented pill tab — animated slider */}
+              <div style={{
+                position: "relative",
+                display: "grid", gridTemplateColumns: "1fr 1fr",
+                background: "var(--bg)", boxShadow: "var(--neu-inset)",
+                borderRadius: "var(--r-pill)", padding: 3
+              }}>
+                {/* Slider pill — translateX(100%) = one cell width */}
+                <div style={{
+                  position: "absolute",
+                  top: 3, bottom: 3, left: 3,
+                  width: "calc(50% - 3px)",
+                  background: "var(--bg-surface)",
+                  boxShadow: "var(--neu-raised-sm)",
+                  borderRadius: "var(--r-pill)",
+                  transform: activeTab === "equity" ? "translateX(0)" : "translateX(100%)",
+                  transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)"
+                }} />
                 {(["equity", "mf"] as ActiveTab[]).map(tab => (
                   <button type="button" key={tab} onClick={() => setActiveTab(tab)}
                     style={{
-                      padding: "0 0 10px 0", marginRight: "20px",
-                      fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: activeTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
-                      color: activeTab === tab ? "var(--accent)" : "var(--text-dim)",
-                      cursor: "pointer", transition: "all 0.2s"
+                      position: "relative", zIndex: 1,
+                      padding: "6px 22px",
+                      fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+                      background: "transparent", border: "none",
+                      borderRadius: "var(--r-pill)",
+                      color: activeTab === tab ? "var(--accent)" : "var(--text-mute)",
+                      cursor: "pointer", transition: "color 0.22s",
+                      whiteSpace: "nowrap", textAlign: "center"
                     }}>
                     {tab === "equity" ? "Equity" : "Mutual Funds"}
                   </button>
                 ))}
               </div>
-              {/* Account filter — chips (derived from live invex_accounts) */}
-              <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+
+              {/* Account filter chips */}
+              <div style={{ display: "flex", gap: 4 }}>
                 {accountChips.map(acct => (
                   <button type="button" key={acct} onClick={() => setActiveAccount(acct)}
                     style={{
@@ -885,30 +913,20 @@ export default function PortfolioPage() {
                       background: activeAccount === acct ? "var(--bg)" : "transparent",
                       boxShadow: activeAccount === acct ? "var(--neu-inset)" : "none",
                       color: activeAccount === acct ? "var(--accent)" : "var(--text-mute)",
-                      cursor: "pointer",
-                      transition: "all 0.15s"
+                      cursor: "pointer", transition: "all 0.15s"
                     }}>
                     {acct.toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
-            <div style={{
-              margin: "0 12px 12px",
-              background: "var(--bg)",
-              boxShadow: "var(--neu-inset)",
-              borderRadius: "10px",
-              overflow: "hidden"
-            }}>
-              {activeTab === "equity" ? (
-                <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px" }}>
-                  <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
-                </div>
-              ) : (
-                <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px" }}>
-                  <MFTable mf={filteredMF} />
-                </div>
-              )}
+
+            {/* Table — no inner inset box, scrollbar hidden */}
+            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px", marginBottom: 12 }}>
+              {activeTab === "equity"
+                ? <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+                : <MFTable mf={filteredMF} />
+              }
             </div>
           </div>
         </div>
