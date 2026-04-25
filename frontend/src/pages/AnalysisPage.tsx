@@ -600,6 +600,7 @@ export default function AnalysisPage() {
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <SortableHeader label="Symbol"  sortKey="symbol"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort} align="left"   style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
                         <SortableHeader label="Sector"  sortKey="sector"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <SortableHeader label="Value"   sortKey="current_value" currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <SortableHeader label="Weight"  sortKey="weight_pct"    currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
@@ -611,11 +612,12 @@ export default function AnalysisPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedFundHoldings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any) => {
+                      {sortedFundHoldings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any, i: number) => {
                         const e = getE(h.symbol)
                         return (
-                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <tr key={h.symbol + '_' + (h.account_id || i)} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
@@ -720,8 +722,9 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <SortableHeader label="Symbol" sortKey="symbol"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort} align="left" style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Sector" sortKey="sector"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Symbol"  sortKey="symbol"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort} align="left" style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
+                        <SortableHeader label="Sector"  sortKey="sector"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <SortableHeader label="CMP"    sortKey="cmp"      currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <SortableHeader label="vs Avg" sortKey="gain_pct" currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <SortableHeader label="Signal" sortKey="signal"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
@@ -731,7 +734,7 @@ export default function AnalysisPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedTechHoldings.filter((h: any) => !signalFilter || h.signal === signalFilter).map((h: any) => {
+                      {sortedTechHoldings.filter((h: any) => !signalFilter || h.signal === signalFilter).map((h: any, i: number) => {
                         const pct = h.gain_pct || 0
                         const barW = Math.min(Math.abs(pct), 100)
                         const barColor = pct >= 0 ? '#0EA66E' : '#FF4444'
@@ -743,8 +746,9 @@ export default function AnalysisPage() {
                           ? <span style={{ color: 'var(--text-mute)', fontSize: 11 }}>—</span>
                           : <span style={{ fontSize: 10, fontWeight: 700, color: above ? '#0EA66E' : '#FF4444', fontFamily: 'var(--font-mono)' }}>{above ? '↑' : '↓'}</span>
                         return (
-                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <tr key={`tech_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                             <td style={{ padding: '10px 12px', minWidth: 160 }}>
@@ -1081,6 +1085,7 @@ export default function AnalysisPage() {
                         ].map(col => (
                           <SortableHeader key={col.k} label={col.label} sortKey={col.k} currentKey={sortCol} currentDir={sortDir} onSort={handleScorecardSort} style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         ))}
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1094,10 +1099,10 @@ export default function AnalysisPage() {
                             ? String(av).localeCompare(String(bv))
                             : String(bv).localeCompare(String(av))
                         })
-                        .map((h: any) => {
+                        .map((h: any, i: number) => {
                           const e = getE(h.symbol)
                           return (
-                            <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <tr key={`score_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
@@ -1128,6 +1133,7 @@ export default function AnalysisPage() {
                               <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                                 {e?.signal ?? '—'}
                               </td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             </tr>
                           )
                         })}

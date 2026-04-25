@@ -123,6 +123,8 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
             'current_value': val,
             'weight_pct': round(val / total * 100, 1) if total else 0,
             'gain_pct': h.get('gain_pct', 0) or 0,
+            'account_id': h.get('account_id', ''),
+            'account_nickname': h.get('account_nickname', ''),
         })
 
     return {
@@ -189,20 +191,22 @@ async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
         signal     = _signal_from_dma(dma, gain_pct)
 
         technical.append({
-            'symbol':        _clean_sym(h.get('symbol', '')),
-            'sector':        h.get('sector', 'Others') or 'Others',
-            'price':         price,
-            'avg_price':     avg_price,
-            'gain_pct':      gain_pct,
-            'current_value': h.get('current_value', 0) or 0,
-            'signal':        signal,
-            'rsi':           rsi,
-            'ma50':          dma.get('dma_50')   if dma else None,
-            'ma200':         dma.get('dma_200')  if dma else None,
-            'above_50':      dma.get('above_50') if dma else None,
-            'above_200':     dma.get('above_200') if dma else None,
-            'week52_low':    None,
-            'week52_high':   None,
+            'symbol':           _clean_sym(h.get('symbol', '')),
+            'sector':           h.get('sector', 'Others') or 'Others',
+            'account_id':       h.get('account_id', ''),
+            'account_nickname': h.get('account_nickname', ''),
+            'price':            price,
+            'avg_price':        avg_price,
+            'gain_pct':         gain_pct,
+            'current_value':    h.get('current_value', 0) or 0,
+            'signal':           signal,
+            'rsi':              rsi,
+            'ma50':             dma.get('dma_50')    if dma else None,
+            'ma200':            dma.get('dma_200')   if dma else None,
+            'above_50':         dma.get('above_50')  if dma else None,
+            'above_200':        dma.get('above_200') if dma else None,
+            'week52_low':       None,
+            'week52_high':      None,
         })
 
     # Signal summary
@@ -293,19 +297,21 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         signal = _signal_from_dma(dma, gain_pct)
 
         scored.append({
-            'symbol':            _clean_sym(h.get('symbol', '')),
-            'sector':            h.get('sector', 'Others') or 'Others',
-            'current_value':     current_value,
-            'gain_pct':          gain_pct,
-            'fundamental_score': fund_score,
-            'technical_score':   tech_score,
-            'overall_score':     overall,
-            'recommendation':    recommendation,
-            'grade':             grade,
-            'signal':            signal,
-            'pe':                pe,
+            'symbol':              _clean_sym(h.get('symbol', '')),
+            'sector':              h.get('sector', 'Others') or 'Others',
+            'account_id':          h.get('account_id', ''),
+            'account_nickname':    h.get('account_nickname', ''),
+            'current_value':       current_value,
+            'gain_pct':            gain_pct,
+            'fundamental_score':   fund_score,
+            'technical_score':     tech_score,
+            'overall_score':       overall,
+            'recommendation':      recommendation,
+            'grade':               grade,
+            'signal':              signal,
+            'pe':                  pe,
             'market_cap_category': market_cap_cat,
-            'rsi':               rsi,
+            'rsi':                 rsi,
         })
 
     scored.sort(key=lambda x: -x['overall_score'])
