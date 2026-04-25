@@ -171,6 +171,7 @@ export default function AnalysisPage() {
   const [technical, setTechnical] = useState<any>(null)
   const [scorecard, setScorecard] = useState<any>(null)
   const [enriched, setEnriched] = useState<any[]>([])
+  const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortCol, setSortCol] = useState('overall_score')
@@ -198,6 +199,12 @@ export default function AnalysisPage() {
       .then(r => r.json())
       .then(d => setEnriched(Array.isArray(d) ? d : []))
       .catch(() => setEnriched([]))
+
+    // Portfolio summary for header strip
+    fetch(`${API}/api/v1/portfolio/summary`)
+      .then(r => r.json())
+      .then(d => setSummary(d))
+      .catch(() => {})
   }, [])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
@@ -278,6 +285,27 @@ export default function AnalysisPage() {
             : 'Fundamental + Technical deep-dive'}
         </div>
       </div>
+
+      {/* Summary strip */}
+      {(fundamental || summary) && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Portfolio', value: formatVal(summary?.total_portfolio_value || fundamental?.total_value || 0) },
+            { label: 'Return', value: summary ? `${summary.total_pnl_pct >= 0 ? '+' : ''}${summary.total_pnl_pct?.toFixed(2)}%` : null, color: (summary?.total_pnl_pct || 0) >= 0 ? '#0EA66E' : '#FF4444' },
+            { label: 'Holdings', value: fundamental?.total_holdings ? `${fundamental.total_holdings}` : null },
+            { label: 'Health Score', value: fundamental?.health_score ? `${fundamental.health_score.total}/100` : null },
+          ].filter(c => c.value).map(c => (
+            <div key={c.label} style={{
+              background: 'var(--bg-surface)', boxShadow: 'var(--neu-raised-sm)',
+              borderRadius: 'var(--r-md)', padding: '6px 14px',
+              display: 'flex', alignItems: 'center', gap: 8
+            }}>
+              <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1 }}>{c.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: c.color || 'var(--accent)' }}>{c.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Tab bar */}
       <div style={{
@@ -523,10 +551,10 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Symbol', 'Sector', 'Price', 'Avg Price', 'Gain%', 'Signal', 'RSI', 'MA50', 'MA200'].map(h => (
+                        {['Symbol', 'Sector', 'CMP', 'vs Avg', 'Signal'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
-                            textAlign: h === 'Symbol' || h === 'Sector' ? 'left' : 'right',
+                            textAlign: h === 'Symbol' || h === 'Sector' || h === 'vs Avg' ? 'left' : 'right',
                             color: 'var(--text-mute)', fontWeight: 400, fontSize: 10,
                             letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)'
@@ -538,32 +566,63 @@ export default function AnalysisPage() {
                       {[...technical.holdings].sort((a: any, b: any) => {
                         const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
                         return order.indexOf(a.signal) - order.indexOf(b.signal)
-                      }).map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.price?.toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{h.avg_price?.toLocaleString('en-IN')}</td>
-                          <td style={{
-                            padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
-                          }}>
-                            {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
-                          </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontSize: 11, fontFamily: 'var(--font-mono)' }} title="Phase 2">—</td>
-                        </tr>
-                      ))}
+                      }).map((h: any) => {
+                        const pct = h.gain_pct || 0
+                        const barW = Math.min(Math.abs(pct), 100)
+                        const barColor = pct >= 0 ? '#0EA66E' : '#FF4444'
+                        return (
+                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '10px 12px', minWidth: 160 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ flex: 1, height: 4, background: 'rgba(0,0,0,0.07)', borderRadius: 2 }}>
+                                  <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+                                </div>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: barColor, minWidth: 52, textAlign: 'right' }}>
+                                  {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
+                                </span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
-                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
-                  · RSI, MA50, MA200 will be populated via price history feed in Phase 2
-                </div>
               </div>
+
+              {/* Action Alerts */}
+              {(() => {
+                const alerts: { type: 'warn' | 'danger' | 'ok'; msg: string }[] = []
+                for (const h of technical.holdings) {
+                  const sym = cleanSym(h.symbol)
+                  if (h.signal === 'BEAR') alerts.push({ type: 'danger', msg: `${sym} in downtrend` })
+                  if ((h.gain_pct || 0) < -20) alerts.push({ type: 'danger', msg: `${sym} down ${h.gain_pct?.toFixed(1)}% — review position` })
+                  if (h.signal === 'WEAK') alerts.push({ type: 'warn', msg: `${sym} showing weakness — monitor closely` })
+                  if (h.signal === 'STRONG_BULL') alerts.push({ type: 'ok', msg: `${sym} strong momentum +${h.gain_pct?.toFixed(1)}%` })
+                }
+                if (alerts.length === 0) return null
+                const iconMap = { warn: '⚠', danger: '●', ok: '✓' }
+                const colorMap = { warn: '#F59E0B', danger: '#FF4444', ok: '#0EA66E' }
+                return (
+                  <div style={{ ...neuCard }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 14, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>
+                      Action Alerts
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {alerts.slice(0, 10).map((a, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'var(--r-sm)', background: colorMap[a.type] + '10', border: `1px solid ${colorMap[a.type]}22` }}>
+                          <span style={{ color: colorMap[a.type], fontSize: 13 }}>{iconMap[a.type]}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{a.msg}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
 
@@ -620,6 +679,66 @@ export default function AnalysisPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Action Summary */}
+              {(() => {
+                const p = scorecard.portfolio
+                const holdings = scorecard.holdings || []
+                const sectors = new Set(holdings.map((h: any) => h.sector)).size
+                const profitable = holdings.filter((h: any) => (h.gain_pct || 0) > 0).length
+                const winRate = holdings.length > 0 ? Math.round(profitable / holdings.length * 100) : 0
+                const down20 = holdings.filter((h: any) => (h.gain_pct || 0) < -20).length
+                const totalVal = holdings.reduce((s: number, h: any) => s + (h.current_value || 0), 0)
+                const top3Val = holdings.slice(0, 3).reduce((s: number, h: any) => s + (h.current_value || 0), 0)
+                const top3Pct = totalVal > 0 ? Math.round(top3Val / totalVal * 100) : 0
+
+                const strengths: string[] = []
+                const weaknesses: string[] = []
+                if (sectors >= 5) strengths.push(`Well diversified — ${sectors} sectors`)
+                if (winRate >= 60) strengths.push(`${winRate}% holdings profitable`)
+                if (p.overall_score >= 60) strengths.push(`Healthy overall composition (score ${p.overall_score})`)
+                if (top3Pct >= 40) weaknesses.push(`Concentrated — top 3 holdings = ${top3Pct}% of portfolio`)
+                if (p.watch_count >= 5) weaknesses.push(`${p.watch_count} holdings need review`)
+                if (down20 > 0) weaknesses.push(`${down20} holding${down20 > 1 ? 's' : ''} down >20%`)
+
+                return (
+                  <div style={{ ...neuCard }}>
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 10, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Action Summary</div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                          {[
+                            { label: 'BUY', count: p.buy_count, color: '#0EA66E' },
+                            { label: 'HOLD', count: p.hold_count, color: '#2dd4bf' },
+                            { label: 'WATCH', count: p.watch_count, color: '#F59E0B' },
+                          ].map(c => (
+                            <div key={c.label} style={{ background: c.color + '15', border: `1px solid ${c.color}33`, borderRadius: 'var(--r-sm)', padding: '6px 14px', textAlign: 'center' }}>
+                              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-mono)', color: c.color }}>{c.count}</div>
+                              <div style={{ fontSize: 9, color: c.color, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>{c.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {strengths.length > 0 && (
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                          <div style={{ fontSize: 10, color: '#0EA66E', letterSpacing: '1px', marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Strengths</div>
+                          {strengths.map((s, i) => (
+                            <div key={i} style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)', marginBottom: 4 }}>✓ {s}</div>
+                          ))}
+                        </div>
+                      )}
+                      {weaknesses.length > 0 && (
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                          <div style={{ fontSize: 10, color: '#F59E0B', letterSpacing: '1px', marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Watch Out</div>
+                          {weaknesses.map((w, i) => (
+                            <div key={i} style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)', marginBottom: 4 }}>⚠ {w}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Top 3 + Bottom 3 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
