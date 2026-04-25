@@ -762,8 +762,8 @@ export default function AnalysisPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <div style={{
                               width: 20, height: 20, borderRadius: '50%',
-                              background: q.color + '22',
-                              boxShadow: `inset 1px 1px 3px ${q.color}44, inset -1px -1px 2px rgba(255,255,255,0.15)`,
+                              background: 'var(--bg)',
+                              boxShadow: 'var(--neu-inset)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               color: q.color, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12,
                               flexShrink: 0,
