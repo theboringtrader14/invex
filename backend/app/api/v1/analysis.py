@@ -112,6 +112,46 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
         'winners_pct': round(win_rate * 100, 1),
     }
 
+    # ── Red Flags ──────────────────────────────────────────────────────
+    red_flags: list[dict] = []
+
+    for s in sector_allocation:
+        if s['pct'] > 30:
+            red_flags.append({
+                'severity': 'warn',
+                'msg': f"Overweight in {s['sector']} — {s['pct']}% of portfolio",
+            })
+
+    if conc_pct > 50:
+        red_flags.append({
+            'severity': 'warn',
+            'msg': f"High concentration — top 3 holdings = {round(conc_pct, 1)}%",
+        })
+
+    for h in holdings:
+        pct = h.get('gain_pct', 0) or 0
+        if pct < -25:
+            red_flags.append({
+                'severity': 'danger',
+                'msg': f"{_clean_sym(h.get('symbol', ''))} down {abs(round(pct, 1))}% — review position",
+            })
+
+    bear_count = sum(1 for h in holdings if (h.get('gain_pct', 0) or 0) < -20)
+    if total_holdings and bear_count > total_holdings * 0.3:
+        bear_pct = round(bear_count / total_holdings * 100)
+        red_flags.append({
+            'severity': 'danger',
+            'msg': f"{bear_count} holdings ({bear_pct}%) down more than 20%",
+        })
+
+    if win_rate < 0.5:
+        red_flags.append({
+            'severity': 'warn',
+            'msg': f"Less than half your holdings are profitable ({round(win_rate * 100)}% win rate)",
+        })
+
+    red_flags = red_flags[:5]  # cap at 5
+
     # All holdings by value
     top_holdings = sorted(holdings, key=lambda x: -(x.get('current_value') or 0))
     top_holdings_out = []
@@ -130,10 +170,11 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
     return {
         'sector_allocation': sector_allocation,
         'gain_distribution': list(buckets.values()),
-        'health_score': health_score,
-        'total_holdings': total_holdings,
-        'total_value': total,
-        'top_holdings': top_holdings_out,
+        'health_score':      health_score,
+        'total_holdings':    total_holdings,
+        'total_value':       total,
+        'top_holdings':      top_holdings_out,
+        'red_flags':         red_flags,
     }
 
 
@@ -243,7 +284,10 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         except Exception:
             return sym, None, None, None
 
-    results = await asyncio.gather(*[_fetch_all(s) for s in symbols_clean])
+    results, nifty_history = await asyncio.gather(
+        asyncio.gather(*[_fetch_all(s) for s in symbols_clean]),
+        market_data.get_index_history('NIFTY50', days=365),
+    )
     data_map: dict = {sym: (fund, dma, rsi) for sym, fund, dma, rsi in results}
 
     scored = []
@@ -327,6 +371,35 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
     holds   = [s for s in scored if s['recommendation'] == 'HOLD']
     watches = [s for s in scored if s['recommendation'] == 'WATCH']
 
+    # ── Benchmark comparison ──────────────────────────────────────────
+    total_value    = sum(h.get('current_value', 0) or 0 for h in holdings)
+    total_invested = sum(h.get('invested_value', 0) or 0 for h in holdings)
+
+    portfolio_return = (
+        round((total_value - total_invested) / total_invested * 100, 2)
+        if total_invested else None
+    )
+
+    nifty_1y_return = None
+    if nifty_history and len(nifty_history) >= 2:
+        first = nifty_history[0]['close']
+        last  = nifty_history[-1]['close']
+        if first:
+            nifty_1y_return = round((last - first) / first * 100, 2)
+
+    alpha = (
+        round(portfolio_return - nifty_1y_return, 2)
+        if portfolio_return is not None and nifty_1y_return is not None
+        else None
+    )
+
+    benchmark = {
+        'nifty_1y_return':    nifty_1y_return,
+        'portfolio_return':   portfolio_return,
+        'outperforming':      (alpha > 0) if alpha is not None else None,
+        'alpha':              alpha,
+    }
+
     return {
         'portfolio': {
             'overall_score':     avg_overall,
@@ -338,7 +411,8 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
             'top_3':             scored[:3],
             'bottom_3':          scored[-3:],
         },
-        'holdings': scored,
+        'holdings':  scored,
+        'benchmark': benchmark,
     }
 
 

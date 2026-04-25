@@ -519,6 +519,43 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
+              {/* Red Flags */}
+              {(() => {
+                const flags: any[] = fundamental.red_flags || []
+                const dangerColor = '#FF4444'
+                const warnColor   = '#F59E0B'
+                return (
+                  <div style={{ ...neuCard, padding: '14px 20px' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: flags.length ? 12 : 0 }}>Red Flags</div>
+                    {flags.length === 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                        <span style={{ color: 'var(--green)', fontSize: 13 }}>✓</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>No major red flags detected</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {flags.map((f: any, i: number) => {
+                          const color = f.severity === 'danger' ? dangerColor : warnColor
+                          const icon  = f.severity === 'danger' ? '●' : '⚠'
+                          return (
+                            <div key={i} style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 7,
+                              background: color + '12',
+                              border: `1px solid ${color}28`,
+                              borderRadius: 'var(--r-sm)',
+                              padding: '6px 12px',
+                            }}>
+                              <span style={{ color, fontSize: 10, lineHeight: 1 }}>{icon}</span>
+                              <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{f.msg}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Gain Distribution */}
               <div style={{ ...neuCard }}>
                 <div style={{
@@ -898,6 +935,54 @@ export default function AnalysisPage() {
                   )
                 })()}
               </div>
+
+              {/* Benchmark comparison strip */}
+              {scorecard.benchmark && (() => {
+                const bm = scorecard.benchmark
+                const outperforming = bm.outperforming
+                const alphaColor = outperforming === true ? 'var(--green)' : outperforming === false ? 'var(--red)' : 'var(--text-mute)'
+                const alphaSign  = bm.alpha != null ? (bm.alpha >= 0 ? '+' : '') : ''
+                return (
+                  <div style={{
+                    ...neuCard,
+                    padding: '14px 20px',
+                    display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
+                  }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, flexShrink: 0 }}>vs Nifty 50 (1Y)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: bm.portfolio_return != null ? (bm.portfolio_return >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-mute)' }}>
+                        {bm.portfolio_return != null ? `${bm.portfolio_return >= 0 ? '+' : ''}${bm.portfolio_return}%` : '—'}
+                      </span>
+                    </div>
+                    <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nifty 50</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                        {bm.nifty_1y_return != null ? `${bm.nifty_1y_return >= 0 ? '+' : ''}${bm.nifty_1y_return}%` : '—'}
+                      </span>
+                    </div>
+                    <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Alpha</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: alphaColor }}>
+                        {bm.alpha != null ? `${alphaSign}${bm.alpha}%` : '—'}
+                      </span>
+                    </div>
+                    {outperforming != null && (
+                      <span style={{
+                        marginLeft: 'auto', flexShrink: 0,
+                        background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                        borderRadius: 'var(--r-pill)', padding: '4px 14px',
+                        fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                        color: alphaColor, letterSpacing: '0.5px',
+                      }}>
+                        {outperforming ? '▲ OUTPERFORMING' : '▼ UNDERPERFORMING'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* SWOT Analysis */}
               {(() => {
