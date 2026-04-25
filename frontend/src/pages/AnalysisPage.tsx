@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { SortableHeader } from '../components/SortableHeader'
+import { useSort } from '../hooks/useSort'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
 const cleanSym = (s: string) =>
   s?.replace(/-EQ$/i, '').replace(/-BE$/i, '').replace(/\.NS$/i, '').replace(/\.BO$/i, '') || s
 
-type Tab = 'fundamental' | 'technical' | 'scorecard'
+type Tab = 'fundamental' | 'technical' | 'mf' | 'scorecard'
 
 function scoreColor(score: number) {
   if (score >= 75) return 'var(--green)'
@@ -190,11 +191,101 @@ function GradeChip({ grade }: { grade?: string }) {
   )
 }
 
+type MFTabProps = {
+  mfData: any
+  funds: any[]
+  fmt: (v: number) => string
+  fmtPct: (v: number) => string
+  neuCard: React.CSSProperties
+}
+
+function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
+  const { sorted, sortKey: mfSortKey, sortDir: mfSortDir, handleSort: handleMFSort } = useSort<any>(funds, 'pnl_pct')
+
+  const gradeColor: Record<string, string> = { A: '#0EA66E', B: '#2dd4bf', C: '#F59E0B', D: '#FF4444' }
+  const thStyle: React.CSSProperties = { position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+      {/* Section A — Summary strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {[
+          { label: 'Total Invested',  value: fmt(mfData.total_invested), color: 'var(--text)' },
+          { label: 'Current Value',   value: fmt(mfData.total_current),  color: 'var(--text)' },
+          { label: `Total P&L  ${fmtPct(mfData.total_pnl_pct)}`, value: fmt(Math.abs(mfData.total_pnl)), color: mfData.total_pnl >= 0 ? 'var(--green)' : 'var(--red)' },
+        ].map(c => (
+          <div key={c.label} style={{ ...neuCard }}>
+            <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: c.color, lineHeight: 1 }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Section B — Fund holdings table */}
+      <div style={{ ...neuCard }}>
+        <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 16 }}>
+          Fund Holdings · {funds.length}
+        </div>
+        <div className="hide-scrollbar" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 436 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <SortableHeader label="Fund Name"  sortKey="fund_name"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} align="left" style={thStyle} />
+                <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', ...thStyle }}>Account</th>
+                <SortableHeader label="Units"       sortKey="units"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="NAV"         sortKey="nav"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Invested"    sortKey="invested_amount" currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Current"     sortKey="current_value"   currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="P&L"         sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="P&L%"        sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Grade"       sortKey="grade"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((f: any) => {
+                const pnlColor = f.pnl >= 0 ? 'var(--green)' : 'var(--red)'
+                const gc = gradeColor[f.grade] || 'var(--text-mute)'
+                return (
+                  <tr key={`mf_${f.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 12, maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.fund_name}>
+                      {f.fund_name_short}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{f.units?.toFixed(3)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>₹{f.nav?.toFixed(2)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.invested_amount)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.current_value)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{f.pnl >= 0 ? '+' : ''}{fmt(Math.abs(f.pnl))}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{fmtPct(f.pnl_pct)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Section C — Phase 2 placeholder */}
+      <div style={{ ...neuCard, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 16, opacity: 0.4 }}>◎</span>
+        <span style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+          Category analysis, expense ratios, and 1Y / 3Y returns coming in Phase 2 — data from mfapi.in
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function AnalysisPage() {
   const [tab, setTab] = useState<Tab>('fundamental')
   const [fundamental, setFundamental] = useState<any>(null)
   const [technical, setTechnical] = useState<any>(null)
   const [scorecard, setScorecard] = useState<any>(null)
+  const [mfData, setMfData] = useState<any>(null)
+  const [mfLoading, setMfLoading] = useState(false)
   const [enriched, setEnriched] = useState<any[]>([])
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -238,6 +329,17 @@ export default function AnalysisPage() {
       .then(d => setSummary(d))
       .catch(() => {})
   }, [])
+
+  // Lazy-load MF data when user opens that tab
+  useEffect(() => {
+    if (tab === 'mf' && !mfData && !mfLoading) {
+      setMfLoading(true)
+      fetch(`${API}/api/v1/analysis/mutual-funds`)
+        .then(r => r.json())
+        .then(d => { setMfData(d); setMfLoading(false) })
+        .catch(() => setMfLoading(false))
+    }
+  }, [tab, mfData, mfLoading])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>
@@ -314,7 +416,7 @@ export default function AnalysisPage() {
     return `₹${v.toLocaleString('en-IN')}`
   }
 
-  const TABS: Tab[] = ['fundamental', 'technical', 'scorecard']
+  const TABS: Tab[] = ['fundamental', 'technical', 'mf', 'scorecard']
   const tabIndex = TABS.indexOf(tab)
 
   if (error) return (
@@ -376,7 +478,7 @@ export default function AnalysisPage() {
           position: 'absolute',
           top: 4, bottom: 4,
           left: 4,
-          width: 'calc((100% - 8px) / 3)',
+          width: 'calc((100% - 8px) / 4)',
           background: 'var(--bg-surface)',
           boxShadow: 'var(--neu-raised-sm)',
           borderRadius: 'calc(var(--r-lg) - 4px)',
@@ -403,7 +505,7 @@ export default function AnalysisPage() {
             position: 'relative',
             zIndex: 1,
           }}>
-            {t.toUpperCase()}
+            {{ fundamental: 'FUNDAMENTAL', technical: 'TECHNICAL', mf: 'MUTUAL FUNDS', scorecard: 'SCORECARD' }[t]}
           </button>
         ))}
       </div>
@@ -871,7 +973,36 @@ export default function AnalysisPage() {
             </div>
           )}
 
-          {/* ═══ TAB 3: SCORECARD ═══ */}
+          {/* ═══ TAB 3: MUTUAL FUNDS ═══ */}
+          {tab === 'mf' && (() => {
+            const fmt = (v: number) => v >= 1e5 ? `₹${(v/1e5).toFixed(2)}L` : `₹${v.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+            const fmtPct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+
+            if (mfLoading) return (
+              <div style={{ display: 'grid', gap: 16 }}>
+                <Skeleton height={80} />
+                <Skeleton height={300} />
+              </div>
+            )
+            if (!mfData) return (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+                No mutual fund data — sync Zerodha account first
+              </div>
+            )
+
+            const funds: any[] = mfData.funds || []
+            return (
+              <MFAnalysisTab
+                mfData={mfData}
+                funds={funds}
+                fmt={fmt}
+                fmtPct={fmtPct}
+                neuCard={neuCard}
+              />
+            )
+          })()}
+
+          {/* ═══ TAB 4: SCORECARD ═══ */}
           {tab === 'scorecard' && scorecard && (
             <div style={{ display: 'grid', gap: 20 }}>
               {/* Summary Cards — always 5 cols (Grade conditional, Needs Attention always last) */}
@@ -939,47 +1070,37 @@ export default function AnalysisPage() {
               {/* Benchmark comparison strip */}
               {scorecard.benchmark && (() => {
                 const bm = scorecard.benchmark
-                const outperforming = bm.outperforming
-                const alphaColor = outperforming === true ? 'var(--green)' : outperforming === false ? 'var(--red)' : 'var(--text-mute)'
-                const alphaSign  = bm.alpha != null ? (bm.alpha >= 0 ? '+' : '') : ''
+                const ret = bm.portfolio_absolute_return
+                const retColor = ret != null ? (ret >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-mute)'
                 return (
                   <div style={{
                     ...neuCard,
                     padding: '14px 20px',
                     display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
                   }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, flexShrink: 0 }}>vs Nifty 50 (1Y)</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, flexShrink: 0 }}>vs Nifty 50</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: bm.portfolio_return != null ? (bm.portfolio_return >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-mute)' }}>
-                        {bm.portfolio_return != null ? `${bm.portfolio_return >= 0 ? '+' : ''}${bm.portfolio_return}%` : '—'}
+                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio (since inception)</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: retColor }}>
+                        {ret != null ? `${ret >= 0 ? '+' : ''}${ret}%` : '—'}
                       </span>
                     </div>
                     <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nifty 50</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nifty 50 (1Y)</span>
                       <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                         {bm.nifty_1y_return != null ? `${bm.nifty_1y_return >= 0 ? '+' : ''}${bm.nifty_1y_return}%` : '—'}
                       </span>
                     </div>
-                    <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Alpha</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: alphaColor }}>
-                        {bm.alpha != null ? `${alphaSign}${bm.alpha}%` : '—'}
-                      </span>
-                    </div>
-                    {outperforming != null && (
-                      <span style={{
-                        marginLeft: 'auto', flexShrink: 0,
-                        background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                        borderRadius: 'var(--r-pill)', padding: '4px 14px',
-                        fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                        color: alphaColor, letterSpacing: '0.5px',
-                      }}>
-                        {outperforming ? '▲ OUTPERFORMING' : '▼ UNDERPERFORMING'}
-                      </span>
-                    )}
+                    <span style={{
+                      marginLeft: 'auto', flexShrink: 0,
+                      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                      borderRadius: 'var(--r-pill)', padding: '4px 14px',
+                      fontSize: 10, fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-mute)', letterSpacing: '0.5px',
+                    }}>
+                      Alpha available after 1Y of snapshots
+                    </span>
                   </div>
                 )
               })()}
@@ -1152,7 +1273,7 @@ export default function AnalysisPage() {
                     ))}
                   </div>
                 </div>
-                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: 450, overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: 416, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>

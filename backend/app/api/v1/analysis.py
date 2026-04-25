@@ -7,13 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
 from app.core.redis_client import redis_client
-from app.models.holdings import Holdings
+from app.models.holdings import Holdings, MFHoldings
+from app.models.invex_account import InvexAccount
 from app.core.nse_sector_fetcher import get_sector_from_map
 from app.api.v1.portfolio import HOLDINGS_CACHE_KEY, _build_holding
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _get_account_map(db: AsyncSession) -> dict:
+    """Returns {account_id_str: nickname} for all invex_accounts."""
+    result = await db.execute(select(InvexAccount))
+    return {str(a.id): a.nickname for a in result.scalars().all()}
 
 
 def _clean_sym(s: str) -> str:
@@ -51,7 +58,10 @@ async def _get_holdings(request: Request, db: AsyncSession) -> list:
 
 @router.get("/fundamental")
 async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
-    holdings = await _get_holdings(request, db)
+    holdings, account_map = await asyncio.gather(
+        _get_holdings(request, db),
+        _get_account_map(db),
+    )
 
     # Sector allocation
     sector_map = {}
@@ -157,14 +167,15 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
     top_holdings_out = []
     for h in top_holdings:
         val = h.get('current_value', 0) or 0
+        acct_id = h.get('account_id', '')
         top_holdings_out.append({
-            'symbol': _clean_sym(h.get('symbol', '')),
-            'sector': h.get('sector', 'Others') or 'Others',
-            'current_value': val,
-            'weight_pct': round(val / total * 100, 1) if total else 0,
-            'gain_pct': h.get('gain_pct', 0) or 0,
-            'account_id': h.get('account_id', ''),
-            'account_nickname': h.get('account_nickname', ''),
+            'symbol':           _clean_sym(h.get('symbol', '')),
+            'sector':           h.get('sector', 'Others') or 'Others',
+            'current_value':    val,
+            'weight_pct':       round(val / total * 100, 1) if total else 0,
+            'gain_pct':         h.get('gain_pct', 0) or 0,
+            'account_id':       acct_id,
+            'account_nickname': account_map.get(acct_id, ''),
         })
 
     return {
@@ -205,7 +216,10 @@ def _signal_from_dma(dma: dict | None, gain_pct: float) -> str:
 async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
     from app.adapters.market_data_adapter import market_data
 
-    holdings = await _get_holdings(request, db)
+    holdings, account_map = await asyncio.gather(
+        _get_holdings(request, db),
+        _get_account_map(db),
+    )
 
     # Fetch DMA + RSI for all symbols concurrently (uses 24h price-history cache)
     symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
@@ -231,11 +245,12 @@ async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
         dma, rsi   = tech_map.get(sym, (None, None))
         signal     = _signal_from_dma(dma, gain_pct)
 
+        acct_id = h.get('account_id', '')
         technical.append({
             'symbol':           _clean_sym(h.get('symbol', '')),
             'sector':           h.get('sector', 'Others') or 'Others',
-            'account_id':       h.get('account_id', ''),
-            'account_nickname': h.get('account_nickname', ''),
+            'account_id':       acct_id,
+            'account_nickname': account_map.get(acct_id, ''),
             'price':            price,
             'avg_price':        avg_price,
             'gain_pct':         gain_pct,
@@ -269,7 +284,10 @@ async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
 async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
     from app.adapters.market_data_adapter import market_data
 
-    holdings = await _get_holdings(request, db)
+    holdings, account_map = await asyncio.gather(
+        _get_holdings(request, db),
+        _get_account_map(db),
+    )
     symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
 
     # Fetch fundamentals + DMA/RSI concurrently
@@ -340,11 +358,12 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         grade = 'A' if overall >= 80 else 'B' if overall >= 65 else 'C' if overall >= 50 else 'D'
         signal = _signal_from_dma(dma, gain_pct)
 
+        acct_id = h.get('account_id', '')
         scored.append({
             'symbol':              _clean_sym(h.get('symbol', '')),
             'sector':              h.get('sector', 'Others') or 'Others',
-            'account_id':          h.get('account_id', ''),
-            'account_nickname':    h.get('account_nickname', ''),
+            'account_id':          acct_id,
+            'account_nickname':    account_map.get(acct_id, ''),
             'current_value':       current_value,
             'gain_pct':            gain_pct,
             'fundamental_score':   fund_score,
@@ -372,10 +391,13 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
     watches = [s for s in scored if s['recommendation'] == 'WATCH']
 
     # ── Benchmark comparison ──────────────────────────────────────────
+    # portfolio_absolute_return = unrealised gain from avg buy price (not 1Y)
+    # Snapshots exist but are < 30 days old and have zero values — no 1Y data yet.
+    # We show absolute return clearly labeled; alpha is suppressed (incomparable).
     total_value    = sum(h.get('current_value', 0) or 0 for h in holdings)
     total_invested = sum(h.get('invested_value', 0) or 0 for h in holdings)
 
-    portfolio_return = (
+    portfolio_absolute_return = (
         round((total_value - total_invested) / total_invested * 100, 2)
         if total_invested else None
     )
@@ -387,17 +409,13 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         if first:
             nifty_1y_return = round((last - first) / first * 100, 2)
 
-    alpha = (
-        round(portfolio_return - nifty_1y_return, 2)
-        if portfolio_return is not None and nifty_1y_return is not None
-        else None
-    )
-
     benchmark = {
-        'nifty_1y_return':    nifty_1y_return,
-        'portfolio_return':   portfolio_return,
-        'outperforming':      (alpha > 0) if alpha is not None else None,
-        'alpha':              alpha,
+        'nifty_1y_return':          nifty_1y_return,
+        'portfolio_absolute_return': portfolio_absolute_return,
+        'has_1y_data':              False,   # need ≥365 days of snapshots
+        'outperforming':            None,    # suppressed — returns not comparable
+        'alpha':                    None,    # suppressed — returns not comparable
+        'note':                     'Portfolio return is absolute gain from avg buy price, not 1-year return',
     }
 
     return {
@@ -413,6 +431,64 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
         },
         'holdings':  scored,
         'benchmark': benchmark,
+    }
+
+
+@router.get("/mutual-funds")
+async def get_mutual_funds(db: AsyncSession = Depends(get_db)):
+    """MF holdings with computed P&L and grade."""
+    mf_rows, account_map = await asyncio.gather(
+        db.execute(select(MFHoldings).order_by(MFHoldings.account_id, MFHoldings.fund_name)),
+        _get_account_map(db),
+    )
+    mf_list = mf_rows.scalars().all()
+
+    funds = []
+    for m in mf_list:
+        invested  = m.invested_amount or 0
+        current   = m.current_value   or 0
+        pnl       = current - invested
+        pnl_pct   = round(pnl / invested * 100, 2) if invested else 0
+        acct_id   = str(m.account_id)
+
+        if pnl_pct >= 30:   grade = 'A'
+        elif pnl_pct >= 15: grade = 'B'
+        elif pnl_pct >= 0:  grade = 'C'
+        else:               grade = 'D'
+
+        name = m.fund_name or ''
+        funds.append({
+            'id':               str(m.id),
+            'fund_name':        name,
+            'fund_name_short':  name[:40] + ('…' if len(name) > 40 else ''),
+            'account_id':       acct_id,
+            'account_nickname': account_map.get(acct_id, ''),
+            'units':            m.units,
+            'nav':              m.nav,
+            'invested_amount':  invested,
+            'current_value':    current,
+            'pnl':              round(pnl, 2),
+            'pnl_pct':          pnl_pct,
+            'grade':            grade,
+            'category':         None,
+            'expense_ratio':    None,
+            'return_1y':        None,
+            'return_3y':        None,
+        })
+
+    funds.sort(key=lambda x: -x['pnl_pct'])
+
+    total_invested = sum(f['invested_amount'] for f in funds)
+    total_current  = sum(f['current_value']   for f in funds)
+    total_pnl      = round(total_current - total_invested, 2)
+    total_pnl_pct  = round(total_pnl / total_invested * 100, 2) if total_invested else 0
+
+    return {
+        'total_invested': total_invested,
+        'total_current':  total_current,
+        'total_pnl':      total_pnl,
+        'total_pnl_pct':  total_pnl_pct,
+        'funds':          funds,
     }
 
 
