@@ -286,26 +286,6 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* Summary strip */}
-      {(fundamental || summary) && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Portfolio', value: formatVal(summary?.total_portfolio_value || fundamental?.total_value || 0) },
-            { label: 'Return', value: summary ? `${summary.total_pnl_pct >= 0 ? '+' : ''}${summary.total_pnl_pct?.toFixed(2)}%` : null, color: (summary?.total_pnl_pct || 0) >= 0 ? '#0EA66E' : '#FF4444' },
-            { label: 'Holdings', value: fundamental?.total_holdings ? `${fundamental.total_holdings}` : null },
-            { label: 'Health Score', value: fundamental?.health_score ? `${fundamental.health_score.total}/100` : null },
-          ].filter(c => c.value).map(c => (
-            <div key={c.label} style={{
-              background: 'var(--bg-surface)', boxShadow: 'var(--neu-raised-sm)',
-              borderRadius: 'var(--r-md)', padding: '6px 14px',
-              display: 'flex', alignItems: 'center', gap: 8
-            }}>
-              <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: 1 }}>{c.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: c.color || 'var(--accent)' }}>{c.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Tab bar */}
       <div style={{
