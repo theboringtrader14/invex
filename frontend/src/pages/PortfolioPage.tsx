@@ -925,7 +925,7 @@ export default function PortfolioPage() {
             </div>
 
             {/* Table — no inner inset box, scrollbar hidden */}
-            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px", marginBottom: 12, paddingLeft: 18, paddingRight: 18 }}>
+            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px", marginBottom: 12, paddingLeft: 18, paddingRight: 18, paddingBottom: 16 }}>
               {activeTab === "equity"
                 ? <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
                 : <MFTable mf={filteredMF} />

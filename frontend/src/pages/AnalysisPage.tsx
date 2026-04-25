@@ -391,7 +391,7 @@ export default function AnalysisPage() {
                     marginBottom: 16, textTransform: 'uppercase',
                     fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Sector Allocation</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 4 }}>
                     {fundamental.sector_allocation.slice(0, 8).map((s: any) => (
                       <div key={s.sector}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
