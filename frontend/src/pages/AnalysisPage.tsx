@@ -823,34 +823,46 @@ export default function AnalysisPage() {
                 return (
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 16, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>SWOT Analysis</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {quadrants.map(q => (
                         <div key={q.key} style={{
-                          background: 'var(--bg)',
-                          boxShadow: 'var(--neu-inset)',
-                          borderRadius: 12,
-                          padding: 16,
+                          display: 'flex', alignItems: 'baseline', gap: 0,
+                          background: 'var(--bg-surface)',
+                          boxShadow: 'var(--neu-raised)',
+                          borderRadius: 10,
+                          overflow: 'hidden',
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <div style={{
-                              width: 20, height: 20, borderRadius: '50%',
-                              background: 'var(--bg-surface)',
-                              boxShadow: 'var(--neu-raised-sm)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: q.color, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12,
-                              flexShrink: 0,
-                            }}>{q.key}</div>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)' }}>{q.label}</span>
+                          {/* Left accent bar + letter */}
+                          <div style={{
+                            width: 48, flexShrink: 0,
+                            background: q.color + '18',
+                            borderRight: `3px solid ${q.color}`,
+                            alignSelf: 'stretch',
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center', gap: 2,
+                            padding: '12px 0',
+                          }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: q.color, lineHeight: 1 }}>{q.key}</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: q.color, letterSpacing: '0.5px', opacity: 0.7 }}>{q.label.slice(0, 3)}</span>
                           </div>
-                          <div>
+                          {/* Content */}
+                          <div style={{ flex: 1, padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
                             {q.items.length === 0 ? (
-                              <div style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>No significant items identified</div>
+                              <span style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>No significant items identified</span>
                             ) : q.items.map((item, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-                                <div style={{ width: 4, height: 4, borderRadius: '50%', background: q.color, marginTop: 6, flexShrink: 0 }} />
-                                <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-body)', lineHeight: 1.4 }}>{item}</span>
-                              </div>
+                              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+                                {i > 0 && <span style={{ margin: '0 8px', color: q.color, opacity: 0.5, fontSize: 10 }}>·</span>}
+                                {item}
+                              </span>
                             ))}
+                          </div>
+                          {/* Count badge */}
+                          <div style={{ padding: '0 14px', alignSelf: 'center', flexShrink: 0 }}>
+                            <span style={{
+                              background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                              borderRadius: 'var(--r-pill)', padding: '2px 8px',
+                              fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: q.color,
+                            }}>{q.items.length}</span>
                           </div>
                         </div>
                       ))}
