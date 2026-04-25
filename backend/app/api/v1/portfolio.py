@@ -1,5 +1,7 @@
 """Portfolio API — holdings, MF, summary."""
+import asyncio
 import json
+import logging
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,6 +11,8 @@ from app.core.redis_client import redis_client
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
 import uuid
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -129,6 +133,20 @@ async def refresh_holdings(db: AsyncSession = Depends(get_db)):
 
     # Invalidate holdings cache so next /holdings call returns fresh DB data
     await redis_client.delete(HOLDINGS_CACHE_KEY)
+
+    # Background prefetch of market data for all equity symbols (non-blocking)
+    try:
+        from app.adapters.market_data_adapter import market_data
+        all_holdings = (await db.execute(select(Holdings))).scalars().all()
+        equity_symbols = list({
+            h.symbol.replace('-EQ', '').replace('-BE', '')
+            for h in all_holdings
+            if not (h.isin or '').startswith('INF')  # Skip MF ISINs
+        })
+        asyncio.create_task(market_data.prefetch_portfolio(equity_symbols))
+        logger.info(f"[PORTFOLIO] Triggered prefetch for {len(equity_symbols)} symbols")
+    except Exception as e:
+        logger.warning(f"[PORTFOLIO] Prefetch setup failed: {e}")
 
     return {"status": "refreshed", "results": results}
 
