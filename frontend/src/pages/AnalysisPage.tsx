@@ -416,9 +416,9 @@ export default function AnalysisPage() {
                               fontFamily: 'var(--font-mono)', textAlign: 'center',
                               opacity: b.count === 0 ? 0.35 : 1
                             }}>{b.count}</div>
-                            {/* Bar — full width, gradient to-top, glow */}
+                            {/* Bar — 75% width, gradient to-top, glow */}
                             <div style={{
-                              width: '100%', height: `${barH}px`,
+                              width: '75%', height: `${barH}px`,
                               borderRadius: '3px 3px 0 0',
                               background: isNeg
                                 ? 'linear-gradient(to top, rgba(255,68,68,0.5), rgba(255,68,68,0.9))'
