@@ -662,17 +662,17 @@ export default function AnalysisPage() {
               <div style={{ ...neuCard }}>
                 <div style={{
                   fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                  marginBottom: 20, textTransform: 'uppercase',
+                  marginBottom: 12, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Gain / Loss Distribution</div>
                 {(() => {
                   const dist: any[] = fundamental.gain_distribution
                   const maxCount = Math.max(...dist.map((x: any) => x.count), 1)
                   return (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 110, paddingTop: 28 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 76, paddingTop: 14 }}>
                       {dist.map((b: any, i: number) => {
                         const isNeg = i < 2
-                        const barH = Math.max(4, Math.round((b.count / maxCount) * 56 * 0.85))
+                        const barH = Math.max(4, Math.round((b.count / maxCount) * 40 * 0.85))
                         const color = isNeg ? 'var(--red)' : 'var(--green)'
                         const colorHex = isNeg ? '#FF4444' : '#0EA66E'
                         return (
@@ -734,7 +734,7 @@ export default function AnalysisPage() {
                     )
                   })()}
                 </div>
-                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '436px', overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '402px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>

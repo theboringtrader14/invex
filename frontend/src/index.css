@@ -86,7 +86,7 @@ body {
   top: 0;
   z-index: 2;
   background: var(--bg-surface);
-  padding: 10px 20px;
+  padding: 8px 12px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 400;
@@ -98,7 +98,7 @@ body {
   white-space: nowrap;
 }
 .ix-table td {
-  padding: 11px 20px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   font-weight: 400;

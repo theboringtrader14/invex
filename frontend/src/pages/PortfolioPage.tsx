@@ -864,13 +864,13 @@ export default function PortfolioPage() {
           <div style={{
             background: 'var(--bg-surface)',
             boxShadow: 'var(--neu-raised)',
-            borderRadius: 16,
-            overflow: "clip"
+            borderRadius: 'var(--r-lg)',
+            padding: 20,
           }}>
             {/* Table header: sliding pill tabs + account filter chips */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px 18px 12px"
+              marginBottom: 16,
             }}>
               {/* Segmented pill tab — animated slider */}
               <div style={{
@@ -930,7 +930,7 @@ export default function PortfolioPage() {
             </div>
 
             {/* Table — no inner inset box, scrollbar hidden */}
-            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px", marginBottom: 12, paddingLeft: 18, paddingRight: 18, paddingBottom: 16 }}>
+            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px" }}>
               {activeTab === "equity"
                 ? <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
                 : <MFTable mf={filteredMF} />
