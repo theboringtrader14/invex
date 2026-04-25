@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
-import { ArrowsClockwise, X, ChartLine } from "@phosphor-icons/react"
+import { ArrowsClockwise, X, ChartLine, ArrowRight } from "@phosphor-icons/react"
+import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
-import PortfolioAnalysisSection from "../components/PortfolioAnalysisSection"
 
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
@@ -698,6 +698,7 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
   const [showEquityModal, setShowEquityModal] = useState(false)
+  const navigate = useNavigate()
 
   const load = useCallback(async () => {
     const token = localStorage.getItem("staax_token")
@@ -914,8 +915,32 @@ export default function PortfolioPage() {
 
       </div>
 
-      {/* ══ ROW 3: PORTFOLIO ANALYSIS SECTION ══ */}
-      <PortfolioAnalysisSection holdings={filteredHoldings} accountFilter={activeAccount} />
+      {/* ══ ROW 3: ANALYSIS LINK ══ */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+        <button
+          type="button"
+          onClick={() => navigate("/analysis")}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "var(--bg-surface)",
+            boxShadow: "var(--neu-raised-sm)",
+            border: "none",
+            borderRadius: "var(--r-pill)",
+            padding: "8px 18px",
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "var(--font-body)",
+            color: "var(--accent)",
+            cursor: "pointer",
+            transition: "box-shadow 0.15s"
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--neu-raised)" }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--neu-raised-sm)" }}
+        >
+          View Portfolio Analysis
+          <ArrowRight size={14} weight="bold" />
+        </button>
+      </div>
 
       {/* ══ MODALS ══ */}
       {showEquityModal && (
