@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
+import InvexAccountsDrawer from "./InvexAccountsDrawer"
 
 const SZ = 18
 
@@ -45,6 +46,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [istTime, setIstTime] = useState("")
+  const [showAccounts, setShowAccounts] = useState(false)
 
   useEffect(() => {
     const tick = () =>
@@ -144,7 +146,29 @@ export default function Layout() {
             </span>
           </div>
 
-          {/* Right — logout button */}
+          {/* Right — accounts + logout buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Accounts button */}
+          <button
+            onClick={() => setShowAccounts(v => !v)}
+            title="Broker Accounts"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "32px", height: "32px", borderRadius: "9px",
+              background: showAccounts ? "rgba(0,201,167,0.12)" : "rgba(255,255,255,0.03)",
+              border: showAccounts ? "0.5px solid rgba(0,201,167,0.40)" : "0.5px solid rgba(255,255,255,0.08)",
+              cursor: "pointer", color: showAccounts ? "var(--ix-vivid)" : "rgba(255,255,255,0.4)",
+              transition: "all 0.18s ease", flexShrink: 0,
+            }}
+          >
+            {/* UserCircle icon */}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="10" r="3"/>
+              <path d="M7 20.662V19a2 2 0 012-2h6a2 2 0 012 2v1.662"/>
+            </svg>
+          </button>
+          {/* Logout button */}
           <button
             onClick={logout}
             title="Logout"
@@ -174,7 +198,9 @@ export default function Layout() {
                 stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          </div>
         </header>
+        {showAccounts && <InvexAccountsDrawer onClose={() => setShowAccounts(false)} />}
 
         {/* Page content */}
         <main style={{ flex: 1, overflow: "hidden", height: 0 }}>
