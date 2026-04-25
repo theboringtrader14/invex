@@ -283,7 +283,8 @@ export default function AnalysisPage() {
         borderRadius: 'var(--r-lg)',
         padding: 4,
         width: '100%',
-        marginBottom: 20
+        marginBottom: 20,
+        marginTop: 20
       }}>
         {/* Sliding raised pill */}
         <div style={{

@@ -355,7 +355,7 @@ export default function IPOBotsPage() {
       </div>
 
       {/* ── Add symbol row ── */}
-      <div style={{ ...neuCard, padding: '18px 20px', marginBottom: '16px', marginTop: '8px' }}>
+      <div style={{ ...neuCard, padding: '18px 20px', marginBottom: '16px', marginTop: '20px' }}>
         <div style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-mute)', marginBottom: '16px', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
           ADD TO WATCHLIST
         </div>
