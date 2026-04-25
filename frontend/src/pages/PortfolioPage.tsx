@@ -795,7 +795,7 @@ export default function PortfolioPage() {
       {/* ══ HEADER ══ */}
       <div className="page-header">
         <div>
-          <h1 style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
+          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
             Portfolio
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 3, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 6 }}>
