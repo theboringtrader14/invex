@@ -197,6 +197,7 @@ export default function AnalysisPage() {
   const [sortCol, setSortCol] = useState('overall_score')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [recFilter, setRecFilter] = useState<string>('ALL')
+  const [sectorFilter, setSectorFilter] = useState<string | null>(null)
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
   const [alertFilter, setAlertFilter] = useState<'all' | 'danger' | 'warn' | 'ok'>('all')
 
@@ -388,21 +389,21 @@ export default function AnalysisPage() {
                   </div>
 
                   {/* Three inset metric chips */}
-                  <div style={{ display: 'flex', gap: 7 }}>
+                  <div style={{ display: 'flex', gap: 6, overflow: 'hidden' }}>
                     {[
                       { label: 'Diversification', score: Math.round(fundamental.health_score.diversification / 0.4), sub: `${fundamental.health_score.sectors_count} sectors` },
                       { label: 'Concentration',   score: Math.round(fundamental.health_score.concentration / 0.3),   sub: `top3 = ${fundamental.health_score.top3_concentration_pct}%` },
                       { label: 'Win Rate',         score: Math.round(fundamental.health_score.gain_loss_balance / 0.3), sub: `${fundamental.health_score.winners_pct}%` },
                     ].map(m => (
                       <div key={m.label} style={{
-                        flex: 1,
+                        flex: '1 1 0', minWidth: 0, overflow: 'hidden',
                         background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                        borderRadius: 'var(--r-md)', padding: '8px 10px',
+                        borderRadius: 'var(--r-md)', padding: '8px 8px',
                         display: 'flex', flexDirection: 'column', gap: 2,
                       }}>
-                        <span style={{ fontSize: 8, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.label}</span>
+                        <span style={{ fontSize: 8, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.label}</span>
                         <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, fontFamily: 'var(--font-mono)', color: scoreHex(m.score) }}>{m.score}</span>
-                        <span style={{ fontSize: 9, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>{m.sub}</span>
+                        <span style={{ fontSize: 9, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.sub}</span>
                       </div>
                     ))}
                   </div>
@@ -425,30 +426,31 @@ export default function AnalysisPage() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {fundamental.sector_allocation.map((s: any, i: number) => {
                           const color = COLORS[i % COLORS.length]
+                          const isActive = sectorFilter === s.sector
                           return (
-                            <div key={s.sector} style={{
-                              flex: `${Math.max(s.pct, 5)} 0 0`,
-                              minWidth: 72,
-                              height: 72,
-                              background: color + '14',
-                              boxShadow: 'var(--neu-raised)',
-                              borderRadius: 'var(--r-md)',
-                              padding: '9px 11px',
-                              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                              borderTop: `2px solid ${color}66`,
-                              overflow: 'hidden',
-                            }}>
+                            <div key={s.sector}
+                              onClick={() => setSectorFilter(isActive ? null : s.sector)}
+                              style={{
+                                flex: `${Math.max(s.pct, 5)} 0 0`,
+                                minWidth: 68,
+                                height: 76,
+                                background: color + (isActive ? '22' : '14'),
+                                boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
+                                borderRadius: 'var(--r-md)',
+                                padding: '9px 10px',
+                                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                                borderTop: `2px solid ${color}${isActive ? 'aa' : '55'}`,
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                transition: 'box-shadow 0.18s',
+                              }}>
                               <span style={{
                                 fontSize: 9, color, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                textTransform: 'uppercase', letterSpacing: '0.5px',
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                textTransform: 'uppercase', lineHeight: 1.25,
+                                display: '-webkit-box', WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
                               }}>{s.sector}</span>
-                              <div>
-                                <div style={{ fontSize: 19, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
-                                <div style={{ fontSize: 9, color: color + 'aa', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
-                                  {s.count} stocks · {formatVal(s.value)}
-                                </div>
-                              </div>
+                              <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
                             </div>
                           )
                         })}
@@ -508,11 +510,32 @@ export default function AnalysisPage() {
 
               {/* Top Holdings Table */}
               <div style={{ ...neuCard }}>
-                <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                  marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 400
-                }}>Top Holdings</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Top Holdings</div>
+                  {sectorFilter && (() => {
+                    const sd = fundamental.sector_allocation.find((s: any) => s.sector === sectorFilter)
+                    const COLORS = ['#2dd4bf','#0EA66E','#6366f1','#f59e0b','#06b6d4','#8b5cf6','#ef4444','#64748b','#0891b2','#d97706','#10b981','#ec4899']
+                    const ci = fundamental.sector_allocation.findIndex((s: any) => s.sector === sectorFilter)
+                    const color = COLORS[ci % COLORS.length]
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {sd && (
+                          <span style={{
+                            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                            borderRadius: 'var(--r-pill)', padding: '3px 10px',
+                            fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color,
+                          }}>{sd.count} stocks · {formatVal(sd.value)}</span>
+                        )}
+                        <button onClick={() => setSectorFilter(null)} style={{
+                          fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
+                          background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                          border: 'none', borderRadius: 'var(--r-pill)',
+                          padding: '4px 12px', cursor: 'pointer', fontWeight: 600,
+                        }}>✕ Clear</button>
+                      </div>
+                    )
+                  })()}
+                </div>
                 <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -530,7 +553,7 @@ export default function AnalysisPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {fundamental.top_holdings.map((h: any) => {
+                      {fundamental.top_holdings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any) => {
                         const e = getE(h.symbol)
                         return (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
