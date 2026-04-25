@@ -23,20 +23,15 @@ function RecChip({ rec }: { rec: string }) {
   const colors: Record<string, string> = {
     BUY: 'var(--green)', HOLD: 'var(--amber)', WATCH: 'var(--red)'
   }
-  const hexColors: Record<string, string> = {
-    BUY: '#22DD88', HOLD: '#F59E0B', WATCH: '#FF4444'
-  }
   const color = colors[rec] || 'var(--text-mute)'
-  const hex = hexColors[rec] || '#9CA3AF'
   return (
     <span style={{
-      background: hex + '15',
-      color,
-      border: `1px solid ${hex}33`,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
       borderRadius: 'var(--r-sm)',
-      padding: '2px 8px',
-      fontSize: 11,
-      fontWeight: 700,
+      padding: '3px 10px',
+      color,
+      fontSize: 10, fontWeight: 700,
       letterSpacing: 1,
       fontFamily: 'var(--font-mono)'
     }}>{rec}</span>
@@ -877,37 +872,22 @@ export default function AnalysisPage() {
                       fontFamily: 'var(--font-mono)', fontWeight: 400
                     }}>{title}</div>
                     {(holdings || []).map((h: any) => (
-                      <div key={h.symbol} style={{ marginBottom: 14 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <div>
-                            <span style={{
-                              color: 'var(--accent)', fontWeight: 600, fontSize: 14,
-                              fontFamily: 'var(--font-mono)'
-                            }}>{cleanSym(h.symbol)}</span>
-                            <span style={{
-                              color: 'var(--text-mute)', fontSize: 11, marginLeft: 8,
-                              fontFamily: 'var(--font-body)'
-                            }}>{h.sector}</span>
-                          </div>
+                      <div key={h.symbol} style={{ marginBottom: 16 }}>
+                        {/* Row 1: symbol · sector | separator | scores · chip */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</span>
+                          <span style={{ color: 'var(--text-mute)', fontSize: 11, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>{h.sector}</span>
+                          <div style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 4px' }} />
+                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                            F:<b style={{ color: scoreHex(h.fundamental_score) }}>{h.fundamental_score}</b>
+                            {' · '}T:<b style={{ color: scoreHex(h.technical_score) }}>{h.technical_score}</b>
+                            {' · '}Ovr:<b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
+                          </span>
                           <RecChip rec={h.recommendation} />
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
-                            Fund: <b style={{ color: scoreHex(h.fundamental_score) }}>{h.fundamental_score}</b>
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
-                            Tech: <b style={{ color: scoreHex(h.technical_score) }}>{h.technical_score}</b>
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
-                            Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
-                          </span>
-                        </div>
+                        {/* Row 2: score bar */}
                         <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
-                          <div style={{
-                            width: `${h.overall_score}%`,
-                            background: scoreHex(h.overall_score),
-                            height: '100%', borderRadius: 4
-                          }} />
+                          <div style={{ width: `${h.overall_score}%`, background: scoreHex(h.overall_score), height: '100%', borderRadius: 4 }} />
                         </div>
                       </div>
                     ))}
