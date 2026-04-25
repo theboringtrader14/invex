@@ -1,52 +1,21 @@
 """
-Angel One Holdings Loader — direct login with client ID + password + auto-TOTP.
-No OAuth redirect needed. Fully automated with pyotp.
+Angel One Holdings Loader — reads JWT from invex_accounts table (no fresh login needed).
+
+Falls back to TOTP auto-login if totp_secret + password are available on the account.
 """
 import logging
-import os
-import pyotp
-import httpx
+import uuid
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy import text, delete
-from app.core.config import settings
 
-# Separate engine for STAAX DB — accounts table lives there, not in invex_db
-STAAX_DATABASE_URL = os.getenv(
-    "STAAX_DATABASE_URL",
-    "postgresql+asyncpg://staax:staax_password@127.0.0.1:5432/staax_db"
-)
-_staax_engine = create_async_engine(STAAX_DATABASE_URL, echo=False)
-StaaxSessionLocal = async_sessionmaker(_staax_engine, class_=AsyncSession, expire_on_commit=False)
+import httpx
+import pyotp
+from sqlalchemy import select, text, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 ANGEL_BASE = "https://apiconnect.angelbroking.com"
 
-ANGEL_ACCOUNTS = [
-    {
-        "nickname": "Karthik AO",
-        "client_id": lambda: settings.angelone_karthik_client_id,
-        "password":  lambda: settings.angelone_karthik_password,
-        "api_key":   lambda: settings.angelone_karthik_api_key,
-        "totp_secret": lambda: settings.angelone_karthik_totp_secret,
-    },
-    {
-        "nickname": "Mom",
-        "client_id": lambda: settings.angelone_mom_client_id,
-        "password":  lambda: settings.angelone_mom_password,
-        "api_key":   lambda: settings.angelone_mom_api_key,
-        "totp_secret": lambda: settings.angelone_mom_totp_secret,
-    },
-    {
-        "nickname": "Wife",
-        "client_id": lambda: settings.angelone_wife_client_id,
-        "password":  lambda: settings.angelone_wife_password,
-        "api_key":   lambda: settings.angelone_wife_api_key,
-        "totp_secret": lambda: settings.angelone_wife_totp_secret,
-    },
-]
 
 async def angel_login(client_id: str, password: str, api_key: str, totp_secret: str) -> str:
     """Login to Angel One SmartAPI and return JWT token."""
@@ -76,6 +45,7 @@ async def angel_login(client_id: str, password: str, api_key: str, totp_secret: 
             logger.error(f"[ANGEL] Login failed for {client_id}: {data.get('message', 'Unknown error')}")
             raise Exception(f"Angel One login failed: {data.get('message', 'Unknown')}")
 
+
 async def fetch_angel_holdings(jwt_token: str, api_key: str) -> list:
     """Fetch equity holdings from Angel One."""
     headers = {
@@ -103,96 +73,122 @@ async def fetch_angel_holdings(jwt_token: str, api_key: str) -> list:
         logger.warning(f"[ANGEL] Holdings fetch failed: {data.get('message')}")
         return []
 
+
 async def load_angel_holdings(db: AsyncSession) -> dict:
     """
-    Auto-login to all Angel One accounts and load their holdings.
-    Uses pyotp for automatic TOTP generation — fully headless.
+    Load holdings for all active Angel One accounts registered in invex_accounts.
+
+    Token priority:
+      1. Use stored jwt_token from invex_accounts (set at bootstrap / refresh-token endpoint).
+      2. Fall back to TOTP auto-login if totp_secret + password are stored.
+
+    After loading, updates last_synced_at + holdings_count on the account row.
     """
     from app.models.holdings import Holdings
+    from app.models.invex_account import InvexAccount
     from app.core.sector_map import get_sector
-    import uuid
+
+    # Fetch all active Angel One accounts
+    result = await db.execute(
+        select(InvexAccount).where(
+            InvexAccount.broker == "angelone",
+            InvexAccount.is_active == True,  # noqa: E712
+        ).order_by(InvexAccount.nickname)
+    )
+    accounts = result.scalars().all()
+
+    if not accounts:
+        logger.warning("[ANGEL] No active Angel One accounts in invex_accounts — skipping")
+        return {"total": 0, "accounts": {}}
 
     total = 0
     results = {}
     now = datetime.now(timezone.utc)
 
-    for acc in ANGEL_ACCOUNTS:
-        nickname = acc["nickname"]
-        client_id = acc["client_id"]()
-        password = acc["password"]()
-        api_key = acc["api_key"]()
-        totp_secret = acc["totp_secret"]()
+    for acc in accounts:
+        nickname  = acc.nickname
+        client_id = acc.client_id
+        jwt_token = acc.jwt_token
+        api_key   = acc.api_key or ""
 
-        if not all([client_id, password, api_key, totp_secret]):
-            logger.warning(f"[ANGEL] {nickname}: missing credentials — skipping")
-            results[nickname] = {"error": "Missing credentials"}
-            continue
-
-        try:
-            # Auto-login with TOTP
-            jwt_token = await angel_login(client_id, password, api_key, totp_secret)
-
-            # Get account_id from STAAX DB (accounts table lives in staax_db, not invex_db)
-            async with StaaxSessionLocal() as staax_db:
-                result = await staax_db.execute(
-                    text("SELECT id FROM accounts WHERE nickname=:nickname AND broker='angelone' LIMIT 1"),
-                    {"nickname": nickname}
-                )
-                row = result.fetchone()
-                if not row:
-                    logger.warning(f"[ANGEL] {nickname}: account not found in DB")
-                    results[nickname] = {"error": "Account not in DB"}
+        # ── Resolve JWT ──────────────────────────────────────────────────────
+        if not jwt_token:
+            # Attempt TOTP auto-login if credentials stored
+            if acc.totp_secret and acc.password and api_key:
+                try:
+                    jwt_token = await angel_login(client_id, acc.password, api_key, acc.totp_secret)
+                    acc.jwt_token  = jwt_token
+                    acc.sync_error = None
+                    logger.info(f"[ANGEL] {nickname}: obtained JWT via TOTP login")
+                except Exception as e:
+                    err = f"TOTP login failed: {e}"
+                    logger.error(f"[ANGEL] {nickname}: {err}")
+                    acc.sync_error = err
+                    results[nickname] = {"error": err}
                     continue
-                account_id = str(row[0])
-
-                # Also store token back to accounts table for reference
-                await staax_db.execute(
-                    text("UPDATE accounts SET access_token=:token, status='active' WHERE id=:id"),
-                    {"token": jwt_token, "id": account_id}
-                )
-                await staax_db.commit()
-
-            # Fetch holdings
-            raw = await fetch_angel_holdings(jwt_token, api_key)
-            if not raw:
-                results[nickname] = {"loaded": 0}
+            else:
+                err = "No JWT and no TOTP credentials — run refresh-token first"
+                logger.warning(f"[ANGEL] {nickname}: {err}")
+                acc.sync_error = err
+                results[nickname] = {"error": err}
                 continue
 
-            # Clear old holdings and insert fresh
-            await db.execute(delete(Holdings).where(Holdings.account_id == account_id))
-            count = 0
-            for h in raw:
-                qty = int(float(h.get("quantity", 0) or 0))
-                if qty <= 0:
-                    continue
-                symbol     = h.get("tradingsymbol", "") or h.get("symbol", "")
-                avg_price  = float(h.get("averageprice", 0) or h.get("average_price", 0) or 0)
-                ltp        = float(h.get("ltp", 0) or 0)
-                close      = float(h.get("close", 0) or h.get("close_price", 0) or 0)
-                # day_change = (LTP − prev_close) × qty, same formula as Zerodha loader
-                day_change = round((ltp - close) * qty, 2) if ltp > 0 and close > 0 else None
-                holding = Holdings(
-                    id=uuid.uuid4(),
-                    account_id=account_id,
-                    symbol=symbol,
-                    exchange=h.get("exchange", "NSE"),
-                    isin=h.get("isin"),
-                    qty=qty,
-                    avg_price=avg_price,
-                    ltp=ltp if ltp > 0 else None,
-                    day_change=day_change,
-                    updated_at=now,
-                )
-                holding.sector = get_sector(symbol)
-                db.add(holding)
-                count += 1
-            total += count
-            results[nickname] = {"loaded": count}
-            logger.info(f"[ANGEL] {nickname}: loaded {count} holdings")
+        if not api_key:
+            err = "No api_key stored — cannot fetch holdings"
+            logger.warning(f"[ANGEL] {nickname}: {err}")
+            acc.sync_error = err
+            results[nickname] = {"error": err}
+            continue
 
+        # ── Fetch Holdings ───────────────────────────────────────────────────
+        try:
+            raw = await fetch_angel_holdings(jwt_token, api_key)
         except Exception as e:
-            logger.error(f"[ANGEL] {nickname}: {e}")
-            results[nickname] = {"error": str(e)}
+            err = f"Holdings fetch error: {e}"
+            logger.error(f"[ANGEL] {nickname}: {err}")
+            acc.sync_error = err
+            results[nickname] = {"error": err}
+            continue
+
+        # account_id used for holdings table (keyed by client_id in STAAX convention)
+        # We use the invex_account.id as the account_id FK in holdings
+        account_id = str(acc.id)
+
+        # Clear stale holdings for this account
+        await db.execute(delete(Holdings).where(Holdings.account_id == account_id))
+
+        count = 0
+        for h in raw:
+            qty = int(float(h.get("quantity", 0) or 0))
+            if qty <= 0:
+                continue
+            symbol    = h.get("tradingsymbol", "") or h.get("symbol", "")
+            avg_price = float(h.get("averageprice", 0) or h.get("average_price", 0) or 0)
+            ltp       = float(h.get("ltp", 0) or 0)
+            close     = float(h.get("close", 0) or h.get("close_price", 0) or 0)
+            day_change = round((ltp - close) * qty, 2) if ltp > 0 and close > 0 else None
+            holding = Holdings(
+                id=uuid.uuid4(),
+                account_id=account_id,
+                symbol=symbol,
+                exchange=h.get("exchange", "NSE"),
+                isin=h.get("isin"),
+                qty=qty,
+                avg_price=avg_price,
+                ltp=ltp if ltp > 0 else None,
+                day_change=day_change,
+                updated_at=now,
+            )
+            holding.sector = get_sector(symbol)
+            db.add(holding)
+            count += 1
+
+        total += count
+        acc.last_synced_at = now
+        acc.holdings_count = count
+        acc.sync_error     = None
+        results[nickname]  = {"loaded": count}
+        logger.info(f"[ANGEL] {nickname}: loaded {count} holdings")
 
     await db.commit()
     return {"total": total, "accounts": results}
