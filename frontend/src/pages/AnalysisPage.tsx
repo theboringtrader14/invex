@@ -391,29 +391,46 @@ export default function AnalysisPage() {
                     marginBottom: 16, textTransform: 'uppercase',
                     fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Sector Allocation</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                    {fundamental.sector_allocation.slice(0, 10).map((s: any) => (
-                      <div key={s.sector} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{
-                          width: 140, flexShrink: 0,
-                          fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)',
-                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                        }}>{s.sector}</span>
-                        <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '1px 2px' }}>
-                          <div style={{
-                            width: `${s.pct}%`,
-                            background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
-                            height: '100%', borderRadius: 3
-                          }} />
-                        </div>
-                        <span style={{
-                          minWidth: 158, flexShrink: 0,
-                          fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)',
-                          textAlign: 'right', whiteSpace: 'nowrap'
-                        }}>{s.pct}% · {s.count} stocks · {formatVal(s.value)}</span>
+                  {(() => {
+                    const COLORS = [
+                      '#2dd4bf','#0EA66E','#6366f1','#f59e0b',
+                      '#06b6d4','#8b5cf6','#ef4444','#64748b',
+                      '#0891b2','#d97706','#10b981','#ec4899',
+                    ]
+                    return (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {fundamental.sector_allocation.map((s: any, i: number) => {
+                          const color = COLORS[i % COLORS.length]
+                          return (
+                            <div key={s.sector} style={{
+                              flex: `${Math.max(s.pct, 5)} 0 0`,
+                              minWidth: 72,
+                              height: 72,
+                              background: color + '14',
+                              boxShadow: 'var(--neu-raised)',
+                              borderRadius: 'var(--r-md)',
+                              padding: '9px 11px',
+                              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                              borderTop: `2px solid ${color}66`,
+                              overflow: 'hidden',
+                            }}>
+                              <span style={{
+                                fontSize: 9, color, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '0.5px',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                              }}>{s.sector}</span>
+                              <div>
+                                <div style={{ fontSize: 19, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
+                                <div style={{ fontSize: 9, color: color + 'aa', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                                  {s.count} stocks · {formatVal(s.value)}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })()}
                 </div>
               </div>
 
