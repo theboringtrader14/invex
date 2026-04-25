@@ -495,7 +495,7 @@ export default function AnalysisPage() {
                               style={{
                                 height: 80,
                                 background: isActive ? color + '18' : 'var(--bg-surface)',
-                                boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
+                                boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
                                 borderRadius: 'var(--r-md)',
                                 padding: '12px 14px',
                                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
