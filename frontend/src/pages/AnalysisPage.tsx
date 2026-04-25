@@ -566,7 +566,7 @@ export default function AnalysisPage() {
                       padding: '4px 12px', cursor: 'pointer', fontWeight: 600,
                       letterSpacing: '0.5px'
                     }}>
-                      ✕ clear filter
+                      ✕ Clear Filter
                     </button>
                   )}
                 </div>
