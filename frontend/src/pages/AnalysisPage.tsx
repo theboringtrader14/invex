@@ -657,8 +657,9 @@ export default function AnalysisPage() {
                           return (
                             <button key={c.key} onClick={() => setAlertFilter(c.key)} style={{
                               display: 'inline-flex', alignItems: 'center',
-                              padding: '3px 10px', borderRadius: 'var(--r-pill)',
-                              fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                              padding: '4px 14px', borderRadius: 'var(--r-pill)',
+                              fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                              letterSpacing: '0.5px',
                               color: isActive ? c.color : 'var(--text-mute)',
                               background: 'var(--bg)',
                               boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',

@@ -903,19 +903,20 @@ export default function PortfolioPage() {
               </div>
 
               {/* Account filter chips */}
-              <div style={{ display: "flex", gap: 4 }}>
+              <div style={{ display: "flex", gap: 6 }}>
                 {accountChips.map(acct => (
                   <button type="button" key={acct} onClick={() => setActiveAccount(acct)}
                     style={{
-                      padding: "3px 10px",
+                      padding: "4px 14px",
                       borderRadius: "var(--r-pill)",
                       fontFamily: "var(--font-mono)",
-                      fontSize: "10px", fontWeight: 600,
+                      fontSize: 11, fontWeight: 700,
+                      letterSpacing: "0.5px",
                       border: "none",
-                      background: activeAccount === acct ? "var(--bg)" : "transparent",
-                      boxShadow: activeAccount === acct ? "var(--neu-inset)" : "none",
+                      background: "var(--bg)",
+                      boxShadow: activeAccount === acct ? "var(--neu-inset)" : "var(--neu-raised-sm)",
                       color: activeAccount === acct ? "var(--accent)" : "var(--text-mute)",
-                      cursor: "pointer", transition: "all 0.15s"
+                      cursor: "pointer", transition: "box-shadow 0.18s, color 0.18s"
                     }}>
                     {acct.toUpperCase()}
                   </button>
