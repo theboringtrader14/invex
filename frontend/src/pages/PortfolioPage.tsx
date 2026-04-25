@@ -27,8 +27,8 @@ type SortKey = "symbol" | "pnl" | "pnl_pct" | "current_value"
 type TimeRange = "1M" | "3M" | "1Y" | "All"
 type ActiveTab = "equity" | "mf"
 
-const ACCOUNTS = ["All", "Karthik", "Mom", "Wife"]
 const LS_SORT_KEY = "invex_holdings_sort"
+const INVEX_API = import.meta.env.VITE_API_URL ?? "http://localhost:8001"
 const PORTFOLIO_CACHE = "invex:portfolio:cache"
 
 type PortfolioCache = {
@@ -703,7 +703,7 @@ export default function PortfolioPage() {
     const token = localStorage.getItem("staax_token")
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
-    const acctPromise = fetch(`${import.meta.env.VITE_STAAX_API_URL || 'http://localhost:8000'}/api/v1/accounts/`, { headers })
+    const acctPromise = fetch(`${INVEX_API}/api/v1/accounts/`)
       .then(async r => {
         if (!r.ok) return
         const accts: Array<{ id: string; nickname: string }> = await r.json()
@@ -711,7 +711,7 @@ export default function PortfolioPage() {
         accts.forEach(a => { map[a.id] = a.nickname })
         setAccountMap(map)
       })
-      .catch(() => { /* STAAX may be down */ })
+      .catch(() => { /* INVEX accounts endpoint may be unavailable */ })
 
     const portfolioPromise = Promise.all([
       portfolioAPI.summary(),
@@ -749,6 +749,9 @@ export default function PortfolioPage() {
     }, 60_000)
     return () => clearInterval(interval)
   }, [load])
+
+  // Build sorted unique nickname list from the live accountMap
+  const accountChips = ["All", ...Array.from(new Set(Object.values(accountMap))).sort()]
 
   const filteredHoldings = activeAccount === "All"
     ? holdings
@@ -792,7 +795,7 @@ export default function PortfolioPage() {
       {/* ══ HEADER ══ */}
       <div className="page-header">
         <div>
-          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
+          <h1 style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
             Portfolio
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 3, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -822,8 +825,12 @@ export default function PortfolioPage() {
         <KPICard
           label="Total P&L"
           value={summary ? `${summary.total_pnl >= 0 ? "+" : ""}${fmt(summary.total_pnl)}` : "—"}
-          sub={summary ? fmtPct(summary.total_pnl_pct) : undefined}
           valueColor={pnlColor(summary?.total_pnl)}
+        />
+        <KPICard
+          label="Return %"
+          value={summary ? fmtPct(summary.total_pnl_pct) : "—"}
+          valueColor={pnlColor(summary?.total_pnl_pct)}
         />
         <KPICard
           label="Day P&L"
@@ -864,9 +871,9 @@ export default function PortfolioPage() {
                   </button>
                 ))}
               </div>
-              {/* Account filter — chips */}
+              {/* Account filter — chips (derived from live invex_accounts) */}
               <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-                {ACCOUNTS.map(acct => (
+                {accountChips.map(acct => (
                   <button key={acct} onClick={() => setActiveAccount(acct)}
                     style={{
                       padding: "3px 10px",
