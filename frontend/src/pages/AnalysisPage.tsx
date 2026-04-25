@@ -69,23 +69,27 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
   const circ = 2 * Math.PI * r
   const dashOffset = circ - (score / 100) * circ
   const hexColor = scoreHex(score)
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+  const trackStroke    = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(203,218,215,0.95)'
+  const grooveDark     = isDark ? 'rgba(0,0,0,0.70)'       : 'rgba(130,155,150,0.55)'
+  const grooveLight    = isDark ? 'rgba(255,255,255,0.06)'  : 'rgba(255,255,255,0.88)'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <svg width={size} height={size}>
         <defs>
           {/* Inset groove filter: dark shadow top-left, light highlight bottom-right */}
           <filter id="arc-groove" x="-12%" y="-12%" width="124%" height="124%">
-            {/* Dark at top-left: take source alpha, shift blur right+down, subtract → top-left remains */}
+            {/* Dark at top-left */}
             <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b1"/>
             <feOffset in="b1" dx="2.5" dy="2.5" result="bs1"/>
             <feComposite in="SourceAlpha" in2="bs1" operator="out" result="topLeft"/>
-            <feFlood floodColor="rgba(130,155,150,0.55)" result="darkC"/>
+            <feFlood floodColor={grooveDark} result="darkC"/>
             <feComposite in="darkC" in2="topLeft" operator="in" result="dark"/>
-            {/* Light at bottom-right: shift blur left+up, subtract → bottom-right remains */}
+            {/* Light at bottom-right */}
             <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b2"/>
             <feOffset in="b2" dx="-2.5" dy="-2.5" result="bs2"/>
             <feComposite in="SourceAlpha" in2="bs2" operator="out" result="btmRight"/>
-            <feFlood floodColor="rgba(255,255,255,0.88)" result="lightC"/>
+            <feFlood floodColor={grooveLight} result="lightC"/>
             <feComposite in="lightC" in2="btmRight" operator="in" result="light"/>
             <feMerge>
               <feMergeNode in="SourceGraphic"/>
@@ -94,9 +98,9 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
             </feMerge>
           </filter>
         </defs>
-        {/* Groove track — slightly wider so arc sits cleanly on top */}
+        {/* Groove track */}
         <circle cx={cx} cy={cy} r={r} fill="none"
-          stroke="rgba(203,218,215,0.95)" strokeWidth={9}
+          stroke={trackStroke} strokeWidth={9}
           filter="url(#arc-groove)"/>
         {/* Progress arc */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={8}
