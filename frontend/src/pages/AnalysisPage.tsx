@@ -535,8 +535,7 @@ export default function AnalysisPage() {
                       padding: 16,
                       cursor: 'pointer',
                       boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
-                      outline: isActive ? `2px solid ${color}44` : 'none',
-                      transition: 'box-shadow 0.18s, outline 0.18s',
+                      transition: 'box-shadow 0.18s',
                     }}>
                       <div style={{
                         fontSize: 10, color, marginBottom: 8,
