@@ -833,7 +833,7 @@ export default function AnalysisPage() {
           {/* ═══ TAB 3: SCORECARD ═══ */}
           {tab === 'scorecard' && scorecard && (
             <div style={{ display: 'grid', gap: 20 }}>
-              {/* Summary Cards — 5 cols when portfolioGrade available */}
+              {/* Summary Cards — always 5 cols (Grade conditional, Needs Attention always last) */}
               <div style={{ display: 'grid', gridTemplateColumns: portfolioGrade ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
                 {/* Portfolio Grade card */}
                 {portfolioGrade && (() => {
@@ -851,48 +851,44 @@ export default function AnalysisPage() {
                     </div>
                   )
                 })()}
+                {/* Arc score cards — Overall, Health, Technical */}
                 {(() => {
                   const portfolioHealth = fundamental?.health_score?.total ?? scorecard.portfolio.fundamental_score
                   const technicalScore = scorecard.portfolio.technical_score
                   const overallScore = Math.round((portfolioHealth * 0.5) + (technicalScore * 0.5))
                   return [
-                    { label: 'Overall Score',    value: overallScore,    arc: true },
-                    { label: 'Portfolio Health', value: portfolioHealth, arc: true },
-                    { label: 'Technical',        value: technicalScore,  arc: true },
-                    { label: 'Recommendation',   value: null,            arc: false, recs: scorecard.portfolio },
+                    { label: 'Overall Score',    value: overallScore    },
+                    { label: 'Portfolio Health', value: portfolioHealth  },
+                    { label: 'Technical',        value: technicalScore   },
                   ]
                 })().map((card, i) => (
-                  <div key={i} style={{
-                    ...neuCard,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: 16
-                  }}>
-                    {card.arc ? (
-                      <ScoreArc score={card.value!} size={90} label={card.label} />
-                    ) : (
-                      <>
-                        <div style={{
-                          fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                          marginBottom: 12, textTransform: 'uppercase',
-                          fontFamily: 'var(--font-mono)', fontWeight: 400
-                        }}>{card.label}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-                          <span style={{ color: 'var(--green)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                            ▲ {card.recs?.buy_count} BUY
-                          </span>
-                          <span style={{ color: 'var(--amber)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                            ◆ {card.recs?.hold_count} HOLD
-                          </span>
-                          <span style={{ color: 'var(--red)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                            ● {card.recs?.watch_count} WATCH
-                          </span>
-                        </div>
-                      </>
-                    )}
+                  <div key={i} style={{ ...neuCard, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 16 }}>
+                    <ScoreArc score={card.value} size={90} label={card.label} />
                   </div>
                 ))}
+                {/* Needs Attention card — compact bottom_3 */}
+                {(() => {
+                  const bottom3 = scorecard.portfolio.bottom_3 || []
+                  return (
+                    <div style={{ ...neuCard, padding: '16px 18px' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 12 }}>Needs Attention</div>
+                      {bottom3.length === 0 ? (
+                        <div style={{ fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center', paddingTop: 16 }}>All holdings healthy</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {bottom3.map((h: any) => (
+                            <div key={h.symbol} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</span>
+                              <span style={{ color: 'var(--text-mute)', fontSize: 10, fontFamily: 'var(--font-body)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.sector}</span>
+                              <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font-mono)', color: scoreHex(h.overall_score), flexShrink: 0 }}>{h.overall_score}</span>
+                              <RecChip rec={h.recommendation} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* SWOT Analysis */}
@@ -1018,49 +1014,31 @@ export default function AnalysisPage() {
                 )
               })()}
 
-              {/* Top 3 + Bottom 3 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {[
-                  { title: 'Strongest Holdings', holdings: scorecard.portfolio.top_3 },
-                  { title: 'Needs Attention', holdings: scorecard.portfolio.bottom_3 },
-                ].map(({ title, holdings }) => (
-                  <div key={title} style={{ ...neuCard }}>
-                    <div style={{
-                      fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                      marginBottom: 16, textTransform: 'uppercase',
-                      fontFamily: 'var(--font-mono)', fontWeight: 400
-                    }}>{title}</div>
-                    {(holdings || []).map((h: any) => (
-                      <div key={h.symbol} style={{ marginBottom: 16 }}>
-                        {/* Row 1: symbol · sector | separator | scores · chip */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</span>
-                          <span style={{ color: 'var(--text-mute)', fontSize: 11, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>{h.sector}</span>
-                          <div style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 4px' }} />
-                          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
-                            F:<b style={{ color: scoreHex(h.fundamental_score) }}>{h.fundamental_score}</b>
-                            {' · '}T:<b style={{ color: scoreHex(h.technical_score) }}>{h.technical_score}</b>
-                            {' · '}Ovr:<b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
-                          </span>
-                          <RecChip rec={h.recommendation} />
-                        </div>
-                        {/* Row 2: score bar */}
-                        <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
-                          <div style={{ width: `${h.overall_score}%`, background: scoreHex(h.overall_score), height: '100%', borderRadius: 4 }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-
               {/* Filter + Full Scorecard Table */}
               <div style={{ ...neuCard }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{
-                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                    textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400
-                  }}>Full Scorecard</div>
+                  {/* Left: label + count chips */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Full Scorecard</div>
+                    {(() => {
+                      const all = scorecard.holdings || []
+                      const counts = { BUY: 0, HOLD: 0, WATCH: 0 }
+                      all.forEach((h: any) => { if (h.recommendation in counts) counts[h.recommendation as keyof typeof counts]++ })
+                      return [
+                        { key: 'BUY',   color: 'var(--green)',        count: counts.BUY   },
+                        { key: 'HOLD',  color: 'var(--accent-amber)', count: counts.HOLD  },
+                        { key: 'WATCH', color: 'var(--red)',          count: counts.WATCH },
+                      ].map(({ key, color, count }) => (
+                        <span key={key} style={{
+                          background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                          borderRadius: 'var(--r-pill)', padding: '3px 10px',
+                          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                          color, letterSpacing: '0.5px',
+                        }}>{key} · {count}</span>
+                      ))
+                    })()}
+                  </div>
+                  {/* Right: filter chips */}
                   <div style={{ display: 'flex', gap: 6 }}>
                     {['ALL', 'BUY', 'HOLD', 'WATCH'].map(f => (
                       <button key={f} onClick={() => setRecFilter(f)} style={{
