@@ -725,7 +725,7 @@ export default function SIPsPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px", paddingTop: "8px" }}>
         <MetricCard
           label="Active SIPs"
           value={String(activeSIPs.length)}

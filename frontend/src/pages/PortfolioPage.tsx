@@ -823,7 +823,7 @@ export default function PortfolioPage() {
       </div>
 
       {/* ══ ROW 1: KPI STRIP ══ */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: "12px", marginBottom: "20px", paddingTop: "8px" }}>
         <KPICard
           label="Portfolio Value"
           value={summary ? fmt(summary.total_portfolio_value) : "—"}
