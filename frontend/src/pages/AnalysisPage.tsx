@@ -176,6 +176,8 @@ export default function AnalysisPage() {
   const [sortCol, setSortCol] = useState('overall_score')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [recFilter, setRecFilter] = useState<string>('ALL')
+  const [signalFilter, setSignalFilter] = useState<string | null>(null)
+  const [alertFilter, setAlertFilter] = useState<'all' | 'danger' | 'warn' | 'ok'>('all')
 
   useEffect(() => {
     setLoading(true)
@@ -526,11 +528,16 @@ export default function AnalysisPage() {
                     BEAR: '▼▼ Bear'
                   }
                   const color = colorMap[sig] || 'var(--text-mute)'
+                  const isActive = signalFilter === sig
                   return (
-                    <div key={sig} style={{
+                    <div key={sig} onClick={() => setSignalFilter(isActive ? null : sig)} style={{
                       ...neuCard,
                       borderTop: `3px solid ${color}`,
-                      padding: 16
+                      padding: 16,
+                      cursor: 'pointer',
+                      boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
+                      outline: isActive ? `2px solid ${color}44` : 'none',
+                      transition: 'box-shadow 0.18s, outline 0.18s',
                     }}>
                       <div style={{
                         fontSize: 10, color: 'var(--text-mute)', marginBottom: 8,
@@ -551,11 +558,14 @@ export default function AnalysisPage() {
 
               {/* Holdings table */}
               <div style={{ ...neuCard }}>
-                <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                  marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 400
-                }}>Holdings by Signal</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Holdings by Signal</div>
+                  {signalFilter && (
+                    <button onClick={() => setSignalFilter(null)} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                      clear filter
+                    </button>
+                  )}
+                </div>
                 <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '369px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -576,7 +586,7 @@ export default function AnalysisPage() {
                       {[...technical.holdings].sort((a: any, b: any) => {
                         const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
                         return order.indexOf(a.signal) - order.indexOf(b.signal)
-                      }).map((h: any) => {
+                      }).filter((h: any) => !signalFilter || h.signal === signalFilter).map((h: any) => {
                         const pct = h.gain_pct || 0
                         const barW = Math.min(Math.abs(pct), 100)
                         const barColor = pct >= 0 ? '#0EA66E' : '#FF4444'
@@ -631,13 +641,37 @@ export default function AnalysisPage() {
                 if (alerts.length === 0) return null
                 const iconMap = { warn: '⚠', danger: '●', ok: '✓' }
                 const colorMap = { warn: '#F59E0B', danger: '#FF4444', ok: '#0EA66E' }
+                const chipLabels: { key: 'all' | 'danger' | 'warn' | 'ok'; label: string; color: string }[] = [
+                  { key: 'all',    label: `All · ${alerts.length}`,                              color: 'var(--text-mute)' },
+                  { key: 'danger', label: `Danger · ${alerts.filter(a => a.type === 'danger').length}`, color: '#FF4444' },
+                  { key: 'warn',   label: `Watch · ${alerts.filter(a => a.type === 'warn').length}`,   color: '#F59E0B' },
+                  { key: 'ok',     label: `Strong · ${alerts.filter(a => a.type === 'ok').length}`,    color: '#0EA66E' },
+                ]
+                const filtered = alertFilter === 'all' ? alerts : alerts.filter(a => a.type === alertFilter)
                 return (
                   <div style={{ ...neuCard }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 14, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>
-                      Action Alerts
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Action Alerts</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {chipLabels.map(c => {
+                          const isActive = alertFilter === c.key
+                          return (
+                            <button key={c.key} onClick={() => setAlertFilter(c.key)} style={{
+                              display: 'inline-flex', alignItems: 'center',
+                              padding: '3px 10px', borderRadius: 'var(--r-pill)',
+                              fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                              color: isActive ? c.color : 'var(--text-mute)',
+                              background: 'var(--bg)',
+                              boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                              border: 'none', cursor: 'pointer',
+                              transition: 'box-shadow 0.18s, color 0.18s',
+                            }}>{c.label}</button>
+                          )
+                        })}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {alerts.slice(0, 10).map((a, i) => (
+                    <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 294, overflowY: 'auto' }}>
+                      {filtered.map((a, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'var(--r-sm)', background: colorMap[a.type] + '10', border: `1px solid ${colorMap[a.type]}22` }}>
                           <span style={{ color: colorMap[a.type], fontSize: 13 }}>{iconMap[a.type]}</span>
                           <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{a.msg}</span>
