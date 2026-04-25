@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { SortableHeader } from '../components/SortableHeader'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -195,7 +196,11 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortCol, setSortCol] = useState('overall_score')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>('desc')
+  const [fundSortCol, setFundSortCol] = useState<string>('current_value')
+  const [fundSortDir, setFundSortDir] = useState<'asc' | 'desc' | null>('desc')
+  const [techSortCol, setTechSortCol] = useState<string>('gain_pct')
+  const [techSortDir, setTechSortDir] = useState<'asc' | 'desc' | null>('desc')
   const [recFilter, setRecFilter] = useState<string>('ALL')
   const [sectorFilter, setSectorFilter] = useState<string | null>(null)
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
@@ -233,6 +238,59 @@ export default function AnalysisPage() {
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>
     enriched.find(e => e.symbol === symbol.replace(/-EQ$/i, '').replace(/-BE$/i, '')) ?? null
+
+  // Sort handler factory — cycles desc → asc → null → desc
+  const makeSortHandler = (
+    col: string, setCol: (c: string) => void,
+    dir: 'asc' | 'desc' | null, setDir: (d: 'asc' | 'desc' | null) => void
+  ) => (key: string) => {
+    if (col === key) setDir(dir === 'desc' ? 'asc' : dir === 'asc' ? null : 'desc')
+    else { setCol(key); setDir('desc') }
+  }
+
+  const handleFundSort  = makeSortHandler(fundSortCol, setFundSortCol, fundSortDir, setFundSortDir)
+  const handleTechSort  = makeSortHandler(techSortCol, setTechSortCol, techSortDir, setTechSortDir)
+  const handleScorecardSort = makeSortHandler(sortCol, setSortCol, sortDir, setSortDir)
+
+  // Pre-join fundamental top_holdings with enriched data for sorting
+  const joinedHoldings = useMemo(() => {
+    if (!fundamental) return []
+    return (fundamental.top_holdings || []).map((h: any) => {
+      const e = getE(h.symbol)
+      return { ...h, _pe: e?.pe ?? null, _grade: e?.grade ?? '', _signal: e?.signal ?? '', _mktcap: e?.market_cap_category ?? '' }
+    })
+  }, [fundamental, enriched])
+
+  const sortedFundHoldings = useMemo(() => {
+    if (!fundSortCol || !fundSortDir) return joinedHoldings
+    return [...joinedHoldings].sort((a: any, b: any) => {
+      const fieldMap: Record<string, string> = { current_value: 'current_value', weight_pct: 'weight_pct', gain_pct: 'gain_pct', symbol: 'symbol', sector: 'sector', pe: '_pe', grade: '_grade', signal: '_signal', mkt_cap: '_mktcap' }
+      const field = fieldMap[fundSortCol] || fundSortCol
+      const av = a[field]; const bv = b[field]
+      if (av == null) return 1; if (bv == null) return -1
+      if (typeof av === 'number') return fundSortDir === 'asc' ? av - bv : bv - av
+      return fundSortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+    })
+  }, [joinedHoldings, fundSortCol, fundSortDir])
+
+  const sortedTechHoldings = useMemo(() => {
+    if (!technical) return []
+    const base = [...technical.holdings].sort((a: any, b: any) => {
+      const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
+      return order.indexOf(a.signal) - order.indexOf(b.signal)
+    })
+    if (!techSortCol || !techSortDir) return base
+    return [...(technical.holdings)].sort((a: any, b: any) => {
+      const fieldMap: Record<string, string> = { symbol: 'symbol', sector: 'sector', cmp: 'price', gain_pct: 'gain_pct', signal: 'signal', rsi: 'rsi' }
+      const field = fieldMap[techSortCol] || techSortCol
+      const av = a[field]; const bv = b[field]
+      if (av == null) return 1; if (bv == null) return -1
+      if (typeof av === 'number') return techSortDir === 'asc' ? av - bv : bv - av
+      const signalOrder = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
+      if (field === 'signal') return techSortDir === 'asc' ? signalOrder.indexOf(av) - signalOrder.indexOf(bv) : signalOrder.indexOf(bv) - signalOrder.indexOf(av)
+      return techSortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+    })
+  }, [technical, techSortCol, techSortDir])
 
   // Portfolio-level grade from enriched holdings
   const portfolioGrade = (() => {
@@ -360,7 +418,7 @@ export default function AnalysisPage() {
           {/* ═══ TAB 1: FUNDAMENTAL ═══ */}
           {tab === 'fundamental' && fundamental && (
             <div style={{ display: 'grid', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'stretch' }}>
                 {/* Health Score Card — compact Option B */}
                 <div style={{ ...neuCard }}>
                   <div style={{
@@ -423,7 +481,7 @@ export default function AnalysisPage() {
                       '#0891b2','#d97706','#10b981','#ec4899',
                     ]
                     return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
                         {fundamental.sector_allocation.map((s: any, i: number) => {
                           const color = COLORS[i % COLORS.length]
                           const isActive = sectorFilter === s.sector
@@ -431,14 +489,11 @@ export default function AnalysisPage() {
                             <div key={s.sector}
                               onClick={() => setSectorFilter(isActive ? null : s.sector)}
                               style={{
-                                /* flex-basis = max(pct, 10)% forces ~7 per row naturally */
-                                flex: `${Math.max(s.pct, 4)} 0 ${Math.max(s.pct, 10)}%`,
-                                minWidth: 64,
-                                height: 70,
+                                height: 80,
                                 background: isActive ? color + '18' : 'var(--bg-surface)',
                                 boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
                                 borderRadius: 'var(--r-md)',
-                                padding: '8px 10px',
+                                padding: '12px 14px',
                                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                                 overflow: 'hidden',
                                 cursor: 'pointer',
@@ -446,11 +501,11 @@ export default function AnalysisPage() {
                               }}>
                               <span style={{
                                 fontSize: 9, color, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                                textTransform: 'uppercase', lineHeight: 1.25,
+                                textTransform: 'uppercase', lineHeight: 1.3,
                                 display: '-webkit-box', WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
                               }}>{s.sector}</span>
-                              <div style={{ fontSize: 17, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
+                              <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
                             </div>
                           )
                         })}
@@ -536,24 +591,23 @@ export default function AnalysisPage() {
                     )
                   })()}
                 </div>
-                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '436px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%', 'PE', 'Mkt Cap', 'Grade', 'Signal'].map(h => (
-                          <th key={h} style={{
-                            padding: '8px 12px',
-                            textAlign: 'center',
-                            color: 'var(--text-mute)',
-                            fontWeight: 400, fontSize: 10, letterSpacing: '1px',
-                            textTransform: 'uppercase', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)'
-                          }}>{h}</th>
-                        ))}
+                        <SortableHeader label="Symbol"  sortKey="symbol"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort} align="left"   style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Sector"  sortKey="sector"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Value"   sortKey="current_value" currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Weight"  sortKey="weight_pct"    currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Gain%"   sortKey="gain_pct"      currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="PE"      sortKey="pe"            currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Mkt Cap" sortKey="mkt_cap"       currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Grade"   sortKey="grade"         currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Signal"  sortKey="signal"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                       </tr>
                     </thead>
                     <tbody>
-                      {fundamental.top_holdings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any) => {
+                      {sortedFundHoldings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any) => {
                         const e = getE(h.symbol)
                         return (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -662,23 +716,18 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Symbol', 'Sector', 'CMP', 'vs Avg', 'Signal', 'RSI', '50DMA', '200DMA'].map(h => (
-                          <th key={h} style={{
-                            padding: '8px 12px',
-                            textAlign: 'center',
-                            color: 'var(--text-mute)', fontWeight: 400, fontSize: 10,
-                            letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)',
-                            position: 'sticky' as const, top: 0, background: 'var(--bg-surface)', zIndex: 1,
-                          }}>{h}</th>
-                        ))}
+                        <SortableHeader label="Symbol" sortKey="symbol"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort} align="left" style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Sector" sortKey="sector"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="CMP"    sortKey="cmp"      currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="vs Avg" sortKey="gain_pct" currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Signal" sortKey="signal"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="RSI"    sortKey="rsi"      currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>50DMA</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>200DMA</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[...technical.holdings].sort((a: any, b: any) => {
-                        const order = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
-                        return order.indexOf(a.signal) - order.indexOf(b.signal)
-                      }).filter((h: any) => !signalFilter || h.signal === signalFilter).map((h: any) => {
+                      {sortedTechHoldings.filter((h: any) => !signalFilter || h.signal === signalFilter).map((h: any) => {
                         const pct = h.gain_pct || 0
                         const barW = Math.min(Math.abs(pct), 100)
                         const barColor = pct >= 0 ? '#0EA66E' : '#FF4444'
@@ -1039,20 +1088,7 @@ export default function AnalysisPage() {
                           { k: 'grade', label: 'Grade' },
                           { k: 'signal', label: 'Signal' },
                         ].map(col => (
-                          <th key={col.k} onClick={() => {
-                            if (sortCol === col.k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-                            else { setSortCol(col.k); setSortDir('desc') }
-                          }} style={{
-                            padding: '8px 12px',
-                            textAlign: 'center',
-                            color: sortCol === col.k ? 'var(--accent)' : 'var(--text-mute)',
-                            fontWeight: 400, fontSize: 10, letterSpacing: '1px',
-                            textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)',
-                            position: 'sticky' as const, top: 0, background: 'var(--bg-surface)', zIndex: 1,
-                          }}>
-                            {col.label} {sortCol === col.k ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-                          </th>
+                          <SortableHeader key={col.k} label={col.label} sortKey={col.k} currentKey={sortCol} currentDir={sortDir} onSort={handleScorecardSort} style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         ))}
                       </tr>
                     </thead>
@@ -1060,6 +1096,7 @@ export default function AnalysisPage() {
                       {(scorecard.holdings || [])
                         .filter((h: any) => recFilter === 'ALL' || h.recommendation === recFilter)
                         .sort((a: any, b: any) => {
+                          if (!sortDir) return 0
                           const av = a[sortCol]; const bv = b[sortCol]
                           if (typeof av === 'number') return sortDir === 'asc' ? av - bv : bv - av
                           return sortDir === 'asc'

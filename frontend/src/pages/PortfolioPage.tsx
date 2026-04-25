@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react"
 import { ArrowsClockwise, X, ChartLine, ArrowRight } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
+import { SortableHeader } from "../components/SortableHeader"
+import { useSort } from "../hooks/useSort"
 
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
@@ -555,11 +557,7 @@ function HoldingsTable({
     return sortAsc ? va - (vb as number) : (vb as number) - va
   })
 
-  const SortIcon = ({ k }: { k: SortKey }) => (
-    <span style={{ opacity: sortKey === k ? 1 : 0.3, marginLeft: "3px", fontSize: "9px" }}>
-      {sortKey === k ? (sortAsc ? "▲" : "▼") : "▼"}
-    </span>
-  )
+  const sortDir = (k: SortKey): 'asc' | 'desc' | null => sortKey === k ? (sortAsc ? 'asc' : 'desc') : null
 
   if (holdings.length === 0) {
     return (
@@ -577,30 +575,14 @@ function HoldingsTable({
     <table className="ix-table">
         <thead>
           <tr>
-            <th onClick={() => toggleSort("symbol")} style={{ cursor: "pointer", textAlign: "left" }}>
-              Stock <SortIcon k="symbol" />
-            </th>
-            <th onClick={() => toggleSort("qty")} style={{ cursor: "pointer", textAlign: "center" }}>
-              Qty <SortIcon k="qty" />
-            </th>
-            <th onClick={() => toggleSort("avg_price")} style={{ cursor: "pointer", textAlign: "center" }}>
-              Avg Price <SortIcon k="avg_price" />
-            </th>
-            <th onClick={() => toggleSort("ltp")} style={{ cursor: "pointer", textAlign: "center" }}>
-              LTP <SortIcon k="ltp" />
-            </th>
-            <th onClick={() => toggleSort("pnl")} style={{ cursor: "pointer", textAlign: "center" }}>
-              P&amp;L <SortIcon k="pnl" />
-            </th>
-            <th onClick={() => toggleSort("pnl_pct")} style={{ cursor: "pointer", textAlign: "center" }}>
-              P&amp;L% <SortIcon k="pnl_pct" />
-            </th>
-            <th onClick={() => toggleSort("day_change")} style={{ cursor: "pointer", textAlign: "center" }}>
-              Day Chg <SortIcon k="day_change" />
-            </th>
-            <th onClick={() => toggleSort("account")} style={{ cursor: "pointer", textAlign: "center" }}>
-              Account <SortIcon k="account" />
-            </th>
+            <SortableHeader label="Stock"     sortKey="symbol"        currentKey={sortKey} currentDir={sortDir("symbol")}        onSort={k => toggleSort(k as SortKey)} align="left" />
+            <SortableHeader label="Qty"       sortKey="qty"           currentKey={sortKey} currentDir={sortDir("qty")}           onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="Avg Price" sortKey="avg_price"     currentKey={sortKey} currentDir={sortDir("avg_price")}     onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="LTP"       sortKey="ltp"           currentKey={sortKey} currentDir={sortDir("ltp")}           onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="P&L"       sortKey="pnl"           currentKey={sortKey} currentDir={sortDir("pnl")}           onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="P&L%"      sortKey="pnl_pct"       currentKey={sortKey} currentDir={sortDir("pnl_pct")}       onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="Day Chg"   sortKey="day_change"    currentKey={sortKey} currentDir={sortDir("day_change")}    onSort={k => toggleSort(k as SortKey)} />
+            <SortableHeader label="Account"   sortKey="account"       currentKey={sortKey} currentDir={sortDir("account")}       onSort={k => toggleSort(k as SortKey)} />
           </tr>
         </thead>
         <tbody>
@@ -651,6 +633,7 @@ function HoldingsTable({
 
 /* ─── MF Table ───────────────────────────────────── */
 function MFTable({ mf }: { mf: MFHolding[] }) {
+  const { sorted, sortKey: mfSortKey, sortDir: mfSortDir, handleSort: handleMFSort } = useSort<MFHolding>(mf, 'pnl')
   if (mf.length === 0) {
     return (
       <div style={{ padding: "48px", textAlign: "center", color: "var(--text-mute)", fontSize: "13px" }}>
@@ -665,16 +648,16 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
     <table className="ix-table">
         <thead>
           <tr>
-            <th style={{ textAlign: "left" }}>Fund</th>
-            <th style={{ textAlign: "center" }}>Units</th>
-            <th style={{ textAlign: "center" }}>NAV</th>
-            <th style={{ textAlign: "center" }}>Invested</th>
-            <th style={{ textAlign: "center" }}>Current Value</th>
-            <th style={{ textAlign: "center" }}>P&amp;L</th>
+            <SortableHeader label="Fund"          sortKey="fund_name"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} align="left" />
+            <SortableHeader label="Units"         sortKey="units"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
+            <SortableHeader label="NAV"           sortKey="nav"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
+            <SortableHeader label="Invested"      sortKey="invested_amount" currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
+            <SortableHeader label="Current Value" sortKey="current_value"   currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
+            <SortableHeader label="P&L"           sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
           </tr>
         </thead>
         <tbody>
-          {mf.map(f => (
+          {sorted.map(f => (
             <tr key={f.id}>
               <td style={{ textAlign: "left" }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "12px" }}>{f.fund_name}</span>
