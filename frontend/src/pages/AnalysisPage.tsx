@@ -112,7 +112,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
         <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hexColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{score}</span>
       </div>
-      <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 7, overflow: 'hidden' }}>
+      <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
         <div style={{
           width: `${Math.min(score, 100)}%`,
           background: hexColor,
@@ -377,7 +377,7 @@ export default function AnalysisPage() {
                             {s.pct}% · {s.count} stocks · {formatVal(s.value)}
                           </span>
                         </div>
-                        <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 7, overflow: 'hidden' }}>
+                        <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
                           <div style={{
                             width: `${s.pct}%`,
                             background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
@@ -582,8 +582,8 @@ export default function AnalysisPage() {
                             <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                             <td style={{ padding: '10px 12px', minWidth: 160 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ flex: 1, height: 6, background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 3, overflow: 'hidden' }}>
-                                  <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 3 }} />
+                                <div style={{ flex: 1, height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
+                                  <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 4 }} />
                                 </div>
                                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: barColor, minWidth: 52, textAlign: 'right' }}>
                                   {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
@@ -847,7 +847,7 @@ export default function AnalysisPage() {
                             Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
                           </span>
                         </div>
-                        <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                        <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
                           <div style={{
                             width: `${h.overall_score}%`,
                             background: scoreHex(h.overall_score),
