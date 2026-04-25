@@ -359,29 +359,53 @@ export default function AnalysisPage() {
           {/* ═══ TAB 1: FUNDAMENTAL ═══ */}
           {tab === 'fundamental' && fundamental && (
             <div style={{ display: 'grid', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
-                {/* Health Score Card */}
+              <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'start' }}>
+                {/* Health Score Card — compact Option B */}
                 <div style={{ ...neuCard }}>
                   <div style={{
                     fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                    marginBottom: 16, textTransform: 'uppercase',
+                    marginBottom: 12, textTransform: 'uppercase',
                     fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Portfolio Health</div>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                    <ScoreArc score={fundamental.health_score.total} size={130} label="Health Score" />
+
+                  {/* Big score + /100 */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 8 }}>
+                    <span style={{
+                      fontSize: 44, fontWeight: 800, lineHeight: 1,
+                      fontFamily: 'var(--font-mono)',
+                      color: scoreHex(fundamental.health_score.total)
+                    }}>{fundamental.health_score.total}</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>/100</span>
                   </div>
-                  <ScoreBar
-                    score={Math.round(fundamental.health_score.diversification / 0.4)}
-                    label={`Diversification · ${fundamental.health_score.sectors_count} sectors`}
-                  />
-                  <ScoreBar
-                    score={Math.round(fundamental.health_score.concentration / 0.3)}
-                    label={`Concentration · top3 = ${fundamental.health_score.top3_concentration_pct}%`}
-                  />
-                  <ScoreBar
-                    score={Math.round(fundamental.health_score.gain_loss_balance / 0.3)}
-                    label={`Win Rate · ${fundamental.health_score.winners_pct}%`}
-                  />
+
+                  {/* Full-width gauge bar */}
+                  <div style={{ height: 8, borderRadius: 5, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '1px 2px', marginBottom: 16 }}>
+                    <div style={{
+                      width: `${fundamental.health_score.total}%`, height: '100%',
+                      borderRadius: 4, background: scoreHex(fundamental.health_score.total),
+                      transition: 'width 0.6s'
+                    }} />
+                  </div>
+
+                  {/* Three inset metric chips */}
+                  <div style={{ display: 'flex', gap: 7 }}>
+                    {[
+                      { label: 'Diversification', score: Math.round(fundamental.health_score.diversification / 0.4), sub: `${fundamental.health_score.sectors_count} sectors` },
+                      { label: 'Concentration',   score: Math.round(fundamental.health_score.concentration / 0.3),   sub: `top3 = ${fundamental.health_score.top3_concentration_pct}%` },
+                      { label: 'Win Rate',         score: Math.round(fundamental.health_score.gain_loss_balance / 0.3), sub: `${fundamental.health_score.winners_pct}%` },
+                    ].map(m => (
+                      <div key={m.label} style={{
+                        flex: 1,
+                        background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                        borderRadius: 'var(--r-md)', padding: '8px 10px',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                      }}>
+                        <span style={{ fontSize: 8, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.label}</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, fontFamily: 'var(--font-mono)', color: scoreHex(m.score) }}>{m.score}</span>
+                        <span style={{ fontSize: 9, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>{m.sub}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Sector Allocation */}
