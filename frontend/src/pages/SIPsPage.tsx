@@ -158,7 +158,7 @@ function MetricCard({ label, value, sub, valueColor }: {
       padding: "18px 18px 16px"
     }}>
       <div style={{
-        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
         textTransform: "uppercase", color: "var(--text-mute)",
         fontFamily: "var(--font-mono)", marginBottom: "10px"
       }}>{label}</div>
@@ -228,7 +228,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
 
       {/* Amount */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Amount</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Amount</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600,
           color: "var(--text-dim)"
@@ -237,7 +237,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
 
       {/* Frequency */}
       <div style={{ minWidth: "130px" }}>
-        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Frequency</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Frequency</div>
         <span style={{
           padding: "3px 10px", borderRadius: "var(--r-pill)",
           fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
@@ -248,7 +248,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
 
       {/* Next Execution */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Next Run</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Next Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
           color: isActive ? "var(--accent)" : "var(--text-mute)"
@@ -257,7 +257,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
 
       {/* Last Execution */}
       <div style={{ minWidth: "100px" }}>
-        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Last Run</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "2px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Last Run</div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "12px",
           color: sip.last_executed_at ? "var(--text-dim)" : "var(--text-mute)"
@@ -266,7 +266,7 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
 
       {/* Account */}
       <div style={{ minWidth: "90px" }}>
-        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Account</div>
+        <div style={{ fontSize: "10px", color: "var(--text-mute)", marginBottom: "4px", letterSpacing: "1px", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>Account</div>
         <span style={{
           padding: "3px 10px", borderRadius: "var(--r-pill)",
           fontSize: "11px", fontWeight: 600, fontFamily: "var(--font-mono)",
@@ -280,7 +280,8 @@ function SIPCard({ sip, accountName, onToggle, onDelete, onExecuteOne, deleting,
         <span style={{
           display: "inline-flex", alignItems: "center", gap: "4px",
           padding: "2px 8px", borderRadius: "var(--r-pill)",
-          fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+          fontSize: "9px", fontWeight: 600, fontFamily: "var(--font-mono)",
+          letterSpacing: "0.5px", textTransform: "uppercase",
           background: "var(--bg)", boxShadow: "var(--neu-inset)",
           color: isActive ? "var(--green)" : "var(--amber)"
         }}>
@@ -378,7 +379,7 @@ function AddSIPModal({ accounts, onClose, onSave }: {
   const labelStyle: React.CSSProperties = {
     display: "block", fontSize: "10px", fontWeight: 700,
     color: "var(--text-mute)", textTransform: "uppercase",
-    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)"
+    letterSpacing: "1px", marginBottom: "6px", fontFamily: "var(--font-mono)"
   }
 
   return (
@@ -754,7 +755,7 @@ export default function SIPsPage() {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "14px 18px 12px"
         }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+          <div style={{ fontSize: "10px", fontWeight: 400, letterSpacing: "1px", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             SIP Schedule · {sips.length} SIP{sips.length !== 1 ? "s" : ""}
           </div>
           <span style={{ fontSize: "10px", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
@@ -805,7 +806,7 @@ export default function SIPsPage() {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "14px 18px 12px"
         }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+          <div style={{ fontSize: "10px", fontWeight: 400, letterSpacing: "1px", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Recent Executions
           </div>
           <span style={{ fontSize: "10px", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>last 10</span>
@@ -848,7 +849,8 @@ export default function SIPsPage() {
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: "4px",
                         padding: "2px 8px", borderRadius: "var(--r-pill)",
-                        fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                        fontSize: "9px", fontWeight: 600, fontFamily: "var(--font-mono)",
+                        letterSpacing: "0.5px", textTransform: "uppercase",
                         background: "var(--bg)", boxShadow: "var(--neu-inset)",
                         color: ex.status === "placed" ? "var(--green)" : "var(--amber)"
                       }}>

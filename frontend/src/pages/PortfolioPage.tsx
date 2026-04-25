@@ -375,7 +375,7 @@ function SectorAllocationCard({
     }}>
       <div style={{ padding: "14px 18px 12px", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{
-          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+          fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
           textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
         }}>
           Sector Allocation
@@ -478,7 +478,7 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
     }}>
       <div style={{ padding: "14px 18px 12px" }}>
         <div style={{
-          fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+          fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
           textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)"
         }}>Highlights</div>
       </div>
@@ -492,8 +492,8 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
               borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none"
             }}>
               <span style={{
-                fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-mute)"
+                fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 400,
+                textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-mute)"
               }}>{row.label}</span>
               <span style={{
                 fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
@@ -644,6 +644,7 @@ function HoldingsTable({
             )
           })}
         </tbody>
+        <tfoot><tr><td colSpan={8} style={{ height: 14, padding: 0, border: 'none' }} /></tr></tfoot>
       </table>
   )
 }
@@ -691,6 +692,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
             </tr>
           ))}
         </tbody>
+        <tfoot><tr><td colSpan={6} style={{ height: 14, padding: 0, border: 'none' }} /></tr></tfoot>
       </table>
   )
 }
@@ -922,7 +924,7 @@ export default function PortfolioPage() {
             </div>
 
             {/* Table — no inner inset box, scrollbar hidden */}
-            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px", marginBottom: 12 }}>
+            <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px", marginBottom: 12, paddingLeft: 18, paddingRight: 18 }}>
               {activeTab === "equity"
                 ? <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
                 : <MFTable mf={filteredMF} />

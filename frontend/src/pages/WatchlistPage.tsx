@@ -74,7 +74,7 @@ function MetricCard({ label, value, sub, valueColor }: {
       padding: "18px 18px 16px"
     }}>
       <div style={{
-        fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
+        fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
         textTransform: "uppercase", color: "var(--text-mute)",
         fontFamily: "var(--font-mono)", marginBottom: "10px"
       }}>{label}</div>
@@ -162,9 +162,9 @@ function AddWatchlistModal({ onClose, onSave }: {
     padding: "9px 12px", outline: "none", fontFamily: "var(--font-body)"
   }
   const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "10px", fontWeight: 700,
+    display: "block", fontSize: "10px", fontWeight: 400,
     color: "var(--text-mute)", textTransform: "uppercase",
-    letterSpacing: "0.08em", marginBottom: "6px", fontFamily: "var(--font-mono)"
+    letterSpacing: "1px", marginBottom: "6px", fontFamily: "var(--font-mono)"
   }
 
   return (
@@ -229,8 +229,8 @@ function AddWatchlistModal({ onClose, onSave }: {
             marginBottom: "16px"
           }}>
             <div style={{
-              fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: "var(--accent)", marginBottom: "16px",
+              fontSize: "10px", fontWeight: 400, letterSpacing: "1px",
+              textTransform: "uppercase", color: "var(--text-mute)", marginBottom: "16px",
               display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)"
             }}>
               <IconBell /> Price Alerts (optional)
@@ -387,7 +387,8 @@ export default function WatchlistPage() {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "5px",
               padding: "2px 8px", borderRadius: "var(--r-pill)",
-              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+              fontSize: "9px", fontWeight: 600, fontFamily: "var(--font-mono)",
+              letterSpacing: "0.5px", textTransform: "uppercase",
               background: "var(--bg)", boxShadow: "var(--neu-inset)",
               color: "var(--green)"
             }}>
@@ -446,14 +447,15 @@ export default function WatchlistPage() {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "14px 18px 12px"
         }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
+          <div style={{ fontSize: "10px", fontWeight: 400, letterSpacing: "1px", textTransform: "uppercase", color: "var(--text-mute)", fontFamily: "var(--font-mono)" }}>
             Watchlist · {items.length} stock{items.length !== 1 ? "s" : ""}
           </div>
           {withAlerts > 0 && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "5px",
               padding: "2px 9px", borderRadius: "var(--r-pill)",
-              fontSize: "10px", fontWeight: 700, fontFamily: "var(--font-mono)",
+              fontSize: "9px", fontWeight: 600, fontFamily: "var(--font-mono)",
+              letterSpacing: "0.5px", textTransform: "uppercase",
               background: "var(--bg)", boxShadow: "var(--neu-inset)",
               color: "var(--amber)"
             }}>
@@ -506,7 +508,8 @@ export default function WatchlistPage() {
                           {alerts && (
                             <span style={{
                               padding: "1px 6px", borderRadius: "var(--r-pill)",
-                              fontSize: "9px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                              fontSize: "9px", fontWeight: 600, fontFamily: "var(--font-mono)",
+                              letterSpacing: "0.5px", textTransform: "uppercase",
                               background: "rgba(245,158,11,0.10)", color: "var(--amber)",
                               border: "1px solid rgba(245,158,11,0.20)"
                             }}>

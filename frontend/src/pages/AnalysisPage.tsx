@@ -86,7 +86,7 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
           {score}
         </text>
         <text x={cx} y={cy + size * 0.2} textAnchor="middle" dominantBaseline="middle"
-          fill="var(--text-mute)" fontSize={size * 0.1} style={{ fontFamily: 'var(--font-display)' }}>
+          fill="var(--text-mute)" fontSize={size * 0.1} style={{ fontFamily: 'var(--font-mono)' }}>
           /100
         </text>
       </svg>
@@ -146,7 +146,7 @@ const neuCard: React.CSSProperties = {
 }
 
 function GradeChip({ grade }: { grade?: string }) {
-  if (!grade) return <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>—</span>
+  if (!grade) return <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 9 }}>—</span>
   const map: Record<string, { bg: string; color: string }> = {
     A: { bg: '#0EA66E20', color: '#0EA66E' },
     B: { bg: '#2dd4bf20', color: '#2dd4bf' },
@@ -158,9 +158,9 @@ function GradeChip({ grade }: { grade?: string }) {
     <span style={{
       background: s.bg, color: s.color,
       borderRadius: 4, padding: '2px 8px',
-      fontSize: 11, fontWeight: 800,
+      fontSize: 9, fontWeight: 600,
       fontFamily: 'var(--font-mono)',
-      letterSpacing: 1
+      letterSpacing: '0.5px', textTransform: 'uppercase'
     }}>{grade}</span>
   )
 }
@@ -225,8 +225,8 @@ export default function AnalysisPage() {
   const tabStyle = (t: Tab): React.CSSProperties => ({
     padding: '6px 18px',
     borderRadius: 'var(--r-md)',
-    fontWeight: 700,
-    fontSize: 12,
+    fontWeight: 600,
+    fontSize: 11,
     letterSpacing: 1,
     cursor: 'pointer',
     border: 'none',
@@ -235,7 +235,7 @@ export default function AnalysisPage() {
     boxShadow: tab === t ? 'var(--neu-inset)' : 'none',
     color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
     transition: 'all 0.15s',
-    fontFamily: 'var(--font-body)'
+    fontFamily: 'var(--font-mono)'
   })
 
   if (error) return (
@@ -315,9 +315,9 @@ export default function AnalysisPage() {
                 {/* Health Score Card */}
                 <div style={{ ...neuCard }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                     marginBottom: 16, textTransform: 'uppercase',
-                    fontFamily: 'var(--font-mono)', fontWeight: 700
+                    fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Portfolio Health</div>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                     <ScoreArc score={fundamental.health_score.total} size={130} label="Health Score" />
@@ -339,9 +339,9 @@ export default function AnalysisPage() {
                 {/* Sector Allocation */}
                 <div style={{ ...neuCard }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                     marginBottom: 16, textTransform: 'uppercase',
-                    fontFamily: 'var(--font-mono)', fontWeight: 700
+                    fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Sector Allocation</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {fundamental.sector_allocation.slice(0, 8).map((s: any) => (
@@ -369,9 +369,9 @@ export default function AnalysisPage() {
               {/* Gain Distribution */}
               <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 700
+                  fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Gain / Loss Distribution</div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 120 }}>
                   {fundamental.gain_distribution.map((b: any, i: number) => {
@@ -405,9 +405,9 @@ export default function AnalysisPage() {
               {/* Top Holdings Table */}
               <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 700
+                  fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Top Holdings</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -418,7 +418,7 @@ export default function AnalysisPage() {
                             padding: '8px 12px',
                             textAlign: h === 'Symbol' || h === 'Sector' || h === 'Signal' ? 'left' : 'right',
                             color: 'var(--text-mute)',
-                            fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
+                            fontWeight: 400, fontSize: 10, letterSpacing: '1px',
                             textTransform: 'uppercase', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)'
                           }}>{h}</th>
@@ -497,7 +497,7 @@ export default function AnalysisPage() {
                     }}>
                       <div style={{
                         fontSize: 10, color: 'var(--text-mute)', marginBottom: 8,
-                        fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.06em',
+                        fontFamily: 'var(--font-mono)', fontWeight: 400, letterSpacing: '1px',
                         textTransform: 'uppercase'
                       }}>{labels[sig] || sig}</div>
                       <div style={{
@@ -515,9 +515,9 @@ export default function AnalysisPage() {
               {/* Holdings table */}
               <div style={{ ...neuCard }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                  fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                   marginBottom: 16, textTransform: 'uppercase',
-                  fontFamily: 'var(--font-mono)', fontWeight: 700
+                  fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Holdings by Signal</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -527,8 +527,8 @@ export default function AnalysisPage() {
                           <th key={h} style={{
                             padding: '8px 12px',
                             textAlign: h === 'Symbol' || h === 'Sector' ? 'left' : 'right',
-                            color: 'var(--text-mute)', fontWeight: 700, fontSize: 10,
-                            letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                            color: 'var(--text-mute)', fontWeight: 400, fontSize: 10,
+                            letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)'
                           }}>{h}</th>
                         ))}
@@ -575,7 +575,7 @@ export default function AnalysisPage() {
                 {/* Portfolio Grade card */}
                 {portfolioGrade && (
                   <div style={{ ...neuCard, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 8 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Portfolio Grade</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Portfolio Grade</div>
                     <GradeChip grade={portfolioGrade} />
                     <div style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
                       {enriched.filter(e => ['A','B'].includes(e.grade)).length}/{enriched.length} quality
@@ -600,9 +600,9 @@ export default function AnalysisPage() {
                     ) : (
                       <>
                         <div style={{
-                          fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                          fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                           marginBottom: 12, textTransform: 'uppercase',
-                          fontFamily: 'var(--font-mono)', fontWeight: 700
+                          fontFamily: 'var(--font-mono)', fontWeight: 400
                         }}>{card.label}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
                           <span style={{ color: 'var(--green)', fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13 }}>
@@ -629,9 +629,9 @@ export default function AnalysisPage() {
                 ].map(({ title, holdings }) => (
                   <div key={title} style={{ ...neuCard }}>
                     <div style={{
-                      fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
+                      fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                       marginBottom: 16, textTransform: 'uppercase',
-                      fontFamily: 'var(--font-mono)', fontWeight: 700
+                      fontFamily: 'var(--font-mono)', fontWeight: 400
                     }}>{title}</div>
                     {(holdings || []).map((h: any) => (
                       <div key={h.symbol} style={{ marginBottom: 14 }}>
@@ -676,8 +676,8 @@ export default function AnalysisPage() {
               <div style={{ ...neuCard }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{
-                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em',
-                    textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700
+                    fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
+                    textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Full Scorecard</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {['ALL', 'BUY', 'HOLD', 'WATCH'].map(f => (
@@ -716,7 +716,7 @@ export default function AnalysisPage() {
                             padding: '8px 12px',
                             textAlign: col.k === 'symbol' || col.k === 'sector' || col.k === 'signal' ? 'left' : 'right',
                             color: sortCol === col.k ? 'var(--accent)' : 'var(--text-mute)',
-                            fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
+                            fontWeight: 400, fontSize: 10, letterSpacing: '1px',
                             textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)'
                           }}>

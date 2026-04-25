@@ -72,8 +72,10 @@ const chipBase: React.CSSProperties = {
   gap: '4px',
   padding: '2px 8px',
   borderRadius: 'var(--r-pill)',
-  fontSize: '10px',
-  fontWeight: 700,
+  fontSize: '9px',
+  fontWeight: 600,
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase',
   fontFamily: 'var(--font-mono)'
 }
 
@@ -354,7 +356,7 @@ export default function IPOBotsPage() {
 
       {/* ── Add symbol row ── */}
       <div style={{ ...neuCard, padding: '18px 20px', marginBottom: '16px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '16px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-mute)', marginBottom: '16px', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
           ADD TO WATCHLIST
         </div>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -399,7 +401,7 @@ export default function IPOBotsPage() {
       {/* ── Scan results banner ── */}
       {scanResults && scanResults.length > 0 && (
         <div style={{ ...neuCard, padding: '14px 20px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', marginBottom: '10px', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-mute)', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
             SCAN RESULTS · {scanResults.length} symbol{scanResults.length !== 1 ? 's' : ''}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -439,7 +441,7 @@ export default function IPOBotsPage() {
           padding: '14px 20px', borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-mute)', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
             WATCHLIST · {bots.length} bot{bots.length !== 1 ? 's' : ''}
           </div>
           <span style={{
@@ -465,9 +467,10 @@ export default function IPOBotsPage() {
                     <th key={h} style={{
                       padding: '10px 16px',
                       textAlign: 'left',
-                      fontSize: '10px', fontWeight: 700,
+                      fontSize: '10px', fontWeight: 400,
                       color: 'var(--text-mute)',
-                      letterSpacing: '0.06em',
+                      letterSpacing: '1px',
+                      textTransform: 'uppercase',
                       borderBottom: '1px solid var(--border)',
                       whiteSpace: 'nowrap',
                       fontFamily: 'var(--font-mono)'
@@ -587,7 +590,7 @@ export default function IPOBotsPage() {
                             style={{
                               padding: '4px 10px',
                               borderRadius: '6px',
-                              fontSize: '10px', fontWeight: 700,
+                              fontSize: '12px', fontWeight: 500,
                               background: 'var(--bg-surface)',
                               boxShadow: refreshing[bot.id] ? 'none' : 'var(--neu-raised-sm)',
                               color: refreshing[bot.id] ? 'var(--text-mute)' : 'var(--accent)',
@@ -595,7 +598,7 @@ export default function IPOBotsPage() {
                               cursor: refreshing[bot.id] ? 'not-allowed' : 'pointer',
                               transition: 'all 150ms',
                               whiteSpace: 'nowrap',
-                              fontFamily: 'var(--font-mono)'
+                              fontFamily: 'var(--font-body)'
                             }}
                           >
                             {refreshing[bot.id] ? '…' : '↻ Refresh'}
