@@ -112,7 +112,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
         <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hexColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{score}</span>
       </div>
-      <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 7, overflow: 'hidden' }}>
         <div style={{
           width: `${Math.min(score, 100)}%`,
           background: hexColor,
@@ -229,22 +229,8 @@ export default function AnalysisPage() {
     return `₹${v.toLocaleString('en-IN')}`
   }
 
-  const tabStyle = (t: Tab): React.CSSProperties => ({
-    flex: 1,
-    padding: '8px 0',
-    borderRadius: 'var(--r-md)',
-    fontWeight: 600,
-    fontSize: 11,
-    letterSpacing: 1,
-    cursor: 'pointer',
-    border: 'none',
-    textTransform: 'uppercase',
-    background: tab === t ? 'var(--bg-surface)' : 'transparent',
-    boxShadow: tab === t ? 'var(--neu-raised-sm)' : 'none',
-    color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
-    transition: 'all 0.2s',
-    fontFamily: 'var(--font-mono)'
-  })
+  const TABS: Tab[] = ['fundamental', 'technical', 'scorecard']
+  const tabIndex = TABS.indexOf(tab)
 
   if (error) return (
     <div style={{ padding: 32, textAlign: 'center' }}>
@@ -288,19 +274,49 @@ export default function AnalysisPage() {
       </div>
 
 
-      {/* Tab bar */}
+      {/* Tab bar — sliding pill */}
       <div style={{
+        position: 'relative',
         display: 'flex',
-        gap: 4,
-        background: 'var(--bg)',
+        background: 'var(--bg-surface)',
         boxShadow: 'var(--neu-inset)',
         borderRadius: 'var(--r-lg)',
         padding: 4,
         width: '100%',
         marginBottom: 20
       }}>
-        {(['fundamental', 'technical', 'scorecard'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={tabStyle(t)}>
+        {/* Sliding raised pill */}
+        <div style={{
+          position: 'absolute',
+          top: 4, bottom: 4,
+          left: 4,
+          width: 'calc((100% - 8px) / 3)',
+          background: 'var(--bg-surface)',
+          boxShadow: 'var(--neu-raised-sm)',
+          borderRadius: 'calc(var(--r-lg) - 4px)',
+          transform: `translateX(${tabIndex * 100}%)`,
+          transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'none',
+        }} />
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            flex: 1,
+            padding: '8px 0',
+            borderRadius: 'calc(var(--r-lg) - 4px)',
+            fontWeight: 600,
+            fontSize: 11,
+            letterSpacing: 1,
+            cursor: 'pointer',
+            border: 'none',
+            textTransform: 'uppercase',
+            background: 'transparent',
+            boxShadow: 'none',
+            color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
+            transition: 'color 0.2s',
+            fontFamily: 'var(--font-mono)',
+            position: 'relative',
+            zIndex: 1,
+          }}>
             {t.toUpperCase()}
           </button>
         ))}
@@ -361,7 +377,7 @@ export default function AnalysisPage() {
                             {s.pct}% · {s.count} stocks · {formatVal(s.value)}
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 6 }}>
+                        <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 7, overflow: 'hidden' }}>
                           <div style={{
                             width: `${s.pct}%`,
                             background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
@@ -418,7 +434,7 @@ export default function AnalysisPage() {
                   marginBottom: 16, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Top Holdings</div>
-                <div style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -528,7 +544,7 @@ export default function AnalysisPage() {
                   marginBottom: 16, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Holdings by Signal</div>
-                <div style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -566,8 +582,8 @@ export default function AnalysisPage() {
                             <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                             <td style={{ padding: '10px 12px', minWidth: 160 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ flex: 1, height: 4, background: 'rgba(0,0,0,0.07)', borderRadius: 2 }}>
-                                  <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+                                <div style={{ flex: 1, height: 6, background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 3, overflow: 'hidden' }}>
+                                  <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 3 }} />
                                 </div>
                                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: barColor, minWidth: 52, textAlign: 'right' }}>
                                   {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
@@ -831,7 +847,7 @@ export default function AnalysisPage() {
                             Overall: <b style={{ color: scoreHex(h.overall_score) }}>{h.overall_score}</b>
                           </span>
                         </div>
-                        <div style={{ background: 'rgba(0,0,0,0.07)', borderRadius: 4, height: 5 }}>
+                        <div style={{ background: 'var(--bg)', boxShadow: 'inset 1px 1px 3px rgba(140,158,155,0.5), inset -1px -1px 2px rgba(255,255,255,0.75)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
                           <div style={{
                             width: `${h.overall_score}%`,
                             background: scoreHex(h.overall_score),
