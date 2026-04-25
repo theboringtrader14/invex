@@ -920,15 +920,16 @@ export default function AnalysisPage() {
                         background: recFilter === f ? 'var(--bg)' : 'var(--bg-surface)',
                         boxShadow: recFilter === f ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
                         color: recFilter === f ? 'var(--accent)' : 'var(--text-dim)',
-                        border: 'none', borderRadius: 'var(--r-sm)',
-                        padding: '4px 12px', fontSize: 12, fontWeight: 600,
-                        cursor: 'pointer', fontFamily: 'var(--font-body)',
+                        border: 'none', borderRadius: 'var(--r-pill)',
+                        padding: '4px 14px', fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'var(--font-mono)',
+                        letterSpacing: '0.5px',
                         transition: 'all 0.15s'
                       }}>{f}</button>
                     ))}
                   </div>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: 450, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -949,11 +950,12 @@ export default function AnalysisPage() {
                             else { setSortCol(col.k); setSortDir('desc') }
                           }} style={{
                             padding: '8px 12px',
-                            textAlign: col.k === 'symbol' || col.k === 'sector' || col.k === 'signal' ? 'left' : 'right',
+                            textAlign: 'center',
                             color: sortCol === col.k ? 'var(--accent)' : 'var(--text-mute)',
                             fontWeight: 400, fontSize: 10, letterSpacing: '1px',
                             textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)'
+                            fontFamily: 'var(--font-mono)',
+                            position: 'sticky' as const, top: 0, background: 'var(--bg-surface)', zIndex: 1,
                           }}>
                             {col.label} {sortCol === col.k ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                           </th>
@@ -974,34 +976,34 @@ export default function AnalysisPage() {
                           const e = getE(h.symbol)
                           return (
                             <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                              <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
-                              <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                              <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                               <td style={{
-                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                padding: '10px 12px', textAlign: 'center', fontWeight: 700,
                                 fontFamily: 'var(--font-mono)',
                                 color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
                               }}>
                                 {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                               </td>
                               <td style={{
-                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                padding: '10px 12px', textAlign: 'center', fontWeight: 700,
                                 fontFamily: 'var(--font-mono)',
                                 color: scoreHex(h.fundamental_score)
                               }}>{h.fundamental_score}</td>
                               <td style={{
-                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                padding: '10px 12px', textAlign: 'center', fontWeight: 700,
                                 fontFamily: 'var(--font-mono)',
                                 color: scoreHex(h.technical_score)
                               }}>{h.technical_score}</td>
                               <td style={{
-                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                padding: '10px 12px', textAlign: 'center', fontWeight: 700,
                                 fontFamily: 'var(--font-mono)',
                                 color: scoreHex(h.overall_score)
                               }}>{h.overall_score}</td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right' }}><RecChip rec={h.recommendation} /></td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right' }}><GradeChip grade={e?.grade} /></td>
-                              <td style={{ padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                              <td style={{ padding: '10px 12px', textAlign: 'center' }}><RecChip rec={h.recommendation} /></td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center' }}><GradeChip grade={e?.grade} /></td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                                 {e?.signal ?? '—'}
                               </td>
                             </tr>
