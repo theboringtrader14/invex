@@ -753,16 +753,16 @@ export default function AnalysisPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       {quadrants.map(q => (
                         <div key={q.key} style={{
-                          background: 'var(--bg-surface)',
-                          boxShadow: 'var(--neu-raised-sm)',
+                          background: 'var(--bg)',
+                          boxShadow: 'var(--neu-inset)',
                           borderRadius: 12,
                           padding: 16,
-                          borderLeft: `3px solid ${q.color}`,
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <div style={{
                               width: 20, height: 20, borderRadius: '50%',
-                              background: q.color + '20',
+                              background: q.color + '22',
+                              boxShadow: `inset 1px 1px 3px ${q.color}44, inset -1px -1px 2px rgba(255,255,255,0.15)`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               color: q.color, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12,
                               flexShrink: 0,
