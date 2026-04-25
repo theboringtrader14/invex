@@ -273,8 +273,8 @@ async def get_holdings_enriched(request: Request, db: AsyncSession = Depends(get
         current_value = h.get('current_value', 0) or 0
         weight_pct = round(current_value / total_value * 100, 1) if total_value else 0
 
-        # Pull from cache only — never fetch inline
-        fund = await market_data._cache_get(f"fundamentals:{symbol_clean}")
+        # Fetch fundamentals — hits cache if warm, fetches from Yahoo Finance if cold
+        fund = await market_data.get_fundamentals(symbol_clean)
 
         pe = fund.get('pe') if fund else None
         pb = fund.get('pb') if fund else None

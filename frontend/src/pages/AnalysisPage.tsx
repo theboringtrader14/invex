@@ -145,11 +145,32 @@ const neuCard: React.CSSProperties = {
   padding: 20
 }
 
+function GradeChip({ grade }: { grade?: string }) {
+  if (!grade) return <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>—</span>
+  const map: Record<string, { bg: string; color: string }> = {
+    A: { bg: '#0EA66E20', color: '#0EA66E' },
+    B: { bg: '#2dd4bf20', color: '#2dd4bf' },
+    C: { bg: '#F59E0B20', color: '#F59E0B' },
+    D: { bg: '#FF444420', color: '#FF4444' },
+  }
+  const s = map[grade] || { bg: 'rgba(0,0,0,0.05)', color: 'var(--text-mute)' }
+  return (
+    <span style={{
+      background: s.bg, color: s.color,
+      borderRadius: 4, padding: '2px 8px',
+      fontSize: 11, fontWeight: 800,
+      fontFamily: 'var(--font-mono)',
+      letterSpacing: 1
+    }}>{grade}</span>
+  )
+}
+
 export default function AnalysisPage() {
   const [tab, setTab] = useState<Tab>('fundamental')
   const [fundamental, setFundamental] = useState<any>(null)
   const [technical, setTechnical] = useState<any>(null)
   const [scorecard, setScorecard] = useState<any>(null)
+  const [enriched, setEnriched] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortCol, setSortCol] = useState('overall_score')
@@ -171,7 +192,29 @@ export default function AnalysisPage() {
       setError('Unable to load analysis data')
       setLoading(false)
     })
+
+    // Fetch enriched data independently — may be slower (Yahoo Finance fetch)
+    fetch(`${API}/api/v1/analysis/holdings-enriched`)
+      .then(r => r.json())
+      .then(d => setEnriched(Array.isArray(d) ? d : []))
+      .catch(() => setEnriched([]))
   }, [])
+
+  // Look up enriched entry by symbol (handles -EQ/-BE suffix)
+  const getE = (symbol: string) =>
+    enriched.find(e => e.symbol === symbol.replace(/-EQ$/i, '').replace(/-BE$/i, '')) ?? null
+
+  // Portfolio-level grade from enriched holdings
+  const portfolioGrade = (() => {
+    if (!enriched.length) return null
+    const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 }
+    enriched.forEach(e => { if (e.grade) counts[e.grade] = (counts[e.grade] || 0) + 1 })
+    const total = enriched.length
+    if ((counts.A + counts.B) / total >= 0.6) return 'A'
+    if ((counts.A + counts.B) / total >= 0.4) return 'B'
+    if (counts.D / total >= 0.4) return 'D'
+    return 'C'
+  })()
 
   const formatVal = (v: number) => {
     if (v >= 1e7) return `₹${(v / 1e7).toFixed(2)}Cr`
@@ -370,37 +413,57 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%'].map(h => (
+                        {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%', 'PE', 'Mkt Cap', 'Grade', 'Signal'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
-                            textAlign: h === 'Symbol' ? 'left' : 'right',
+                            textAlign: h === 'Symbol' || h === 'Sector' || h === 'Signal' ? 'left' : 'right',
                             color: 'var(--text-mute)',
                             fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
+                            textTransform: 'uppercase', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)'
                           }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {fundamental.top_holdings.map((h: any) => (
-                        <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                          <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
-                          <td style={{
-                            padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
-                          }}>
-                            {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
-                          </td>
-                        </tr>
-                      ))}
+                      {fundamental.top_holdings.map((h: any) => {
+                        const e = getE(h.symbol)
+                        return (
+                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
+                            <td style={{
+                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                              fontFamily: 'var(--font-mono)',
+                              color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
+                            }}>
+                              {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                              {e?.pe ? e.pe.toFixed(1) : '—'}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-mute)', whiteSpace: 'nowrap' }}>
+                              {e?.market_cap_category ?? '—'}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                              <GradeChip grade={e?.grade} />
+                            </td>
+                            <td style={{ padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                              {e?.signal ?? '—'}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
+                {enriched.length === 0 && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
+                    · PE, Grade, Signal: restart backend then trigger a portfolio refresh to populate
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -507,8 +570,18 @@ export default function AnalysisPage() {
           {/* ═══ TAB 3: SCORECARD ═══ */}
           {tab === 'scorecard' && scorecard && (
             <div style={{ display: 'grid', gap: 20 }}>
-              {/* Summary Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {/* Summary Cards — 5 cols when portfolioGrade available */}
+              <div style={{ display: 'grid', gridTemplateColumns: portfolioGrade ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
+                {/* Portfolio Grade card */}
+                {portfolioGrade && (
+                  <div style={{ ...neuCard, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Portfolio Grade</div>
+                    <GradeChip grade={portfolioGrade} />
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
+                      {enriched.filter(e => ['A','B'].includes(e.grade)).length}/{enriched.length} quality
+                    </div>
+                  </div>
+                )}
                 {[
                   { label: 'Overall Score', value: scorecard.portfolio.overall_score, arc: true },
                   { label: 'Fundamental', value: scorecard.portfolio.fundamental_score, arc: true },
@@ -633,13 +706,15 @@ export default function AnalysisPage() {
                           { k: 'technical_score', label: 'Tech' },
                           { k: 'overall_score', label: 'Overall' },
                           { k: 'recommendation', label: 'Action' },
+                          { k: 'grade', label: 'Grade' },
+                          { k: 'signal', label: 'Signal' },
                         ].map(col => (
                           <th key={col.k} onClick={() => {
                             if (sortCol === col.k) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
                             else { setSortCol(col.k); setSortDir('desc') }
                           }} style={{
                             padding: '8px 12px',
-                            textAlign: col.k === 'symbol' || col.k === 'sector' ? 'left' : 'right',
+                            textAlign: col.k === 'symbol' || col.k === 'sector' || col.k === 'signal' ? 'left' : 'right',
                             color: sortCol === col.k ? 'var(--accent)' : 'var(--text-mute)',
                             fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
                             textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
@@ -660,41 +735,45 @@ export default function AnalysisPage() {
                             ? String(av).localeCompare(String(bv))
                             : String(bv).localeCompare(String(av))
                         })
-                        .map((h: any) => (
-                          <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{cleanSym(h.symbol)}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                            <td style={{
-                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                              fontFamily: 'var(--font-mono)',
-                              color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
-                            }}>
-                              {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
-                            </td>
-                            <td style={{
-                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                              fontFamily: 'var(--font-mono)',
-                              color: scoreHex(h.fundamental_score)
-                            }}>{h.fundamental_score}</td>
-                            <td style={{
-                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                              fontFamily: 'var(--font-mono)',
-                              color: scoreHex(h.technical_score)
-                            }}>{h.technical_score}</td>
-                            <td style={{
-                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
-                              fontFamily: 'var(--font-mono)',
-                              color: scoreHex(h.overall_score)
-                            }}>{h.overall_score}</td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><RecChip rec={h.recommendation} /></td>
-                          </tr>
-                        ))}
+                        .map((h: any) => {
+                          const e = getE(h.symbol)
+                          return (
+                            <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                              <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                              <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                              <td style={{
+                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
+                              }}>
+                                {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
+                              </td>
+                              <td style={{
+                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                color: scoreHex(h.fundamental_score)
+                              }}>{h.fundamental_score}</td>
+                              <td style={{
+                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                color: scoreHex(h.technical_score)
+                              }}>{h.technical_score}</td>
+                              <td style={{
+                                padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                color: scoreHex(h.overall_score)
+                              }}>{h.overall_score}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right' }}><RecChip rec={h.recommendation} /></td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right' }}><GradeChip grade={e?.grade} /></td>
+                              <td style={{ padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                                {e?.signal ?? '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
                     </tbody>
                   </table>
-                </div>
-                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>
-                  · P/E, P/B, ROE, Promoter%, FCF will be pulled from Screener.in in Phase 2
                 </div>
               </div>
             </div>
