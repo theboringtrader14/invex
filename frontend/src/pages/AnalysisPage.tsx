@@ -709,12 +709,17 @@ export default function AnalysisPage() {
                     </div>
                   )
                 })()}
-                {[
-                  { label: 'Overall Score', value: scorecard.portfolio.overall_score, arc: true },
-                  { label: 'Fundamental', value: scorecard.portfolio.fundamental_score, arc: true },
-                  { label: 'Technical', value: scorecard.portfolio.technical_score, arc: true },
-                  { label: 'Recommendation', value: null, arc: false, recs: scorecard.portfolio },
-                ].map((card, i) => (
+                {(() => {
+                  const portfolioHealth = fundamental?.health_score?.total ?? scorecard.portfolio.fundamental_score
+                  const technicalScore = scorecard.portfolio.technical_score
+                  const overallScore = Math.round((portfolioHealth * 0.5) + (technicalScore * 0.5))
+                  return [
+                    { label: 'Overall Score',    value: overallScore,    arc: true },
+                    { label: 'Portfolio Health', value: portfolioHealth, arc: true },
+                    { label: 'Technical',        value: technicalScore,  arc: true },
+                    { label: 'Recommendation',   value: null,            arc: false, recs: scorecard.portfolio },
+                  ]
+                })().map((card, i) => (
                   <div key={i} style={{
                     ...neuCard,
                     display: 'flex',
