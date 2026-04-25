@@ -71,7 +71,33 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={8} />
+        <defs>
+          {/* Inset groove filter: dark shadow top-left, light highlight bottom-right */}
+          <filter id="arc-groove" x="-12%" y="-12%" width="124%" height="124%">
+            {/* Dark at top-left: take source alpha, shift blur right+down, subtract → top-left remains */}
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b1"/>
+            <feOffset in="b1" dx="2.5" dy="2.5" result="bs1"/>
+            <feComposite in="SourceAlpha" in2="bs1" operator="out" result="topLeft"/>
+            <feFlood floodColor="rgba(130,155,150,0.55)" result="darkC"/>
+            <feComposite in="darkC" in2="topLeft" operator="in" result="dark"/>
+            {/* Light at bottom-right: shift blur left+up, subtract → bottom-right remains */}
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b2"/>
+            <feOffset in="b2" dx="-2.5" dy="-2.5" result="bs2"/>
+            <feComposite in="SourceAlpha" in2="bs2" operator="out" result="btmRight"/>
+            <feFlood floodColor="rgba(255,255,255,0.88)" result="lightC"/>
+            <feComposite in="lightC" in2="btmRight" operator="in" result="light"/>
+            <feMerge>
+              <feMergeNode in="SourceGraphic"/>
+              <feMergeNode in="dark"/>
+              <feMergeNode in="light"/>
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Groove track — slightly wider so arc sits cleanly on top */}
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="rgba(203,218,215,0.95)" strokeWidth={9}
+          filter="url(#arc-groove)"/>
+        {/* Progress arc */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={8}
           strokeDasharray={circ} strokeDashoffset={dashOffset}
           strokeLinecap="round"
