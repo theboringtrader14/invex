@@ -391,23 +391,26 @@ export default function AnalysisPage() {
                     marginBottom: 16, textTransform: 'uppercase',
                     fontFamily: 'var(--font-mono)', fontWeight: 400
                   }}>Sector Allocation</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 4 }}>
-                    {fundamental.sector_allocation.slice(0, 8).map((s: any) => (
-                      <div key={s.sector}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                          <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{s.sector}</span>
-                          <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            {s.pct}% · {s.count} stocks · {formatVal(s.value)}
-                          </span>
-                        </div>
-                        <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    {fundamental.sector_allocation.slice(0, 10).map((s: any) => (
+                      <div key={s.sector} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{
+                          width: 140, flexShrink: 0,
+                          fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                        }}>{s.sector}</span>
+                        <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '1px 2px' }}>
                           <div style={{
                             width: `${s.pct}%`,
                             background: 'linear-gradient(90deg, var(--accent), rgba(45,212,191,0.5))',
-                            height: '100%',
-                            borderRadius: 4
+                            height: '100%', borderRadius: 3
                           }} />
                         </div>
+                        <span style={{
+                          minWidth: 158, flexShrink: 0,
+                          fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)',
+                          textAlign: 'right', whiteSpace: 'nowrap'
+                        }}>{s.pct}% · {s.count} stocks · {formatVal(s.value)}</span>
                       </div>
                     ))}
                   </div>

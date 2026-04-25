@@ -805,7 +805,7 @@ export default function PortfolioPage() {
     <div style={{ animation: "fadeUp 400ms cubic-bezier(0,0,0.2,1) both" }}>
 
       {/* ══ HEADER ══ */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
             Portfolio
@@ -820,6 +820,28 @@ export default function PortfolioPage() {
             )}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate("/analysis")}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "var(--bg-surface)",
+            boxShadow: "var(--neu-raised-sm)",
+            border: "none",
+            borderRadius: "var(--r-pill)",
+            padding: "8px 18px",
+            fontSize: 12, fontWeight: 600,
+            fontFamily: "var(--font-body)",
+            color: "var(--accent)",
+            cursor: "pointer",
+            transition: "box-shadow 0.15s"
+          }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--neu-raised)" }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--neu-raised-sm)" }}
+        >
+          View Portfolio Analysis
+          <ArrowRight size={14} weight="bold" />
+        </button>
       </div>
 
       {/* ══ ROW 1: KPI STRIP ══ */}
@@ -936,32 +958,6 @@ export default function PortfolioPage() {
 
       </div>
 
-      {/* ══ ROW 3: ANALYSIS LINK ══ */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-        <button
-          type="button"
-          onClick={() => navigate("/analysis")}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "var(--bg-surface)",
-            boxShadow: "var(--neu-raised-sm)",
-            border: "none",
-            borderRadius: "var(--r-pill)",
-            padding: "8px 18px",
-            fontSize: 12,
-            fontWeight: 600,
-            fontFamily: "var(--font-body)",
-            color: "var(--accent)",
-            cursor: "pointer",
-            transition: "box-shadow 0.15s"
-          }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--neu-raised)" }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--neu-raised-sm)" }}
-        >
-          View Portfolio Analysis
-          <ArrowRight size={14} weight="bold" />
-        </button>
-      </div>
 
       {/* ══ MODALS ══ */}
       {showEquityModal && (
