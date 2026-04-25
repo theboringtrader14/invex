@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { SignOut, Sun, Moon, UserCircle } from '@phosphor-icons/react'
+import { SignOut, Sun, Moon, User } from '@phosphor-icons/react'
 import InvexAccountsDrawer from '../components/InvexAccountsDrawer'
 
 const NAV_LINKS = [
@@ -124,7 +124,7 @@ export default function Layout() {
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.color = showAccounts ? 'var(--accent)' : 'var(--text-dim)' }}
             >
-              <UserCircle size={16} weight="regular" />
+              <User size={16} weight="regular" />
             </button>
             <button
               onClick={logout}
