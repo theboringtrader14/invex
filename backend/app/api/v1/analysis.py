@@ -1,4 +1,5 @@
 """Analysis API — fundamental, technical, scorecard views of the portfolio."""
+import asyncio
 import json
 import logging
 from fastapi import APIRouter, Depends, Request
@@ -13,6 +14,12 @@ from app.api.v1.portfolio import HOLDINGS_CACHE_KEY, _build_holding
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _clean_sym(s: str) -> str:
+    for sfx in ('-EQ', '-BE', '.NS', '.BO'):
+        s = s.replace(sfx, '')
+    return s.strip()
 
 
 async def _get_holdings(request: Request, db: AsyncSession) -> list:
@@ -105,13 +112,13 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
         'winners_pct': round(win_rate * 100, 1),
     }
 
-    # Top 10 holdings by value
-    top_holdings = sorted(holdings, key=lambda x: -(x.get('current_value') or 0))[:10]
+    # All holdings by value
+    top_holdings = sorted(holdings, key=lambda x: -(x.get('current_value') or 0))
     top_holdings_out = []
     for h in top_holdings:
         val = h.get('current_value', 0) or 0
         top_holdings_out.append({
-            'symbol': h.get('symbol', ''),
+            'symbol': _clean_sym(h.get('symbol', '')),
             'sector': h.get('sector', 'Others') or 'Others',
             'current_value': val,
             'weight_pct': round(val / total * 100, 1) if total else 0,
@@ -128,51 +135,85 @@ async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
     }
 
 
+def _signal_from_dma(dma: dict | None, gain_pct: float) -> str:
+    """Derive signal from DMA data; fall back to gain_pct if not available."""
+    if dma:
+        above_200 = dma.get('above_200', False)
+        above_50  = dma.get('above_50',  False)
+        above_20  = dma.get('above_20',  False)
+        if above_200 and above_50 and above_20 and gain_pct > 20:
+            return 'STRONG_BULL'
+        if above_200 and above_50:
+            return 'BULL'
+        if not above_200 and not above_50:
+            return 'BEAR'
+        if not above_50:
+            return 'WEAK'
+        return 'NEUTRAL'
+    # Fallback
+    if gain_pct > 30:   return 'STRONG_BULL'
+    if gain_pct > 10:   return 'BULL'
+    if gain_pct < -20:  return 'BEAR'
+    if gain_pct < -5:   return 'WEAK'
+    return 'NEUTRAL'
+
+
 @router.get("/technical")
 async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.adapters.market_data_adapter import market_data
+
     holdings = await _get_holdings(request, db)
 
-    technical = []
-    for h in holdings:
-        gain_pct = h.get('gain_pct', 0) or 0
-        price = h.get('ltp') or h.get('current_price', 0) or 0
-        avg_price = h.get('avg_price', price) or price
+    # Fetch DMA + RSI for all symbols concurrently (uses 24h price-history cache)
+    symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
 
-        if gain_pct > 30:
-            signal = 'STRONG_BULL'
-        elif gain_pct > 10:
-            signal = 'BULL'
-        elif gain_pct < -20:
-            signal = 'BEAR'
-        elif gain_pct < -5:
-            signal = 'WEAK'
-        else:
-            signal = 'NEUTRAL'
+    async def _fetch_tech(sym: str):
+        try:
+            dma, rsi = await asyncio.gather(
+                market_data.compute_dma(sym),
+                market_data.compute_rsi(sym),
+            )
+            return sym, dma, rsi
+        except Exception:
+            return sym, None, None
+
+    results = await asyncio.gather(*[_fetch_tech(s) for s in symbols_clean])
+    tech_map: dict = {sym: (dma, rsi) for sym, dma, rsi in results}
+
+    technical = []
+    for h, sym in zip(holdings, symbols_clean):
+        gain_pct   = h.get('gain_pct', 0) or 0
+        price      = h.get('ltp') or h.get('current_price', 0) or 0
+        avg_price  = h.get('avg_price', price) or price
+        dma, rsi   = tech_map.get(sym, (None, None))
+        signal     = _signal_from_dma(dma, gain_pct)
 
         technical.append({
-            'symbol': h.get('symbol', ''),
-            'sector': h.get('sector', 'Others') or 'Others',
-            'price': price,
-            'avg_price': avg_price,
-            'gain_pct': gain_pct,
+            'symbol':        _clean_sym(h.get('symbol', '')),
+            'sector':        h.get('sector', 'Others') or 'Others',
+            'price':         price,
+            'avg_price':     avg_price,
+            'gain_pct':      gain_pct,
             'current_value': h.get('current_value', 0) or 0,
-            'signal': signal,
-            'rsi': None,
-            'ma50': None,
-            'ma200': None,
-            'week52_low': None,
-            'week52_high': None,
+            'signal':        signal,
+            'rsi':           rsi,
+            'ma50':          dma.get('dma_50')   if dma else None,
+            'ma200':         dma.get('dma_200')  if dma else None,
+            'above_50':      dma.get('above_50') if dma else None,
+            'above_200':     dma.get('above_200') if dma else None,
+            'week52_low':    None,
+            'week52_high':   None,
         })
 
     # Signal summary
     signal_summary = {}
     total_value = sum(t['current_value'] for t in technical)
     for sig in ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']:
-        group = [t for t in technical if t['signal'] == sig]
+        group   = [t for t in technical if t['signal'] == sig]
         grp_val = sum(t['current_value'] for t in group)
         signal_summary[sig] = {
-            'count': len(group),
-            'value': grp_val,
+            'count':     len(group),
+            'value':     grp_val,
             'value_pct': round(grp_val / total_value * 100, 1) if total_value else 0,
         }
 
@@ -181,74 +222,115 @@ async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/scorecard")
 async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.adapters.market_data_adapter import market_data
+
     holdings = await _get_holdings(request, db)
+    symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
+
+    # Fetch fundamentals + DMA/RSI concurrently
+    async def _fetch_all(sym: str):
+        try:
+            fund, dma, rsi = await asyncio.gather(
+                market_data.get_fundamentals(sym),
+                market_data.compute_dma(sym),
+                market_data.compute_rsi(sym),
+            )
+            return sym, fund, dma, rsi
+        except Exception:
+            return sym, None, None, None
+
+    results = await asyncio.gather(*[_fetch_all(s) for s in symbols_clean])
+    data_map: dict = {sym: (fund, dma, rsi) for sym, fund, dma, rsi in results}
 
     scored = []
-    for h in holdings:
-        gain_pct = h.get('gain_pct', 0) or 0
+    for h, sym in zip(holdings, symbols_clean):
+        gain_pct      = h.get('gain_pct', 0) or 0
         current_value = h.get('current_value', 0) or 0
+        fund, dma, rsi = data_map.get(sym, (None, None, None))
 
-        fund_score = 50
-        if gain_pct > 50: fund_score += 20
-        elif gain_pct > 20: fund_score += 15
-        elif gain_pct > 0: fund_score += 10
-        elif gain_pct < -20: fund_score -= 20
-        elif gain_pct < 0: fund_score -= 10
-        fund_score = max(0, min(100, fund_score))
+        pe              = fund.get('pe') if fund else None
+        market_cap_cat  = fund.get('market_cap_category') if fund else None
 
-        if gain_pct > 30: tech_score = 80
-        elif gain_pct > 10: tech_score = 70
-        elif gain_pct > 0: tech_score = 60
-        elif gain_pct < -20: tech_score = 30
-        else: tech_score = 50
+        # ── Fundamental score ─────────────────────────────────────
+        fs = 50
+        if gain_pct > 100:   fs += 25
+        elif gain_pct > 50:  fs += 20
+        elif gain_pct > 20:  fs += 15
+        elif gain_pct > 0:   fs += 10
+        elif gain_pct < -20: fs -= 10
 
-        overall = round(fund_score * 0.6 + tech_score * 0.4)
+        if pe and pe > 0:
+            if pe < 15:    fs += 15
+            elif pe < 25:  fs += 10
+            elif pe < 40:  fs +=  5
+            elif pe > 50:  fs -=  5
+
+        if market_cap_cat == 'Large Cap':  fs += 10
+        elif market_cap_cat == 'Mid Cap':  fs +=  5
+
+        fund_score = max(0, min(100, fs))
+
+        # ── Technical score from DMA + RSI ───────────────────────
+        ts = 50
+        if dma:
+            if dma.get('above_200'): ts += 20
+            if dma.get('above_50'):  ts += 15
+            if dma.get('above_20'):  ts += 10
+        if rsi is not None:
+            if 40 <= rsi <= 65: ts += 10    # healthy range
+            elif rsi > 70:      ts -=  5    # overbought
+            elif rsi < 30:      ts +=  5    # oversold — potential reversal
+
+        tech_score = max(0, min(100, ts))
+
+        overall = round(fund_score * 0.5 + tech_score * 0.5)
 
         if overall >= 75: recommendation = 'BUY'
         elif overall >= 55: recommendation = 'HOLD'
         else: recommendation = 'WATCH'
 
+        grade = 'A' if overall >= 80 else 'B' if overall >= 65 else 'C' if overall >= 50 else 'D'
+        signal = _signal_from_dma(dma, gain_pct)
+
         scored.append({
-            'symbol': h.get('symbol', ''),
-            'sector': h.get('sector', 'Others') or 'Others',
-            'current_value': current_value,
-            'gain_pct': gain_pct,
+            'symbol':            _clean_sym(h.get('symbol', '')),
+            'sector':            h.get('sector', 'Others') or 'Others',
+            'current_value':     current_value,
+            'gain_pct':          gain_pct,
             'fundamental_score': fund_score,
-            'technical_score': tech_score,
-            'overall_score': overall,
-            'recommendation': recommendation,
-            'promoter_holding': None,
-            'pe_ratio': None,
-            'pb_ratio': None,
-            'roe': None,
-            'debt_equity': None,
-            'fcf_positive': None,
-            'revenue_cagr_5y': None,
+            'technical_score':   tech_score,
+            'overall_score':     overall,
+            'recommendation':    recommendation,
+            'grade':             grade,
+            'signal':            signal,
+            'pe':                pe,
+            'market_cap_category': market_cap_cat,
+            'rsi':               rsi,
         })
 
     scored.sort(key=lambda x: -x['overall_score'])
 
     if scored:
-        avg_fund = round(sum(s['fundamental_score'] for s in scored) / len(scored))
-        avg_tech = round(sum(s['technical_score'] for s in scored) / len(scored))
-        avg_overall = round(avg_fund * 0.6 + avg_tech * 0.4)
+        avg_fund    = round(sum(s['fundamental_score'] for s in scored) / len(scored))
+        avg_tech    = round(sum(s['technical_score']   for s in scored) / len(scored))
+        avg_overall = round(avg_fund * 0.5 + avg_tech * 0.5)
     else:
         avg_fund = avg_tech = avg_overall = 0
 
-    buys = [s for s in scored if s['recommendation'] == 'BUY']
-    holds = [s for s in scored if s['recommendation'] == 'HOLD']
+    buys    = [s for s in scored if s['recommendation'] == 'BUY']
+    holds   = [s for s in scored if s['recommendation'] == 'HOLD']
     watches = [s for s in scored if s['recommendation'] == 'WATCH']
 
     return {
         'portfolio': {
-            'overall_score': avg_overall,
+            'overall_score':     avg_overall,
             'fundamental_score': avg_fund,
-            'technical_score': avg_tech,
-            'buy_count': len(buys),
-            'hold_count': len(holds),
-            'watch_count': len(watches),
-            'top_3': scored[:3],
-            'bottom_3': scored[-3:],
+            'technical_score':   avg_tech,
+            'buy_count':         len(buys),
+            'hold_count':        len(holds),
+            'watch_count':       len(watches),
+            'top_3':             scored[:3],
+            'bottom_3':          scored[-3:],
         },
         'holdings': scored,
     }
@@ -268,7 +350,7 @@ async def get_holdings_enriched(request: Request, db: AsyncSession = Depends(get
 
     result = []
     for h in holdings:
-        symbol_clean = h.get('symbol', '').replace('-EQ', '').replace('-BE', '')
+        symbol_clean = _clean_sym(h.get('symbol', ''))
         pnl_pct = h.get('gain_pct', 0) or 0
         current_value = h.get('current_value', 0) or 0
         weight_pct = round(current_value / total_value * 100, 1) if total_value else 0

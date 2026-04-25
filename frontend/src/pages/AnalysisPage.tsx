@@ -437,7 +437,7 @@ export default function AnalysisPage() {
                   marginBottom: 16, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Top Holdings</div>
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -547,17 +547,18 @@ export default function AnalysisPage() {
                   marginBottom: 16, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Holdings by Signal</div>
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Symbol', 'Sector', 'CMP', 'vs Avg', 'Signal'].map(h => (
+                        {['Symbol', 'Sector', 'CMP', 'vs Avg', 'Signal', 'RSI', '50DMA', '200DMA'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
                             textAlign: h === 'Symbol' || h === 'Sector' || h === 'vs Avg' ? 'left' : 'right',
                             color: 'var(--text-mute)', fontWeight: 400, fontSize: 10,
                             letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                            fontFamily: 'var(--font-mono)'
+                            fontFamily: 'var(--font-mono)',
+                            position: 'sticky' as const, top: 0, background: 'var(--bg-surface)', zIndex: 1,
                           }}>{h}</th>
                         ))}
                       </tr>
@@ -570,6 +571,13 @@ export default function AnalysisPage() {
                         const pct = h.gain_pct || 0
                         const barW = Math.min(Math.abs(pct), 100)
                         const barColor = pct >= 0 ? '#0EA66E' : '#FF4444'
+                        const rsiColor = h.rsi == null ? 'var(--text-mute)'
+                          : h.rsi > 70 ? '#FF4444'
+                          : h.rsi < 30 ? '#0EA66E'
+                          : '#F59E0B'
+                        const DmaChip = ({ above }: { above: boolean | null | undefined }) => above == null
+                          ? <span style={{ color: 'var(--text-mute)', fontSize: 11 }}>—</span>
+                          : <span style={{ fontSize: 10, fontWeight: 700, color: above ? '#0EA66E' : '#FF4444', fontFamily: 'var(--font-mono)' }}>{above ? '↑' : '↓'}</span>
                         return (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
@@ -586,6 +594,13 @@ export default function AnalysisPage() {
                               </div>
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                              {h.rsi != null
+                                ? <span style={{ color: rsiColor, fontWeight: 700 }}>{h.rsi.toFixed(0)}{h.rsi > 70 ? ' ↑' : h.rsi < 30 ? ' ↓' : ''}</span>
+                                : <span style={{ color: 'var(--text-mute)' }}>—</span>}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><DmaChip above={h.above_50} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><DmaChip above={h.above_200} /></td>
                           </tr>
                         )
                       })}
