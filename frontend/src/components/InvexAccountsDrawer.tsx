@@ -362,7 +362,7 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
         {/* ── Tabs ── */}
         <div style={{ display: 'flex', gap: 6, padding: '12px 20px 0', flexShrink: 0 }}>
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
+            <button type="button" key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, height: 32, borderRadius: 100, border: 'none', cursor: 'pointer',
               background: 'var(--bg)',
               boxShadow: tab === t.id ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
@@ -432,7 +432,7 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text-mute)', marginTop: 2 }}>API Credentials</div>
               </div>
-              <button onClick={() => setEditingCreds(null)}
+              <button type="button" onClick={() => setEditingCreds(null)}
                 style={{ background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: 'var(--text-dim)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 ✕
               </button>
@@ -454,7 +454,7 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditingCreds(null)}
+              <button type="button" onClick={() => setEditingCreds(null)}
                 style={{ height: 36, padding: '0 16px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)', color: 'var(--text-dim)', fontSize: 12 }}>
                 Cancel
               </button>

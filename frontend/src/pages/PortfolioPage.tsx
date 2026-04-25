@@ -189,7 +189,7 @@ function EquityCurveModal({ snapshots, onClose }: { snapshots: Snapshot[]; onClo
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {(["1M", "3M", "1Y", "All"] as TimeRange[]).map(r => (
-              <button key={r} onClick={() => setRange(r)}
+              <button type="button" key={r} onClick={() => setRange(r)}
                 style={{
                   padding: "3px 12px", borderRadius: "var(--r-pill)",
                   fontSize: "11px", fontWeight: 600,
@@ -857,7 +857,7 @@ export default function PortfolioPage() {
             }}>
               <div style={{ display: "flex", gap: 0 }}>
                 {(["equity", "mf"] as ActiveTab[]).map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)}
+                  <button type="button" key={tab} onClick={() => setActiveTab(tab)}
                     style={{
                       padding: "0 0 10px 0", marginRight: "20px",
                       fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600,
@@ -874,7 +874,7 @@ export default function PortfolioPage() {
               {/* Account filter — chips (derived from live invex_accounts) */}
               <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
                 {accountChips.map(acct => (
-                  <button key={acct} onClick={() => setActiveAccount(acct)}
+                  <button type="button" key={acct} onClick={() => setActiveAccount(acct)}
                     style={{
                       padding: "3px 10px",
                       borderRadius: "var(--r-pill)",
