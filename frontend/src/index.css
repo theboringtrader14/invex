@@ -16,10 +16,10 @@
   --red:           #FF4444;
   --amber:         #F59E0B;
 
-  --neu-raised:    -6px -6px 12px rgba(255,255,255,0.65), 6px 6px 12px rgba(140,158,155,0.45);
-  --neu-raised-sm: -3px -3px 6px rgba(255,255,255,0.58), 3px 3px 6px rgba(140,158,155,0.35);
-  --neu-raised-lg: -8px -8px 16px rgba(255,255,255,0.72), 8px 8px 16px rgba(140,158,155,0.5);
-  --neu-inset:     inset 3px 3px 6px rgba(140,158,155,0.35), inset -3px -3px 6px rgba(255,255,255,0.6);
+  --neu-raised:    -6px -6px 14px rgba(255,255,255,0.90), 6px 6px 14px rgba(130,155,150,0.55);
+  --neu-raised-sm: -3px -3px 7px rgba(255,255,255,0.85), 3px 3px 7px rgba(130,155,150,0.45);
+  --neu-raised-lg: -8px -8px 18px rgba(255,255,255,0.92), 8px 8px 18px rgba(130,155,150,0.58);
+  --neu-inset:     inset 3px 3px 7px rgba(130,155,150,0.40), inset -3px -3px 7px rgba(255,255,255,0.80);
 
   --font-display: 'Syne', sans-serif;
   --font-body:    'Space Grotesk', sans-serif;
