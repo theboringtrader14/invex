@@ -401,36 +401,36 @@ export default function AnalysisPage() {
                 {(() => {
                   const dist: any[] = fundamental.gain_distribution
                   const maxCount = Math.max(...dist.map((x: any) => x.count), 1)
-                  const BAR_MAX_H = 72
                   return (
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 110, paddingTop: 28 }}>
                       {dist.map((b: any, i: number) => {
                         const isNeg = i < 2
-                        const barH = b.count > 0 ? Math.max(Math.round((b.count / maxCount) * BAR_MAX_H), 6) : 2
+                        const barH = Math.max(4, Math.round((b.count / maxCount) * 56 * 0.85))
                         const color = isNeg ? 'var(--red)' : 'var(--green)'
+                        const colorHex = isNeg ? '#FF4444' : '#0EA66E'
                         return (
-                          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                             {/* Count label */}
-                            <span style={{
-                              fontSize: 11, fontWeight: 700, color,
-                              fontFamily: 'var(--font-mono)', marginBottom: 6,
-                              opacity: b.count === 0 ? 0.3 : 1
-                            }}>{b.count}</span>
-                            {/* Bar */}
                             <div style={{
-                              width: 48, height: barH,
-                              borderRadius: '4px 4px 0 0',
+                              fontSize: 10, fontWeight: 700, color,
+                              fontFamily: 'var(--font-mono)', textAlign: 'center',
+                              opacity: b.count === 0 ? 0.35 : 1
+                            }}>{b.count}</div>
+                            {/* Bar — full width, gradient to-top, glow */}
+                            <div style={{
+                              width: '100%', height: `${barH}px`,
+                              borderRadius: '3px 3px 0 0',
                               background: isNeg
-                                ? 'linear-gradient(to bottom, rgba(255,68,68,0.75) 0%, rgba(255,68,68,0.08) 100%)'
-                                : 'linear-gradient(to bottom, rgba(14,166,110,0.72) 0%, rgba(14,166,110,0.06) 100%)',
+                                ? 'linear-gradient(to top, rgba(255,68,68,0.5), rgba(255,68,68,0.9))'
+                                : 'linear-gradient(to top, rgba(14,166,110,0.5), rgba(14,166,110,0.9))',
+                              boxShadow: b.count > 0 ? `0 0 6px ${colorHex}55` : 'none',
+                              transition: 'height 0.4s cubic-bezier(0.4,0,0.2,1)',
                             }} />
-                            {/* Baseline rule */}
-                            <div style={{ width: '100%', height: 1, background: 'var(--border)', marginBottom: 8 }} />
                             {/* Category label */}
-                            <span style={{
-                              fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
-                              fontFamily: 'var(--font-mono)', lineHeight: 1.3
-                            }}>{b.label}</span>
+                            <div style={{
+                              fontSize: 9, color: 'var(--text-mute)', textAlign: 'center',
+                              fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap'
+                            }}>{b.label}</div>
                           </div>
                         )
                       })}
