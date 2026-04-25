@@ -200,13 +200,14 @@ export default function Layout() {
           </button>
           </div>
         </header>
-        {showAccounts && <InvexAccountsDrawer onClose={() => setShowAccounts(false)} />}
-
         {/* Page content */}
         <main style={{ flex: 1, overflow: "hidden", height: 0 }}>
           <Outlet />
         </main>
       </div>
+
+      {/* Accounts drawer — mounted at root level so fixed positioning is unambiguous */}
+      {showAccounts && <InvexAccountsDrawer onClose={() => setShowAccounts(false)} />}
     </div>
   )
 }

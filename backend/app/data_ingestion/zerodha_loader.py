@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, select
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ async def get_zerodha_token(_db: AsyncSession = None) -> Optional[dict]:
     try:
         async with async_session() as session:
             result = await session.execute(text(
-                "SELECT id, api_key, access_token FROM accounts WHERE broker='zerodha' LIMIT 1"
+                "SELECT id, api_key, access_token, client_id FROM accounts WHERE broker='zerodha' LIMIT 1"
             ))
             row = result.fetchone()
     finally:
@@ -40,7 +40,7 @@ async def get_zerodha_token(_db: AsyncSession = None) -> Optional[dict]:
         logger.warning("[ZERODHA] No active token found in STAAX DB")
         return None
     api_key = row[1] or settings.zerodha_api_key
-    return {"account_id": str(row[0]), "api_key": api_key, "token": row[2]}
+    return {"staax_account_id": str(row[0]), "client_id": str(row[3]), "api_key": api_key, "token": row[2]}
 
 async def fetch_holdings(api_key: str, access_token: str) -> List[dict]:
     """Fetch equity holdings from Zerodha API."""
@@ -85,7 +85,30 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
         return {"error": "No Zerodha token available"}
 
     token = account_info["token"]
-    account_id = account_info["account_id"]
+
+    # ── Resolve INVEX account UUID via client_id ────────────────────────────
+    from app.models.invex_account import InvexAccount
+    client_id = account_info["client_id"]
+    invex_result = await db.execute(
+        select(InvexAccount).where(
+            InvexAccount.client_id == client_id,
+            InvexAccount.broker == "zerodha",
+        )
+    )
+    invex_acc = invex_result.scalar_one_or_none()
+    if invex_acc:
+        account_id = str(invex_acc.id)
+    else:
+        # Fallback to STAAX UUID (shouldn't happen if bootstrap ran)
+        account_id = account_info["staax_account_id"]
+        logger.warning(f"[ZERODHA] invex_account not found for client_id={client_id}, using STAAX UUID")
+
+    # Clean up any orphaned holdings written under the old STAAX UUID
+    staax_uuid = account_info["staax_account_id"]
+    if staax_uuid != account_id:
+        await db.execute(delete(Holdings).where(Holdings.account_id == staax_uuid))
+        from app.models.holdings import MFHoldings as _MF
+        await db.execute(delete(_MF).where(_MF.account_id == staax_uuid))
 
     # ── Equity holdings ────────────────────────────────────────────────────────
     raw_holdings = await fetch_holdings(account_info["api_key"] or api_key, token)
