@@ -900,11 +900,11 @@ export default function PortfolioPage() {
               overflow: "hidden"
             }}>
               {activeTab === "equity" ? (
-                <div style={{ overflowX: "auto" }}>
+                <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px" }}>
                   <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
+                <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "480px" }}>
                   <MFTable mf={filteredMF} />
                 </div>
               )}
