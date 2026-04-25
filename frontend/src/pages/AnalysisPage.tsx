@@ -139,8 +139,8 @@ function Skeleton({ height = 120, width = '100%' }: { height?: number; width?: s
 }
 
 const neuCard: React.CSSProperties = {
-  background: 'var(--bg-surface)',
-  boxShadow: 'var(--neu-raised)',
+  background: 'var(--bg)',
+  boxShadow: 'var(--neu-inset)',
   borderRadius: 'var(--r-lg)',
   padding: 20
 }
@@ -755,7 +755,7 @@ export default function AnalysisPage() {
                 ]
 
                 return (
-                  <div style={{ ...neuCard }}>
+                  <div>
                     <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 16, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>SWOT Analysis</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       {quadrants.map(q => (
