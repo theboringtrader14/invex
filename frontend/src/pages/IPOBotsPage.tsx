@@ -329,7 +329,7 @@ export default function IPOBotsPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{
             fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 800,

@@ -46,7 +46,7 @@ export default function Layout() {
   const logout = () => { localStorage.removeItem('invex_token'); window.location.href = '/login' }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* ── Sticky pill topnav — matches STAAX exactly ── */}
       <div style={{ position: 'sticky', top: 0, zIndex: 320, padding: '20px 20px 0' }}>
@@ -141,8 +141,8 @@ export default function Layout() {
         </header>
       </div>
 
-      {/* Page content — matches STAAX Layout padding */}
-      <main style={{ flex: 1, padding: '16px 54px 24px 54px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* Page content — scrollable, header inside each page is sticky */}
+      <main style={{ flex: 1, overflowY: 'auto', padding: '16px 54px 24px 54px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
 

@@ -270,7 +270,7 @@ export default function AnalysisPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 16 }}>
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22,
@@ -628,15 +628,21 @@ export default function AnalysisPage() {
               {/* Summary Cards — 5 cols when portfolioGrade available */}
               <div style={{ display: 'grid', gridTemplateColumns: portfolioGrade ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
                 {/* Portfolio Grade card */}
-                {portfolioGrade && (
-                  <div style={{ ...neuCard, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 8 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Portfolio Grade</div>
-                    <GradeChip grade={portfolioGrade} />
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center' }}>
-                      {enriched.filter(e => ['A','B'].includes(e.grade)).length}/{enriched.length} quality
+                {portfolioGrade && (() => {
+                  const gradeColorMap: Record<string, string> = { A: '#0EA66E', B: '#2dd4bf', C: '#F59E0B', D: '#FF4444' }
+                  const gc = gradeColorMap[portfolioGrade] || 'var(--text-mute)'
+                  const qualCount = enriched.filter(e => ['A','B'].includes(e.grade)).length
+                  return (
+                    <div style={{ ...neuCard, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 16px' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 10 }}>Portfolio Grade</div>
+                      <div style={{ fontSize: 56, fontWeight: 800, fontFamily: 'var(--font-mono)', color: gc, lineHeight: 1, marginBottom: 10 }}>{portfolioGrade}</div>
+                      <div style={{ fontSize: 11, fontFamily: 'var(--font-body)', textAlign: 'center' }}>
+                        <span style={{ color: gc, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{qualCount}</span>
+                        <span style={{ color: 'var(--text-mute)' }}>/{enriched.length} quality</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
                 {[
                   { label: 'Overall Score', value: scorecard.portfolio.overall_score, arc: true },
                   { label: 'Fundamental', value: scorecard.portfolio.fundamental_score, arc: true },
@@ -762,8 +768,8 @@ export default function AnalysisPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <div style={{
                               width: 20, height: 20, borderRadius: '50%',
-                              background: 'var(--bg)',
-                              boxShadow: 'var(--neu-inset)',
+                              background: 'var(--bg-surface)',
+                              boxShadow: 'var(--neu-raised-sm)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               color: q.color, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12,
                               flexShrink: 0,

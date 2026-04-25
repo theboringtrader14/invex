@@ -696,8 +696,9 @@ export default function SIPsPage() {
 
       {/* ── Page header ── */}
       <div style={{
+        position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)',
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        marginBottom: "20px"
+        paddingBottom: "16px"
       }}>
         <div>
           <div style={{
