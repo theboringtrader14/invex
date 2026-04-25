@@ -641,7 +641,7 @@ export default function AnalysisPage() {
                 const iconMap = { warn: '⚠', danger: '●', ok: '✓' }
                 const colorMap = { warn: '#F59E0B', danger: '#FF4444', ok: '#0EA66E' }
                 const chipLabels: { key: 'all' | 'danger' | 'warn' | 'ok'; label: string; color: string }[] = [
-                  { key: 'all',    label: `All · ${alerts.length}`,                              color: 'var(--text-mute)' },
+                  { key: 'all',    label: `All · ${alerts.length}`,                              color: 'var(--accent)' },
                   { key: 'danger', label: `Danger · ${alerts.filter(a => a.type === 'danger').length}`, color: '#FF4444' },
                   { key: 'warn',   label: `Watch · ${alerts.filter(a => a.type === 'warn').length}`,   color: '#F59E0B' },
                   { key: 'ok',     label: `Strong · ${alerts.filter(a => a.type === 'ok').length}`,    color: '#0EA66E' },
@@ -918,9 +918,9 @@ export default function AnalysisPage() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     {['ALL', 'BUY', 'HOLD', 'WATCH'].map(f => (
                       <button key={f} onClick={() => setRecFilter(f)} style={{
-                        background: recFilter === f ? 'var(--bg)' : 'var(--bg-surface)',
+                        background: 'var(--bg)',
                         boxShadow: recFilter === f ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
-                        color: recFilter === f ? 'var(--accent)' : 'var(--text-dim)',
+                        color: recFilter === f ? 'var(--accent)' : 'var(--text-mute)',
                         border: 'none', borderRadius: 'var(--r-pill)',
                         padding: '4px 14px', fontSize: 11, fontWeight: 700,
                         cursor: 'pointer', fontFamily: 'var(--font-mono)',
