@@ -559,8 +559,14 @@ export default function AnalysisPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Holdings by Signal</div>
                   {signalFilter && (
-                    <button onClick={() => setSignalFilter(null)} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                      clear filter
+                    <button onClick={() => setSignalFilter(null)} style={{
+                      fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
+                      background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                      border: 'none', borderRadius: 'var(--r-pill)',
+                      padding: '4px 12px', cursor: 'pointer', fontWeight: 600,
+                      letterSpacing: '0.5px'
+                    }}>
+                      ✕ clear filter
                     </button>
                   )}
                 </div>
