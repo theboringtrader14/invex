@@ -230,7 +230,8 @@ export default function AnalysisPage() {
   }
 
   const tabStyle = (t: Tab): React.CSSProperties => ({
-    padding: '6px 18px',
+    flex: 1,
+    padding: '8px 0',
     borderRadius: 'var(--r-md)',
     fontWeight: 600,
     fontSize: 11,
@@ -238,10 +239,10 @@ export default function AnalysisPage() {
     cursor: 'pointer',
     border: 'none',
     textTransform: 'uppercase',
-    background: tab === t ? 'var(--bg)' : 'transparent',
-    boxShadow: tab === t ? 'var(--neu-inset)' : 'none',
+    background: tab === t ? 'var(--bg-surface)' : 'transparent',
+    boxShadow: tab === t ? 'var(--neu-raised-sm)' : 'none',
     color: tab === t ? 'var(--accent)' : 'var(--text-dim)',
-    transition: 'all 0.15s',
+    transition: 'all 0.2s',
     fontFamily: 'var(--font-mono)'
   })
 
@@ -291,11 +292,11 @@ export default function AnalysisPage() {
       <div style={{
         display: 'flex',
         gap: 4,
-        background: 'var(--bg-surface)',
-        boxShadow: 'var(--neu-raised-sm)',
+        background: 'var(--bg)',
+        boxShadow: 'var(--neu-inset)',
         borderRadius: 'var(--r-lg)',
         padding: 4,
-        width: 'fit-content',
+        width: '100%',
         marginBottom: 20
       }}>
         {(['fundamental', 'technical', 'scorecard'] as Tab[]).map(t => (
