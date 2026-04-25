@@ -695,61 +695,112 @@ export default function AnalysisPage() {
                 ))}
               </div>
 
-              {/* Action Summary */}
+              {/* SWOT Analysis */}
               {(() => {
                 const p = scorecard.portfolio
                 const holdings = scorecard.holdings || []
-                const sectors = new Set(holdings.map((h: any) => h.sector)).size
-                const profitable = holdings.filter((h: any) => (h.gain_pct || 0) > 0).length
-                const winRate = holdings.length > 0 ? Math.round(profitable / holdings.length * 100) : 0
+
+                // Data computations
+                const sectors = fundamental?.health_score?.sectors_count
+                  ?? new Set(holdings.map((h: any) => h.sector)).size
+                const winRate = fundamental?.health_score?.winners_pct ?? 0
+                const top3ConcentrationPct = fundamental?.health_score?.top3_concentration_pct ?? 0
+
+                const bullCount = holdings.filter((h: any) => h.signal === 'STRONG_BULL' || h.signal === 'BULL').length
+                const bearCount = holdings.filter((h: any) => h.signal === 'BEAR').length
+                const bullPct = holdings.length > 0 ? Math.round(bullCount / holdings.length * 100) : 0
                 const down20 = holdings.filter((h: any) => (h.gain_pct || 0) < -20).length
-                const totalVal = holdings.reduce((s: number, h: any) => s + (h.current_value || 0), 0)
-                const top3Val = holdings.slice(0, 3).reduce((s: number, h: any) => s + (h.current_value || 0), 0)
-                const top3Pct = totalVal > 0 ? Math.round(top3Val / totalVal * 100) : 0
+                const down50 = holdings.filter((h: any) => (h.gain_pct || 0) < -50).length
+
+                const techHoldings = technical?.holdings || []
+                const oversold = techHoldings.filter((h: any) => h.rsi != null && h.rsi < 35).length
+                const overbought = techHoldings.filter((h: any) => h.rsi != null && h.rsi > 70).length
+
+                const sectorAlloc = fundamental?.sector_allocation || []
+                const overweightSectors = sectorAlloc.filter((s: any) => s.pct > 30)
+                const underweightSectors = sectorAlloc.filter((s: any) => s.pct < 5)
+
+                const smallCapCount = enriched.filter(e => e.market_cap_category === 'Small Cap').length
+                const smallCapHeavy = enriched.length > 0 && smallCapCount / enriched.length > 0.3
 
                 const strengths: string[] = []
                 const weaknesses: string[] = []
-                if (sectors >= 5) strengths.push(`Well diversified — ${sectors} sectors`)
-                if (winRate >= 60) strengths.push(`${winRate}% holdings profitable`)
-                if (p.overall_score >= 60) strengths.push(`Healthy overall composition (score ${p.overall_score})`)
-                if (top3Pct >= 40) weaknesses.push(`Concentrated — top 3 holdings = ${top3Pct}% of portfolio`)
-                if (p.watch_count >= 5) weaknesses.push(`${p.watch_count} holdings need review`)
-                if (down20 > 0) weaknesses.push(`${down20} holding${down20 > 1 ? 's' : ''} down >20%`)
+                const opportunities: string[] = []
+                const threats: string[] = []
+
+                // STRENGTHS
+                if (sectors >= 10) strengths.push(`Well diversified across ${sectors} sectors`)
+                else if (sectors >= 5) strengths.push(`Diversified across ${sectors} sectors`)
+                if (winRate > 60) strengths.push(`${winRate}% of holdings are profitable`)
+                if (bullPct > 50) strengths.push(`Strong bullish momentum — ${bullPct}% holdings trending up`)
+                if (top3ConcentrationPct > 0 && top3ConcentrationPct < 40) strengths.push(`Low concentration risk — top 3 holdings = ${top3ConcentrationPct}%`)
+                if (p.overall_score > 60) strengths.push(`Healthy portfolio quality score (${p.overall_score}/100)`)
+
+                // WEAKNESSES
+                if (down20 > 0) weaknesses.push(`${down20} holding${down20 > 1 ? 's' : ''} down more than 20%`)
+                if (p.watch_count > 5) weaknesses.push(`${p.watch_count} holdings flagged for review`)
+                if (top3ConcentrationPct > 50) weaknesses.push(`High concentration — top 3 = ${top3ConcentrationPct}% of portfolio`)
+                if (sectors < 5) weaknesses.push(`Low diversification — only ${sectors} sectors`)
+                if (p.buy_count === 0) weaknesses.push(`No high-conviction buy opportunities identified`)
+                if (p.fundamental_score < 50) weaknesses.push(`Weak fundamental quality score`)
+
+                // OPPORTUNITIES
+                if (oversold > 0) opportunities.push(`${oversold} holding${oversold > 1 ? 's' : ''} at potential entry points (low RSI)`)
+                if (p.hold_count > 15) opportunities.push(`${p.hold_count} holdings on HOLD — review for upgrade potential`)
+                if (underweightSectors.length > 0) opportunities.push(`Underweight in ${underweightSectors[0].sector} — potential diversification opportunity`)
+                if (winRate > 70) opportunities.push(`Strong track record — consider increasing position sizes`)
+                if (opportunities.length === 0) opportunities.push(`Monitor for sector rotation opportunities`)
+
+                // THREATS
+                if (overbought > 0) threats.push(`${overbought} holding${overbought > 1 ? 's' : ''} overbought (RSI > 70) — pullback risk`)
+                if (bearCount > 3) threats.push(`${bearCount} holdings in downtrend`)
+                if (overweightSectors.length > 0) threats.push(`Overweight in ${overweightSectors[0].sector} (${overweightSectors[0].pct}%) — sector concentration risk`)
+                if (down50 > 0) threats.push(`${down50} holding${down50 > 1 ? 's' : ''} down >50% — exit risk`)
+                if (smallCapHeavy) threats.push(`High small-cap exposure — liquidity risk`)
+                if (threats.length < 2) threats.push(`Regular rebalancing recommended for concentration management`)
+
+                const limit = (arr: string[]) => arr.slice(0, 4)
+                const quadrants = [
+                  { key: 'S', label: 'STRENGTHS',    color: '#0EA66E', items: limit(strengths) },
+                  { key: 'W', label: 'WEAKNESSES',   color: '#FF4444', items: limit(weaknesses) },
+                  { key: 'O', label: 'OPPORTUNITIES',color: '#2dd4bf', items: limit(opportunities) },
+                  { key: 'T', label: 'THREATS',      color: '#F59E0B', items: limit(threats) },
+                ]
 
                 return (
                   <div style={{ ...neuCard }}>
-                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 10, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Action Summary</div>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                          {[
-                            { label: 'BUY', count: p.buy_count, color: '#0EA66E' },
-                            { label: 'HOLD', count: p.hold_count, color: '#2dd4bf' },
-                            { label: 'WATCH', count: p.watch_count, color: '#F59E0B' },
-                          ].map(c => (
-                            <div key={c.label} style={{ background: c.color + '15', border: `1px solid ${c.color}33`, borderRadius: 'var(--r-sm)', padding: '6px 14px', textAlign: 'center' }}>
-                              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-mono)', color: c.color }}>{c.count}</div>
-                              <div style={{ fontSize: 9, color: c.color, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>{c.label}</div>
-                            </div>
-                          ))}
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', marginBottom: 16, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>SWOT Analysis</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      {quadrants.map(q => (
+                        <div key={q.key} style={{
+                          background: 'var(--bg-surface)',
+                          boxShadow: 'var(--neu-raised-sm)',
+                          borderRadius: 12,
+                          padding: 16,
+                          borderLeft: `3px solid ${q.color}`,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <div style={{
+                              width: 20, height: 20, borderRadius: '50%',
+                              background: q.color + '20',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: q.color, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12,
+                              flexShrink: 0,
+                            }}>{q.key}</div>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)' }}>{q.label}</span>
+                          </div>
+                          <div>
+                            {q.items.length === 0 ? (
+                              <div style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)' }}>No significant items identified</div>
+                            ) : q.items.map((item, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                                <div style={{ width: 4, height: 4, borderRadius: '50%', background: q.color, marginTop: 6, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-body)', lineHeight: 1.4 }}>{item}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      {strengths.length > 0 && (
-                        <div style={{ flex: 1, minWidth: 200 }}>
-                          <div style={{ fontSize: 10, color: '#0EA66E', letterSpacing: '1px', marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Strengths</div>
-                          {strengths.map((s, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)', marginBottom: 4 }}>✓ {s}</div>
-                          ))}
-                        </div>
-                      )}
-                      {weaknesses.length > 0 && (
-                        <div style={{ flex: 1, minWidth: 200 }}>
-                          <div style={{ fontSize: 10, color: '#F59E0B', letterSpacing: '1px', marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Watch Out</div>
-                          {weaknesses.map((w, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)', marginBottom: 4 }}>⚠ {w}</div>
-                          ))}
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                 )
