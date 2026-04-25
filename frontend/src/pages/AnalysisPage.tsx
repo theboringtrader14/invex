@@ -869,11 +869,16 @@ export default function AnalysisPage() {
                 {/* Needs Attention card — compact bottom_3 */}
                 {(() => {
                   const bottom3 = scorecard.portfolio.bottom_3 || []
+                  const uniqueRecs: string[] = [...new Set<string>(bottom3.map((h: any) => h.recommendation as string))]
                   return (
                     <div style={{ ...neuCard, padding: '16px 18px' }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 12 }}>Needs Attention</div>
+                      {/* Header: label + rec chip(s) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Needs Attention</div>
+                        {uniqueRecs.map(rec => <RecChip key={rec} rec={rec} />)}
+                      </div>
                       {bottom3.length === 0 ? (
-                        <div style={{ fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center', paddingTop: 16 }}>All holdings healthy</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', textAlign: 'center', paddingTop: 8 }}>All holdings healthy</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {bottom3.map((h: any) => (
@@ -881,7 +886,6 @@ export default function AnalysisPage() {
                               <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</span>
                               <span style={{ color: 'var(--text-mute)', fontSize: 10, fontFamily: 'var(--font-body)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.sector}</span>
                               <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font-mono)', color: scoreHex(h.overall_score), flexShrink: 0 }}>{h.overall_score}</span>
-                              <RecChip rec={h.recommendation} />
                             </div>
                           ))}
                         </div>
@@ -979,7 +983,6 @@ export default function AnalysisPage() {
                           <div style={{
                             width: 48, flexShrink: 0,
                             background: q.color + '18',
-                            borderRight: `3px solid ${q.color}`,
                             alignSelf: 'stretch',
                             display: 'flex', flexDirection: 'column',
                             alignItems: 'center', justifyContent: 'center', gap: 2,
@@ -988,6 +991,12 @@ export default function AnalysisPage() {
                             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 16, color: q.color, lineHeight: 1 }}>{q.key}</span>
                             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: q.color, letterSpacing: '0.5px', opacity: 0.7 }}>{q.label.slice(0, 3)}</span>
                           </div>
+                          {/* Inset groove separator */}
+                          <div style={{
+                            width: 4, flexShrink: 0, alignSelf: 'stretch',
+                            background: q.color + '55',
+                            boxShadow: `inset 2px 0 3px rgba(0,0,0,0.28), inset -1px 0 2px rgba(255,255,255,0.30)`,
+                          }} />
                           {/* Content — flex-wrap so row 2 aligns with row 1 start */}
                           <div style={{ flex: 1, padding: '10px 16px', display: 'flex', flexWrap: 'wrap', alignContent: 'center', gap: '5px 20px' }}>
                             {q.items.length === 0 ? (
