@@ -396,36 +396,50 @@ export default function AnalysisPage() {
               <div style={{ ...neuCard }}>
                 <div style={{
                   fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
-                  marginBottom: 16, textTransform: 'uppercase',
+                  marginBottom: 20, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Gain / Loss Distribution</div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 120 }}>
-                  {fundamental.gain_distribution.map((b: any, i: number) => {
-                    const maxCount = Math.max(...fundamental.gain_distribution.map((x: any) => x.count), 1)
-                    const barH = Math.max((b.count / maxCount) * 90, b.count > 0 ? 8 : 0)
-                    const isNeg = i < 2
-                    return (
-                      <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <span style={{
-                          fontSize: 12, fontWeight: 700,
-                          color: isNeg ? 'var(--red)' : 'var(--green)',
-                          fontFamily: 'var(--font-mono)'
-                        }}>{b.count}</span>
-                        <div style={{
-                          width: '100%', height: barH, borderRadius: '4px 4px 0 0',
-                          background: isNeg
-                            ? 'rgba(255,68,68,0.25)'
-                            : 'rgba(34,221,136,0.25)',
-                          border: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(34,221,136,0.20)'}`
-                        }} />
-                        <span style={{
-                          fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
-                          lineHeight: 1.2, fontFamily: 'var(--font-mono)'
-                        }}>{b.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
+                {(() => {
+                  const dist: any[] = fundamental.gain_distribution
+                  const maxCount = Math.max(...dist.map((x: any) => x.count), 1)
+                  const BAR_MAX_H = 72
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0 }}>
+                      {dist.map((b: any, i: number) => {
+                        const isNeg = i < 2
+                        const barH = b.count > 0 ? Math.max(Math.round((b.count / maxCount) * BAR_MAX_H), 6) : 2
+                        const color = isNeg ? 'var(--red)' : 'var(--green)'
+                        const barBg = isNeg ? 'rgba(255,68,68,0.22)' : 'rgba(14,166,110,0.20)'
+                        return (
+                          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            {/* Count label */}
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, color,
+                              fontFamily: 'var(--font-mono)', marginBottom: 6,
+                              opacity: b.count === 0 ? 0.3 : 1
+                            }}>{b.count}</span>
+                            {/* Bar */}
+                            <div style={{
+                              width: 48, height: barH,
+                              borderRadius: '3px 3px 0 0',
+                              background: barBg,
+                              borderTop: `2px solid ${isNeg ? 'rgba(255,68,68,0.55)' : 'rgba(14,166,110,0.50)'}`,
+                              borderLeft: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(14,166,110,0.18)'}`,
+                              borderRight: `1px solid ${isNeg ? 'rgba(255,68,68,0.20)' : 'rgba(14,166,110,0.18)'}`,
+                            }} />
+                            {/* Baseline rule */}
+                            <div style={{ width: '100%', height: 1, background: 'var(--border)', marginBottom: 8 }} />
+                            {/* Category label */}
+                            <span style={{
+                              fontSize: 10, color: 'var(--text-mute)', textAlign: 'center',
+                              fontFamily: 'var(--font-mono)', lineHeight: 1.3
+                            }}>{b.label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Top Holdings Table */}
