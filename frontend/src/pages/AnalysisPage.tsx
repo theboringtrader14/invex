@@ -139,8 +139,8 @@ function Skeleton({ height = 120, width = '100%' }: { height?: number; width?: s
 }
 
 const neuCard: React.CSSProperties = {
-  background: 'var(--bg)',
-  boxShadow: 'var(--neu-inset)',
+  background: 'var(--bg-surface)',
+  boxShadow: 'var(--neu-raised)',
   borderRadius: 'var(--r-lg)',
   padding: 20
 }
