@@ -54,14 +54,14 @@ function SignalChip({ signal }: { signal: string }) {
   const c = map[signal] || { color: 'var(--text-mute)', label: signal }
   return (
     <span style={{
-      background: c.color + '15',
-      color: c.color,
-      border: `1px solid ${c.color}33`,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
       borderRadius: 'var(--r-sm)',
-      padding: '2px 8px',
-      fontSize: 11,
-      fontWeight: 600,
-      fontFamily: 'var(--font-mono)'
+      padding: '3px 10px',
+      color: c.color,
+      fontSize: 10, fontWeight: 700,
+      fontFamily: 'var(--font-mono)',
+      whiteSpace: 'nowrap'
     }}>{c.label}</span>
   )
 }
@@ -556,14 +556,14 @@ export default function AnalysisPage() {
                   marginBottom: 16, textTransform: 'uppercase',
                   fontFamily: 'var(--font-mono)', fontWeight: 400
                 }}>Holdings by Signal</div>
-                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '560px', overflowY: 'auto' }}>
+                <div className="hide-scrollbar" style={{ overflowX: 'auto', maxHeight: '369px', overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         {['Symbol', 'Sector', 'CMP', 'vs Avg', 'Signal', 'RSI', '50DMA', '200DMA'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
-                            textAlign: h === 'Symbol' || h === 'Sector' || h === 'vs Avg' ? 'left' : 'right',
+                            textAlign: 'center',
                             color: 'var(--text-mute)', fontWeight: 400, fontSize: 10,
                             letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap',
                             fontFamily: 'var(--font-mono)',
@@ -589,9 +589,9 @@ export default function AnalysisPage() {
                           : <span style={{ fontSize: 10, fontWeight: 700, color: above ? '#0EA66E' : '#FF4444', fontFamily: 'var(--font-mono)' }}>{above ? '↑' : '↓'}</span>
                         return (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                             <td style={{ padding: '10px 12px', minWidth: 160 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <div style={{ flex: 1, height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px' }}>
@@ -602,14 +602,14 @@ export default function AnalysisPage() {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><SignalChip signal={h.signal} /></td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><SignalChip signal={h.signal} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                               {h.rsi != null
                                 ? <span style={{ color: rsiColor, fontWeight: 700 }}>{h.rsi.toFixed(0)}{h.rsi > 70 ? ' ↑' : h.rsi < 30 ? ' ↓' : ''}</span>
                                 : <span style={{ color: 'var(--text-mute)' }}>—</span>}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><DmaChip above={h.above_50} /></td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}><DmaChip above={h.above_200} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><DmaChip above={h.above_50} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><DmaChip above={h.above_200} /></td>
                           </tr>
                         )
                       })}
