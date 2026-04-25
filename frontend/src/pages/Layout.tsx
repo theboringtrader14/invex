@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { SignOut, Sun, Moon } from '@phosphor-icons/react'
+import { SignOut, Sun, Moon, UserCircle } from '@phosphor-icons/react'
+import InvexAccountsDrawer from '../components/InvexAccountsDrawer'
 
 const NAV_LINKS = [
   { to: '/portfolio', label: 'Portfolio' },
@@ -29,6 +30,7 @@ export default function Layout() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     (localStorage.getItem('invex_theme') as 'light' | 'dark') || 'light'
   )
+  const [showAccounts, setShowAccounts] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -100,7 +102,7 @@ export default function Layout() {
             ))}
           </nav>
 
-          {/* RIGHT — Theme + Exit */}
+          {/* RIGHT — Theme + Accounts + Exit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
               onClick={toggleTheme}
@@ -110,6 +112,19 @@ export default function Layout() {
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}
             >
               {theme === 'dark' ? <Sun size={16} weight="regular" /> : <Moon size={16} weight="regular" />}
+            </button>
+            <button
+              onClick={() => setShowAccounts(v => !v)}
+              title="Broker Accounts"
+              style={{
+                ...iconBtnStyle,
+                color: showAccounts ? 'var(--accent)' : 'var(--text-dim)',
+                boxShadow: showAccounts ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = showAccounts ? 'var(--accent)' : 'var(--text-dim)' }}
+            >
+              <UserCircle size={16} weight="regular" />
             </button>
             <button
               onClick={logout}
@@ -130,6 +145,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
+      {showAccounts && <InvexAccountsDrawer onClose={() => setShowAccounts(false)} />}
     </div>
   )
 }
