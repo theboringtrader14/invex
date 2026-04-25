@@ -532,7 +532,6 @@ export default function AnalysisPage() {
                   return (
                     <div key={sig} onClick={() => setSignalFilter(isActive ? null : sig)} style={{
                       ...neuCard,
-                      borderTop: `3px solid ${color}`,
                       padding: 16,
                       cursor: 'pointer',
                       boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
@@ -540,8 +539,8 @@ export default function AnalysisPage() {
                       transition: 'box-shadow 0.18s, outline 0.18s',
                     }}>
                       <div style={{
-                        fontSize: 10, color: 'var(--text-mute)', marginBottom: 8,
-                        fontFamily: 'var(--font-mono)', fontWeight: 400, letterSpacing: '1px',
+                        fontSize: 10, color, marginBottom: 8,
+                        fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '1px',
                         textTransform: 'uppercase'
                       }}>{labels[sig] || sig}</div>
                       <div style={{
