@@ -147,20 +147,19 @@ const neuCard: React.CSSProperties = {
 
 function GradeChip({ grade }: { grade?: string }) {
   if (!grade) return <span style={{ color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 9 }}>—</span>
-  const map: Record<string, { bg: string; color: string }> = {
-    A: { bg: '#0EA66E20', color: '#0EA66E' },
-    B: { bg: '#2dd4bf20', color: '#2dd4bf' },
-    C: { bg: '#F59E0B20', color: '#F59E0B' },
-    D: { bg: '#FF444420', color: '#FF4444' },
+  const colorMap: Record<string, string> = {
+    A: '#0EA66E', B: '#2dd4bf', C: '#F59E0B', D: '#FF4444',
   }
-  const s = map[grade] || { bg: 'rgba(0,0,0,0.05)', color: 'var(--text-mute)' }
+  const color = colorMap[grade] || 'var(--text-mute)'
   return (
     <span style={{
-      background: s.bg, color: s.color,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
       borderRadius: 4, padding: '2px 8px',
-      fontSize: 9, fontWeight: 600,
+      color, fontSize: 10, fontWeight: 700,
       fontFamily: 'var(--font-mono)',
-      letterSpacing: '0.5px', textTransform: 'uppercase'
+      letterSpacing: '0.5px', textTransform: 'uppercase',
+      minWidth: 24
     }}>{grade}</span>
   )
 }
@@ -454,7 +453,7 @@ export default function AnalysisPage() {
                         {['Symbol', 'Sector', 'Value', 'Weight', 'Gain%', 'PE', 'Mkt Cap', 'Grade', 'Signal'].map(h => (
                           <th key={h} style={{
                             padding: '8px 12px',
-                            textAlign: h === 'Symbol' || h === 'Sector' || h === 'Signal' ? 'left' : 'right',
+                            textAlign: 'center',
                             color: 'var(--text-mute)',
                             fontWeight: 400, fontSize: 10, letterSpacing: '1px',
                             textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -468,27 +467,27 @@ export default function AnalysisPage() {
                         const e = getE(h.symbol)
                         return (
                           <tr key={h.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-dim)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-mute)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
                             <td style={{
-                              padding: '10px 12px', textAlign: 'right', fontWeight: 700,
+                              padding: '10px 12px', textAlign: 'center', fontWeight: 700,
                               fontFamily: 'var(--font-mono)',
                               color: h.gain_pct >= 0 ? 'var(--green)' : 'var(--red)'
                             }}>
                               {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct?.toFixed(2)}%
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                               {e?.pe ? e.pe.toFixed(1) : '—'}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-mute)', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-mute)', whiteSpace: 'nowrap' }}>
                               {e?.market_cap_category ?? '—'}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                               <GradeChip grade={e?.grade} />
                             </td>
-                            <td style={{ padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                               {e?.signal ?? '—'}
                             </td>
                           </tr>
