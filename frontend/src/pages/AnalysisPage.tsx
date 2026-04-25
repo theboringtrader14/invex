@@ -431,18 +431,18 @@ export default function AnalysisPage() {
                             <div key={s.sector}
                               onClick={() => setSectorFilter(isActive ? null : s.sector)}
                               style={{
-                                flex: `${Math.max(s.pct, 5)} 0 0`,
-                                minWidth: 68,
-                                height: 76,
-                                background: color + (isActive ? '22' : '14'),
+                                /* flex-basis = max(pct, 10)% forces ~7 per row naturally */
+                                flex: `${Math.max(s.pct, 4)} 0 ${Math.max(s.pct, 10)}%`,
+                                minWidth: 64,
+                                height: 70,
+                                background: isActive ? color + '18' : 'var(--bg-surface)',
                                 boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised)',
                                 borderRadius: 'var(--r-md)',
-                                padding: '9px 10px',
+                                padding: '8px 10px',
                                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                                borderTop: `2px solid ${color}${isActive ? 'aa' : '55'}`,
                                 overflow: 'hidden',
                                 cursor: 'pointer',
-                                transition: 'box-shadow 0.18s',
+                                transition: 'box-shadow 0.18s, background 0.18s',
                               }}>
                               <span style={{
                                 fontSize: 9, color, fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -450,7 +450,7 @@ export default function AnalysisPage() {
                                 display: '-webkit-box', WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
                               }}>{s.sector}</span>
-                              <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
+                              <div style={{ fontSize: 17, fontWeight: 800, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.pct}%</div>
                             </div>
                           )
                         })}
@@ -510,7 +510,7 @@ export default function AnalysisPage() {
 
               {/* Top Holdings Table */}
               <div style={{ ...neuCard }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Top Holdings</div>
                   {sectorFilter && (() => {
                     const sd = fundamental.sector_allocation.find((s: any) => s.sector === sectorFilter)
@@ -518,7 +518,7 @@ export default function AnalysisPage() {
                     const ci = fundamental.sector_allocation.findIndex((s: any) => s.sector === sectorFilter)
                     const color = COLORS[ci % COLORS.length]
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <>
                         {sd && (
                           <span style={{
                             background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
@@ -532,7 +532,7 @@ export default function AnalysisPage() {
                           border: 'none', borderRadius: 'var(--r-pill)',
                           padding: '4px 12px', cursor: 'pointer', fontWeight: 600,
                         }}>✕ Clear</button>
-                      </div>
+                      </>
                     )
                   })()}
                 </div>
