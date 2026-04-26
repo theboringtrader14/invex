@@ -487,8 +487,35 @@ function FundamentalBody({ h, e, sc }: { h: any; e: any; sc: any }) {
   const w52low = vals.week52_low
   const w52high = vals.week52_high
 
+  const recColor = recommendation === 'BUY' ? '#0EA66E'
+    : recommendation === 'HOLD' ? '#F59E0B'
+    : recommendation === 'WATCH' ? '#FF4444'
+    : 'var(--text-mute)'
+
   return (
     <>
+      {/* Grade Breakdown — first, above valuation */}
+      <div style={{ marginBottom: 20 }}>
+        <span style={sectionLabel}>GRADE BREAKDOWN</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)', color: gradeColor(vals.grade) }}>
+            {vals.grade || '—'}
+          </span>
+          <SignalChipSmall signal={vals.signal} />
+          {recommendation && (
+            <span style={{
+              marginLeft: 'auto',
+              background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+              borderRadius: 8, padding: '5px 16px',
+              fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)',
+              color: recColor,
+            }}>
+              {recommendation}
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Valuation */}
       <div style={{ marginBottom: 20 }}>
         <span style={sectionLabel}>VALUATION</span>
@@ -554,22 +581,6 @@ function FundamentalBody({ h, e, sc }: { h: any; e: any; sc: any }) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Grade Breakdown */}
-      <div style={{ marginBottom: 20 }}>
-        <span style={sectionLabel}>GRADE BREAKDOWN</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)', color: gradeColor(vals.grade) }}>
-            {vals.grade || '—'}
-          </span>
-          <SignalChipSmall signal={vals.signal} />
-          {recommendation && (
-            <span style={{ ...recStyle, borderRadius: 8, padding: '4px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              {recommendation}
-            </span>
-          )}
         </div>
       </div>
 
@@ -917,11 +928,14 @@ export function StockDetailModal({
         }
       `}</style>
 
-      {/* Overlay */}
+      {/* Overlay — starts below 52px topbar, blurred */}
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          position: 'fixed', top: 52, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -998,7 +1012,7 @@ export function StockDetailModal({
               >×</button>
             </div>
 
-            {/* Row 2: Account badge + Sector + Grade + Signal */}
+            {/* Row 2: Account badge + Sector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: 10,
@@ -1012,8 +1026,6 @@ export function StockDetailModal({
                   {sector}
                 </span>
               )}
-              <GradeChip grade={grade} />
-              <SignalChipSmall signal={signal} />
             </div>
 
             {/* Row 3: LTP + P&L (not shown in technical mode) */}
@@ -1059,23 +1071,6 @@ export function StockDetailModal({
               <ScorecardBody sc={sc} e={e} t={t} />
             )}
 
-            {/* Footer */}
-            {onViewAnalysis && (
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                <button
-                  onClick={onViewAnalysis}
-                  style={{
-                    background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
-                    border: 'none', borderRadius: 20, padding: '8px 20px',
-                    fontSize: 12, fontFamily: 'var(--font-body)', fontWeight: 600,
-                    color: 'var(--accent)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  View Full Analysis →
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
