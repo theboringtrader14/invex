@@ -350,7 +350,7 @@ export default function AnalysisPage() {
     col: string, setCol: (c: string) => void,
     dir: 'asc' | 'desc' | null, setDir: (d: 'asc' | 'desc' | null) => void
   ) => (key: string) => {
-    if (col === key) setDir(dir === 'desc' ? 'asc' : dir === 'asc' ? null : 'desc')
+    if (col === key) setDir(dir === 'desc' ? 'asc' : 'desc')
     else { setCol(key); setDir('desc') }
   }
 
@@ -375,6 +375,12 @@ export default function AnalysisPage() {
       const av = a[field]; const bv = b[field]
       if (av == null) return 1; if (bv == null) return -1
       if (typeof av === 'number') return fundSortDir === 'asc' ? av - bv : bv - av
+      if (field === '_signal') {
+        const sigOrder = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
+        const ai = sigOrder.indexOf(av); const bi = sigOrder.indexOf(bv)
+        const ai2 = ai === -1 ? 99 : ai; const bi2 = bi === -1 ? 99 : bi
+        return fundSortDir === 'asc' ? bi2 - ai2 : ai2 - bi2
+      }
       return fundSortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
     })
   }, [joinedHoldings, fundSortCol, fundSortDir])
@@ -1300,7 +1306,16 @@ export default function AnalysisPage() {
                         .sort((a: any, b: any) => {
                           if (!sortDir) return 0
                           const av = a[sortCol]; const bv = b[sortCol]
-                          if (typeof av === 'number') return sortDir === 'asc' ? av - bv : bv - av
+                          if (av == null && bv == null) return 0
+                          if (av == null) return 1
+                          if (bv == null) return -1
+                          if (typeof av === 'number' && typeof bv === 'number') return sortDir === 'asc' ? av - bv : bv - av
+                          if (sortCol === 'signal') {
+                            const sigOrder = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
+                            const ai = sigOrder.indexOf(av); const bi = sigOrder.indexOf(bv)
+                            const ai2 = ai === -1 ? 99 : ai; const bi2 = bi === -1 ? 99 : bi
+                            return sortDir === 'asc' ? bi2 - ai2 : ai2 - bi2
+                          }
                           return sortDir === 'asc'
                             ? String(av).localeCompare(String(bv))
                             : String(bv).localeCompare(String(av))
