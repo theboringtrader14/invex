@@ -410,17 +410,24 @@ export default function AnalysisPage() {
 
   // Pre-join scorecard.holdings with enriched data so grade/signal are sortable
   const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
-  const SIGNAL_RANK: Record<string, number> = { STRONG_BULL: 5, BULL: 4, NEUTRAL: 3, WEAK: 2, BEAR: 1 }
+  const SIGNAL_RANK: Record<string, number> = {
+    // Raw values (technical API)
+    STRONG_BULL: 5, BULL: 4, NEUTRAL: 3, WEAK: 2, BEAR: 1,
+    // Display labels (scorecard API returns these)
+    'Multibagger': 5, 'Momentum Leader': 5, 'Strong Compounder': 4,
+    'Steady': 3, 'Laggard': 2, 'Under Watch': 1,
+  }
   const scorecardHoldings = useMemo(() => {
     if (!scorecard) return []
     return (scorecard.holdings || []).map((h: any) => {
       const e = getE(h.symbol)
+      const rawSignal = h.signal  // capture before any spread overwrites
       return {
         ...h,
-        grade: e?.grade ?? null,
-        signal: e?.signal ?? null,
-        grade_rank: GRADE_RANK[e?.grade ?? ''] ?? 0,
-        signal_rank: SIGNAL_RANK[h.signal ?? ''] ?? 3,
+        grade: e?.grade ?? h.grade ?? null,
+        signal: e?.signal ?? rawSignal ?? null,
+        grade_rank: GRADE_RANK[h.grade ?? ''] ?? 0,
+        signal_rank: SIGNAL_RANK[rawSignal ?? ''] ?? 3,
       }
     })
   }, [scorecard, enriched])
