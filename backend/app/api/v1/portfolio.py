@@ -4,7 +4,7 @@ import json
 import logging
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.core.nse_sector_fetcher import get_sector_from_map
@@ -12,7 +12,7 @@ from app.core.redis_client import redis_client
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
 from app.models.user import User
 import uuid
-from datetime import date
+from datetime import date, timedelta as _timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +186,50 @@ async def refresh_holdings(
         logger.warning(f"[PORTFOLIO] Prefetch setup failed: {e}")
 
     return {"status": "refreshed", "results": results}
+
+
+@router.get("/price-history")
+async def get_price_history_endpoint(
+    symbol: str,
+    period: str = "1y",
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import date as date_type
+    periods = {
+        'ytd': date_type(date_type.today().year, 1, 1),
+        '1y': date_type.today() - _timedelta(days=365),
+        '3y': date_type.today() - _timedelta(days=1095),
+    }
+    start = periods.get(period, periods['1y'])
+    clean_sym = symbol.replace('-EQ', '').replace('-BE', '').replace('.NS', '').strip()
+
+    stock_rows = []
+    if clean_sym != 'NIFTY50':
+        result = await db.execute(text('''
+            SELECT date, close FROM invex_price_history
+            WHERE symbol = :sym AND date >= :start ORDER BY date ASC
+        '''), {'sym': clean_sym, 'start': start})
+        stock_rows = [{'date': str(r[0]), 'close': float(r[1])} for r in result.fetchall()]
+
+    nifty_result = await db.execute(text('''
+        SELECT date, close FROM invex_price_history
+        WHERE symbol = 'NIFTY50' AND date >= :start ORDER BY date ASC
+    '''), {'start': start})
+    nifty_rows = [{'date': str(r[0]), 'close': float(r[1])} for r in nifty_result.fetchall()]
+
+    def normalize(rows):
+        if not rows:
+            return []
+        base = rows[0]['close']
+        return [{'date': r['date'], 'value': round(r['close'] / base * 100, 2)} for r in rows]
+
+    return {
+        'symbol': clean_sym,
+        'period': period,
+        'stock': normalize(stock_rows),
+        'nifty': normalize(nifty_rows),
+    }
 
 
 async def _write_snapshot(db: AsyncSession, user_id=None) -> None:

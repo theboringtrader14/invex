@@ -14,6 +14,27 @@ const cleanSym = (s: string) =>
 
 type Tab = 'fundamental' | 'technical' | 'mf' | 'scorecard'
 
+function Sparkline({ data, width = 120, height = 32 }: { data: {date: string, value: number}[], width?: number, height?: number }) {
+  if (!data || data.length < 2) return null
+  const values = data.map(d => d.value)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - ((d.value - min) / range) * (height - 2) - 1
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  const lastVal = values[values.length - 1]
+  const lineColor = lastVal >= 100 ? '#0EA66E' : '#FF4444'
+  return (
+    <svg width={width} height={height} style={{ overflow: 'visible', display: 'block' }}>
+      <polyline points={points} fill="none" stroke={lineColor}
+        strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function scoreColor(score: number) {
   if (score >= 75) return 'var(--green)'
   if (score >= 55) return 'var(--amber)'
@@ -324,6 +345,7 @@ export default function AnalysisPage() {
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
   const [modalMode, setModalMode] = useState<'fundamental' | 'technical' | 'scorecard'>('fundamental')
+  const [niftyHistory, setNiftyHistory] = useState<{date: string, value: number}[]>([])
   const navigate = useNavigate()
 
   // Single effect — fires once when token is available, never re-fires (token string is stable)
@@ -367,6 +389,15 @@ export default function AnalysisPage() {
       .then(d => { setMfData(d); setMfLoading(false) })
       .catch(() => setMfLoading(false))
   }, [token, tab, mfData])
+
+  // Fetch Nifty sparkline data when scorecard tab is active
+  useEffect(() => {
+    if (tab !== 'scorecard' || !token) return
+    apiFetch('/api/v1/portfolio/price-history?symbol=NIFTY50&period=1y')
+      .then(r => r.json())
+      .then(d => setNiftyHistory(d.nifty || []))
+      .catch(() => {})
+  }, [tab, token])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>
@@ -1222,6 +1253,9 @@ export default function AnalysisPage() {
                       <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                         {bm.nifty_1y_return != null ? `${bm.nifty_1y_return >= 0 ? '+' : ''}${bm.nifty_1y_return}%` : '—'}
                       </span>
+                      {niftyHistory.length >= 2 && (
+                        <Sparkline data={niftyHistory} width={120} height={32} />
+                      )}
                     </div>
                     <span style={{
                       marginLeft: 'auto', flexShrink: 0,

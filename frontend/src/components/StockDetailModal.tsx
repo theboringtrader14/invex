@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
+import { Crown } from '@phosphor-icons/react'
 import { apiFetch } from '../lib/api'
 
 export interface NavItem { symbol: string; account_id: string }
@@ -17,6 +18,7 @@ export interface StockDetailModalProps {
   scorecardMap: Record<string, any>
   accountMap: Record<string, string>
   onViewAnalysis?: () => void
+  isCrownJewel?: boolean
 }
 
 const fmtNum = (n: number) =>
@@ -919,7 +921,7 @@ function ScorecardBody({ sc, e, t }: { sc: any; e: any; t: any }) {
 export function StockDetailModal({
   currentItem, onClose, mode, navList, onNavigate,
   holdingsMap, enrichedMap, technicalMap, scorecardMap,
-  accountMap, onViewAnalysis,
+  accountMap, onViewAnalysis, isCrownJewel,
 }: StockDetailModalProps) {
   if (!currentItem) return null
 
@@ -1047,9 +1049,10 @@ export function StockDetailModal({
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
               <span style={{
                 fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-display)',
-                color: 'var(--accent)', flex: 1,
+                color: 'var(--accent)', flex: 1, display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 {currentItem.symbol}
+                {isCrownJewel && <Crown size={16} weight="fill" color="#F59E0B" style={{ flexShrink: 0 }} />}
               </span>
               <button
                 onClick={onClose}

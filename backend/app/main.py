@@ -178,6 +178,18 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     logger.info("✅ INVEX ready on port 8001 — daily snapshot @ 15:35 IST, SIP engine @ 09:20 IST")
 
+    # Kick off non-blocking price history backfill for all portfolio symbols + Nifty
+    async def _run_backfill():
+        from app.services.price_history_service import backfill_all
+        async with AsyncSessionLocal() as db:
+            try:
+                await backfill_all(db)
+            except Exception as e:
+                logger.warning(f"[STARTUP] Price history backfill failed: {e}")
+
+    import asyncio as _asyncio
+    _asyncio.create_task(_run_backfill())
+
     yield
 
     scheduler.shutdown(wait=False)

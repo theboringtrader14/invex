@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react"
-import { ArrowsClockwise, X, ChartLine, ArrowRight } from "@phosphor-icons/react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { ArrowsClockwise, X, ChartLine, ArrowRight, Crown } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
 import { apiFetch } from "../lib/api"
@@ -518,10 +518,11 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
 
 /* ─── HoldingsTable ──────────────────────────────── */
 function HoldingsTable({
-  holdings, accountMap, onRowClick
+  holdings, accountMap, crownSymbols, onRowClick
 }: {
   holdings: Holding[]
   accountMap: Record<string, string>
+  crownSymbols: Set<string>
   onRowClick: (h: Holding) => void
 }) {
   const [sortKey, setSortKey] = useState<SortKey>(() => {
@@ -602,7 +603,12 @@ function HoldingsTable({
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}
               >
                 <td style={{ textAlign: "left" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "13px" }}>{sym}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "13px" }}>{sym}</span>
+                    {crownSymbols.has(h.symbol) && (
+                      <Crown size={13} weight="fill" color="#F59E0B" />
+                    )}
+                  </div>
                 </td>
                 <td style={numStyle}>{h.qty}</td>
                 <td style={numStyle}>
@@ -695,6 +701,16 @@ export default function PortfolioPage() {
   const { token } = useAuth()
   const [summary, setSummary]     = useState<Summary | null>(() => readCache()?.summary ?? null)
   const [holdings, setHoldings]   = useState<Holding[]>(() => readCache()?.holdings ?? [])
+
+  const crownSymbols = useMemo(() => {
+    const eligible = holdings
+      .filter(h => (h.pnl_pct || 0) > 50)
+      .sort((a, b) => (b.pnl_pct || 0) - (a.pnl_pct || 0))
+      .slice(0, 3)
+      .map(h => h.symbol)
+    return new Set(eligible)
+  }, [holdings])
+
   const [mf, setMF]               = useState<MFHolding[]>(() => readCache()?.mf ?? [])
   const [snapshots, setSnapshots] = useState<Snapshot[]>(() => readCache()?.snapshots ?? [])
   const [accountMap, setAccountMap] = useState<Record<string, string>>({})
@@ -961,6 +977,7 @@ export default function PortfolioPage() {
                 ? <HoldingsTable
                     holdings={filteredHoldings}
                     accountMap={accountMap}
+                    crownSymbols={crownSymbols}
                     onRowClick={h => setSelectedNav({
                       symbol: h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'').replace(/\.NS$/i,'').replace(/\.BO$/i,''),
                       account_id: h.account_id
@@ -999,6 +1016,7 @@ export default function PortfolioPage() {
             technicalMap={{}}
             scorecardMap={{}}
             accountMap={accountMap}
+            isCrownJewel={crownSymbols.has(selectedNav?.symbol || '')}
           />
         )
       })()}
