@@ -7,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
-from app.models import holdings, sips, ipo_bots, watchlist, invex_account, user  # noqa
+from app.models import holdings, sips, ipo_bots, watchlist, invex_account, user, stock_notes  # noqa
 from app.api.v1 import portfolio, sips as sips_api, ipo_bots as ipo_api, watchlist as watchlist_api
 from app.api.v1 import analysis as analysis_api
 from app.api.v1 import accounts as accounts_api
 from app.api.v1 import auth as auth_api
+from app.api.v1 import stocks as stocks_api
 from app.engine.sip_engine import run_sip_engine, refresh_nse_holidays
 
 logging.basicConfig(level=logging.INFO)
@@ -203,6 +204,7 @@ app.include_router(ipo_api.router,       prefix="/api/v1/ipo-bots",   tags=["ipo
 app.include_router(watchlist_api.router, prefix="/api/v1/watchlist",  tags=["watchlist"])
 app.include_router(analysis_api.router,  prefix="/api/v1/analysis",   tags=["analysis"])
 app.include_router(accounts_api.router,  prefix="/api/v1/accounts",   tags=["accounts"])
+app.include_router(stocks_api.router,    prefix="/api/v1/stocks",      tags=["stocks"])
 
 @app.get("/health")
 async def health(): return {"status": "ok", "service": "invex"}
