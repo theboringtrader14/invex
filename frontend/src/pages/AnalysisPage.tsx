@@ -280,7 +280,9 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
 }
 
 export default function AnalysisPage() {
-  const [tab, setTab] = useState<Tab>('fundamental')
+  const [tab, setTab] = useState<Tab>(() =>
+    (localStorage.getItem('invex_analysis_tab') as Tab) || 'fundamental'
+  )
   const [fundamental, setFundamental] = useState<any>(null)
   const [technical, setTechnical] = useState<any>(null)
   const [scorecard, setScorecard] = useState<any>(null)
@@ -404,6 +406,23 @@ export default function AnalysisPage() {
     })
   }, [technical, techSortCol, techSortDir])
 
+  // Pre-join scorecard.holdings with enriched data so grade/signal are sortable
+  const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
+  const SIGNAL_RANK: Record<string, number> = { STRONG_BULL: 5, BULL: 4, NEUTRAL: 3, WEAK: 2, BEAR: 1 }
+  const scorecardHoldings = useMemo(() => {
+    if (!scorecard) return []
+    return (scorecard.holdings || []).map((h: any) => {
+      const e = getE(h.symbol)
+      return {
+        ...h,
+        grade: e?.grade ?? null,
+        signal: e?.signal ?? null,
+        grade_rank: GRADE_RANK[e?.grade ?? ''] ?? 0,
+        signal_rank: SIGNAL_RANK[e?.signal ?? ''] ?? 0,
+      }
+    })
+  }, [scorecard, enriched])
+
   // Portfolio-level grade from enriched holdings
   const portfolioGrade = (() => {
     if (!enriched.length) return null
@@ -493,7 +512,7 @@ export default function AnalysisPage() {
           pointerEvents: 'none',
         }} />
         {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
+          <button key={t} onClick={() => { setTab(t); localStorage.setItem('invex_analysis_tab', t) }} style={{
             flex: 1,
             padding: '8px 0',
             borderRadius: 'calc(var(--r-lg) - 4px)',
@@ -1292,8 +1311,8 @@ export default function AnalysisPage() {
                           { k: 'technical_score', label: 'Tech' },
                           { k: 'overall_score', label: 'Overall' },
                           { k: 'recommendation', label: 'Action' },
-                          { k: 'grade', label: 'Grade' },
-                          { k: 'signal', label: 'Signal' },
+                          { k: 'grade_rank', label: 'Grade' },
+                          { k: 'signal_rank', label: 'Signal' },
                         ].map(col => (
                           <SortableHeader key={col.k} label={col.label} sortKey={col.k} currentKey={sortCol} currentDir={sortDir} onSort={handleScorecardSort} style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         ))}
@@ -1301,7 +1320,7 @@ export default function AnalysisPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(scorecard.holdings || [])
+                      {scorecardHoldings
                         .filter((h: any) => recFilter === 'ALL' || h.recommendation === recFilter)
                         .sort((a: any, b: any) => {
                           if (!sortDir) return 0
@@ -1321,7 +1340,6 @@ export default function AnalysisPage() {
                             : String(bv).localeCompare(String(av))
                         })
                         .map((h: any, i: number) => {
-                          const e = getE(h.symbol)
                           return (
                             <tr key={`score_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
@@ -1350,9 +1368,9 @@ export default function AnalysisPage() {
                                 color: scoreHex(h.overall_score)
                               }}>{h.overall_score}</td>
                               <td style={{ padding: '10px 12px', textAlign: 'center' }}><RecChip rec={h.recommendation} /></td>
-                              <td style={{ padding: '10px 12px', textAlign: 'center' }}><GradeChip grade={e?.grade} /></td>
+                              <td style={{ padding: '10px 12px', textAlign: 'center' }}><GradeChip grade={h.grade} /></td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                                {e?.signal ?? '—'}
+                                {h.signal ?? '—'}
                               </td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             </tr>

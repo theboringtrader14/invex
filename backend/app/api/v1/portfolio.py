@@ -164,6 +164,9 @@ async def _write_snapshot(db: AsyncSession) -> None:
     total_invested  = equity_invested + mf_invested
     day_pnl         = sum((r.day_change or 0) for r in holdings)
 
+    if total_current == 0:
+        return  # No data to snapshot — skip to avoid writing corrupt zero rows
+
     today = date.today()
     # Remove existing row for today (upsert via delete + insert)
     await db.execute(

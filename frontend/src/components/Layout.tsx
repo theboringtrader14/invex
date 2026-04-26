@@ -35,11 +35,9 @@ const IconAnalysis = () => (
 )
 
 const NAV = [
-  { path: "/portfolio", label: "Portfolio",  Icon: IconPortfolio },
-  { path: "/sips",      label: "SIP Engine", Icon: IconSIP },
-  { path: "/ipo-bots",  label: "IPO Bot",    Icon: IconIPO },
-  { path: "/watchlist", label: "Watchlist",  Icon: IconWatchlist },
-  { path: "/analysis",  label: "Analysis",   Icon: IconAnalysis },
+  { path: "/portfolio", label: "Portfolio", Icon: IconPortfolio },
+  { path: "/watchlist", label: "Watchlist", Icon: IconWatchlist },
+  { path: "/analysis",  label: "Analysis",  Icon: IconAnalysis },
 ]
 
 export default function Layout() {
