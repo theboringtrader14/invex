@@ -686,7 +686,7 @@ export default function AnalysisPage() {
               })()}
 
               {/* Gain Distribution */}
-              <div style={{ background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+              <div style={{ ...neuCard }}>
                 <div style={{
                   fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                   marginBottom: 12, textTransform: 'uppercase',
@@ -710,16 +710,25 @@ export default function AnalysisPage() {
                               fontFamily: 'var(--font-mono)', textAlign: 'center',
                               opacity: b.count === 0 ? 0.35 : 1
                             }}>{b.count}</div>
-                            {/* Bar — 75% width, gradient to-top, glow */}
+                            {/* Bar — inset groove with colored fill inside */}
                             <div style={{
-                              width: '75%', height: `${barH}px`,
-                              borderRadius: '3px 3px 0 0',
-                              background: isNeg
-                                ? 'linear-gradient(to top, rgba(255,68,68,0.5), rgba(255,68,68,0.9))'
-                                : 'linear-gradient(to top, rgba(14,166,110,0.5), rgba(14,166,110,0.9))',
-                              boxShadow: b.count > 0 ? `0 0 6px ${colorHex}55` : 'none',
+                              width: '75%', height: `${barH + 6}px`,
+                              borderRadius: 6,
+                              background: 'var(--bg)',
+                              boxShadow: 'var(--neu-inset)',
+                              padding: '2px 3px',
+                              display: 'flex', alignItems: 'flex-end',
                               transition: 'height 0.4s cubic-bezier(0.4,0,0.2,1)',
-                            }} />
+                            }}>
+                              <div style={{
+                                width: '100%', height: `${barH}px`,
+                                borderRadius: 4,
+                                background: isNeg
+                                  ? 'linear-gradient(to top, rgba(255,68,68,0.45), rgba(255,68,68,0.75))'
+                                  : 'linear-gradient(to top, rgba(14,166,110,0.45), rgba(14,166,110,0.75))',
+                                opacity: b.count === 0 ? 0.2 : 1,
+                              }} />
+                            </div>
                             {/* Category label */}
                             <div style={{
                               fontSize: 9, color: 'var(--text-mute)', textAlign: 'center',
