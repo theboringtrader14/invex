@@ -686,7 +686,7 @@ export default function AnalysisPage() {
               })()}
 
               {/* Gain Distribution */}
-              <div style={{ ...neuCard }}>
+              <div style={{ background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 'var(--r-lg)', padding: 20 }}>
                 <div style={{
                   fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px',
                   marginBottom: 12, textTransform: 'uppercase',
