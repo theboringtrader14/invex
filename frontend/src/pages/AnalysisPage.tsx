@@ -75,40 +75,37 @@ function ScoreArc({ score, size = 120, label }: { score: number; size?: number; 
   const circ = 2 * Math.PI * r
   const dashOffset = circ - (score / 100) * circ
   const hexColor = scoreHex(score)
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  const trackStroke    = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(203,218,215,0.95)'
-  const grooveDark     = isDark ? 'rgba(0,0,0,0.70)'       : 'rgba(130,155,150,0.55)'
-  const grooveLight    = isDark ? 'rgba(255,255,255,0.06)'  : 'rgba(255,255,255,0.88)'
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.getAttribute('data-theme') !== 'light'
+  )
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setIsDark(document.documentElement.getAttribute('data-theme') !== 'light')
+    )
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => obs.disconnect()
+  }, [])
+  const gid = `arc-track-${size}`
+  // Dark mode:  black shadow / white highlight
+  // Light mode: grey shadow (neu-inset standard) / white highlight — no heavy black
+  const shadowStop    = isDark ? 'rgba(0,0,0,0.75)'         : 'rgba(166,176,190,0.55)'
+  const midStop       = isDark ? 'rgba(255,255,255,0.04)'   : 'rgba(220,225,230,0.10)'
+  const highlightStop = isDark ? 'rgba(255,255,255,0.13)'   : 'rgba(255,255,255,0.90)'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <svg width={size} height={size}>
         <defs>
-          {/* Inset groove filter: dark shadow top-left, light highlight bottom-right */}
-          <filter id="arc-groove" x="-12%" y="-12%" width="124%" height="124%">
-            {/* Dark at top-left */}
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b1"/>
-            <feOffset in="b1" dx="2.5" dy="2.5" result="bs1"/>
-            <feComposite in="SourceAlpha" in2="bs1" operator="out" result="topLeft"/>
-            <feFlood floodColor={grooveDark} result="darkC"/>
-            <feComposite in="darkC" in2="topLeft" operator="in" result="dark"/>
-            {/* Light at bottom-right */}
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b2"/>
-            <feOffset in="b2" dx="-2.5" dy="-2.5" result="bs2"/>
-            <feComposite in="SourceAlpha" in2="bs2" operator="out" result="btmRight"/>
-            <feFlood floodColor={grooveLight} result="lightC"/>
-            <feComposite in="lightC" in2="btmRight" operator="in" result="light"/>
-            <feMerge>
-              <feMergeNode in="SourceGraphic"/>
-              <feMergeNode in="dark"/>
-              <feMergeNode in="light"/>
-            </feMerge>
-          </filter>
+          {/* Diagonal gradient: dark top-left → light bottom-right — inset groove depth */}
+          <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stopColor={shadowStop}/>
+            <stop offset="45%"  stopColor={midStop}/>
+            <stop offset="100%" stopColor={highlightStop}/>
+          </linearGradient>
         </defs>
-        {/* Groove track */}
+        {/* Groove track — gradient stroke gives inset depth, wider than arc */}
         <circle cx={cx} cy={cy} r={r} fill="none"
-          stroke={trackStroke} strokeWidth={9}
-          filter="url(#arc-groove)"/>
-        {/* Progress arc */}
+          stroke={`url(#${gid})`} strokeWidth={13}/>
+        {/* Progress arc — sits centred inside the groove */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke={hexColor} strokeWidth={8}
           strokeDasharray={circ} strokeDashoffset={dashOffset}
           strokeLinecap="round"
@@ -633,7 +630,7 @@ export default function AnalysisPage() {
                   </div>
 
                   {/* Full-width gauge bar */}
-                  <div style={{ height: 8, borderRadius: 5, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '1px 2px', marginBottom: 16 }}>
+                  <div style={{ height: 10, borderRadius: 6, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', padding: '2px 3px', marginBottom: 16 }}>
                     <div style={{
                       width: `${fundamental.health_score.total}%`, height: '100%',
                       borderRadius: 4, background: scoreHex(fundamental.health_score.total),

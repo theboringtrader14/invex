@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { apiFetch } from '../lib/api'
 
@@ -76,7 +77,8 @@ function SignalChipSmall({ signal, fontSize = 10 }: { signal?: string | null; fo
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      background: `${color}18`, color, border: `1px solid ${color}44`,
+      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+      color,
       borderRadius: 6, padding: '2px 8px',
       fontSize, fontWeight: 700, fontFamily: 'var(--font-mono)',
       letterSpacing: 0.5, whiteSpace: 'nowrap',
@@ -108,6 +110,16 @@ function PortfolioBody({
   const [noteLoading, setNoteLoading] = useState(true)
   const [savePending, setSavePending] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [reasonOpen, setReasonOpen] = useState(false)
+  const reasonRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!reasonOpen) return
+    const handler = (evt: MouseEvent) => {
+      if (reasonRef.current && !reasonRef.current.contains(evt.target as Node)) setReasonOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [reasonOpen])
 
   const [history, setHistory] = useState<any>(null)
   const [histLoading, setHistLoading] = useState(true)
@@ -311,24 +323,56 @@ function PortfolioBody({
           </div>
         ) : (
           <>
-            {/* Purchase Reason */}
-            <div style={{ marginBottom: 12 }}>
+            {/* Purchase Reason — custom dropdown */}
+            <div style={{ marginBottom: 12, position: 'relative' }} ref={reasonRef}>
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>PURCHASE REASON</div>
-              <select
-                value={note.purchase_reason}
-                onChange={e => setNote(n => ({ ...n, purchase_reason: e.target.value }))}
+              {/* Trigger */}
+              <div
+                onClick={() => setReasonOpen(o => !o)}
                 style={{
-                  width: '100%', background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                  border: 'none', borderRadius: 8, padding: '8px 12px',
-                  fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text)',
-                  outline: 'none', cursor: 'pointer',
+                  width: '100%', boxSizing: 'border-box',
+                  background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                  borderRadius: 8, padding: '9px 36px 9px 12px',
+                  fontSize: 12, fontFamily: 'var(--font-body)',
+                  color: note.purchase_reason ? 'var(--text)' : 'var(--text-mute)',
+                  cursor: 'pointer', position: 'relative', userSelect: 'none',
                 }}
               >
-                <option value="">Select reason...</option>
-                {purchaseReasonOptions.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                {note.purchase_reason
+                  ? purchaseReasonOptions.find(o => o.value === note.purchase_reason)?.label
+                  : 'Select reason…'}
+                {/* Chevron — fixed distance from right edge */}
+                <span style={{
+                  position: 'absolute', right: 12, top: '50%', transform: `translateY(-50%) rotate(${reasonOpen ? 180 : 0}deg)`,
+                  transition: 'transform 0.18s', color: 'var(--text-mute)', fontSize: 10, lineHeight: 1,
+                  pointerEvents: 'none',
+                }}>▾</span>
+              </div>
+              {/* Options list */}
+              {reasonOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                  background: 'var(--bg)', boxShadow: 'var(--neu-raised-lg)',
+                  borderRadius: 10, overflow: 'hidden',
+                }}>
+                  {purchaseReasonOptions.map(o => (
+                    <div
+                      key={o.value}
+                      onClick={() => { setNote(n => ({ ...n, purchase_reason: o.value })); setReasonOpen(false) }}
+                      style={{
+                        padding: '9px 14px',
+                        fontSize: 12, fontFamily: 'var(--font-body)',
+                        color: note.purchase_reason === o.value ? 'var(--accent)' : 'var(--text-dim)',
+                        background: note.purchase_reason === o.value ? 'rgba(45,212,191,0.06)' : 'transparent',
+                        cursor: 'pointer', transition: 'background 0.12s',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(45,212,191,0.06)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = note.purchase_reason === o.value ? 'rgba(45,212,191,0.06)' : 'transparent' }}
+                    >{o.label}</div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Conviction Level */}
@@ -677,8 +721,9 @@ function TechnicalBody({ t, e }: { t: any; e: any }) {
                 <span style={{
                   fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
                   color: above ? '#0EA66E' : '#FF4444',
-                  background: above ? 'rgba(14,166,110,0.1)' : 'rgba(255,68,68,0.1)',
+                  background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
                   borderRadius: 4, padding: '2px 6px',
+                  display: 'inline-block',
                 }}>
                   {above ? 'Above ↑' : 'Below ↓'}
                 </span>
@@ -706,20 +751,27 @@ function TechnicalBody({ t, e }: { t: any; e: any }) {
         <div style={{ marginBottom: 20 }}>
           <span style={sectionLabel}>52-WEEK RANGE</span>
           <div style={insetCard}>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{
-                height: 8, borderRadius: 4, overflow: 'hidden',
-                background: 'linear-gradient(to right, #22DD88, #FF4444)',
-                position: 'relative',
-              }}>
+            <div style={{ marginBottom: 12, paddingTop: 4 }}>
+              {/* Track: inset groove with gradient fill and floating bubble */}
+              <div style={{ position: 'relative', height: 8 }}>
                 <div style={{
-                  position: 'absolute', top: -3, left: `${rangePct}%`, transform: 'translateX(-50%)',
-                  width: 14, height: 14, borderRadius: '50%',
-                  background: 'var(--bg)', boxShadow: '0 0 0 2px var(--accent)',
+                  height: 8, borderRadius: 4,
+                  background: 'linear-gradient(to right, #22DD88, #FF4444)',
+                  boxShadow: 'var(--neu-inset)',
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  top: '50%', left: `${rangePct}%`,
+                  transform: 'translate(-50%, -50%)',
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: 'var(--bg)',
+                  boxShadow: 'var(--neu-raised-sm)',
+                  border: '2px solid var(--accent)',
+                  zIndex: 1,
                 }} />
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-mute)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
               <span style={{ color: '#22DD88' }}>₹{w52low?.toLocaleString('en-IN')}</span>
               <span style={{ color: '#FF4444' }}>₹{w52high?.toLocaleString('en-IN')}</span>
             </div>
@@ -730,8 +782,7 @@ function TechnicalBody({ t, e }: { t: any; e: any }) {
       {/* Technical Verdict */}
       <div>
         <span style={sectionLabel}>TECHNICAL VERDICT</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <SignalChipSmall signal={signal} />
+        <div style={{ ...insetCard, width: '100%', boxSizing: 'border-box' }}>
           <span style={{ fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text-dim)' }}>{verdictText}</span>
         </div>
       </div>
@@ -792,11 +843,7 @@ function ScorecardBody({ sc, e, t }: { sc: any; e: any; t: any }) {
   if (gainPct < -25) threats.push(`Down ${Math.abs(gainPct).toFixed(1)}% — review stop loss`)
   if (threats.length === 0) threats.push('No immediate threats identified')
 
-  const recStyle = recommendation === 'BUY'
-    ? { background: 'rgba(14,166,110,0.12)', color: '#0EA66E', border: '1px solid rgba(14,166,110,0.3)' }
-    : recommendation === 'HOLD'
-    ? { background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }
-    : { background: 'rgba(255,68,68,0.12)', color: '#FF4444', border: '1px solid rgba(255,68,68,0.3)' }
+  const recColor = recommendation === 'BUY' ? '#0EA66E' : recommendation === 'HOLD' ? '#F59E0B' : '#FF4444'
 
   const oneLineReason = (() => {
     if (fundScore >= 75 && techScore >= 60) return `Strong fundamentals (${fundScore}) + bullish technicals (${techScore})`
@@ -818,7 +865,7 @@ function ScorecardBody({ sc, e, t }: { sc: any; e: any; t: any }) {
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-mute)', width: 90, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
                 <span style={{ fontSize: 16, fontFamily: 'var(--font-mono)', fontWeight: 700, color: hex, width: 36, textAlign: 'right' }}>{score}</span>
-                <div style={{ flex: 1, height: 8, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ flex: 1, height: 10, background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 6, padding: '2px 3px' }}>
                   <div style={{ width: `${score}%`, height: '100%', background: hex, borderRadius: 4, transition: 'width 0.5s' }} />
                 </div>
               </div>
@@ -849,16 +896,19 @@ function ScorecardBody({ sc, e, t }: { sc: any; e: any; t: any }) {
         </div>
       </div>
 
-      {/* Recommendation */}
+      {/* Portfolio Verdict */}
       <div>
-        <span style={sectionLabel}>RECOMMENDATION</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...recStyle, borderRadius: 10, padding: '8px 20px', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-            {recommendation || '—'}
-          </span>
-          <span style={{ fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text-dim)', flex: 1 }}>
-            {oneLineReason}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ ...sectionLabel, marginBottom: 0 }}>PORTFOLIO VERDICT</span>
+          <span style={{
+            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+            borderRadius: 6, padding: '2px 10px',
+            fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+            color: recColor,
+          }}>{recommendation || '—'}</span>
+        </div>
+        <div style={insetCard}>
+          <span style={{ fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text-dim)' }}>{oneLineReason}</span>
         </div>
       </div>
     </>
@@ -905,6 +955,12 @@ export function StockDetailModal({
     return () => window.removeEventListener('keydown', handler)
   }, [prevItem, nextItem, onNavigate, onClose])
 
+  // Signal Layout to show the shared full-page blur overlay
+  useEffect(() => {
+    document.body.classList.add('invex-overlay')
+    return () => document.body.classList.remove('invex-overlay')
+  }, [])
+
   const showPnlRow = mode === 'portfolio' || mode === 'fundamental' || mode === 'scorecard'
 
   const arrowBtnStyle: React.CSSProperties = {
@@ -915,7 +971,7 @@ export function StockDetailModal({
     color: 'var(--text-dim)', fontSize: 18,
   }
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @keyframes slideUp {
@@ -928,14 +984,11 @@ export function StockDetailModal({
         }
       `}</style>
 
-      {/* Overlay — starts below 52px topbar, blurred */}
+      {/* Click-to-close overlay — blur handled by Layout's shared overlay */}
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', top: 52, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.45)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
+          position: 'fixed', inset: 0,
           zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -1074,6 +1127,7 @@ export function StockDetailModal({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }

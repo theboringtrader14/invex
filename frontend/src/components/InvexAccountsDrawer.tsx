@@ -97,6 +97,12 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
     return () => document.removeEventListener('keydown', h)
   }, [onClose])
 
+  // Signal Layout to show the shared full-page blur overlay
+  useEffect(() => {
+    document.body.classList.add('invex-overlay')
+    return () => document.body.classList.remove('invex-overlay')
+  }, [])
+
   const showSaved = (id: string, msg: string) => {
     setSaved(s => ({ ...s, [id]: msg }))
     setTimeout(() => setSaved(s => { const n = { ...s }; delete n[id]; return n }), 3000)
@@ -323,11 +329,9 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Backdrop — blur(8px) + rgba(0,0,0,0.15), same as STAAX */}
-      <div style={{
+      {/* Backdrop — click-to-close only, blur handled by Layout's shared overlay */}
+      <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: 299,
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        background: 'rgba(0,0,0,0.15)',
       }} />
 
       {/* Floating panel — top:88, right:20, width:420 — same as STAAX */}
