@@ -5,8 +5,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PencilSimple, FloppyDisk, CheckCircle, Warning, SignOut, ArrowsClockwise } from '@phosphor-icons/react'
-
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8001'
+import { apiFetch } from '../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Account {
@@ -71,7 +70,7 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/accounts/`)
+      const res = await apiFetch('/api/v1/accounts/')
       if (res.ok) setAccounts(await res.json())
     } finally {
       setLoading(false)
@@ -107,8 +106,8 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
     setNickEditing(n => ({ ...n, [acc.id]: false }))
     if (!newName || newName === acc.nickname) return
     try {
-      await fetch(`${API}/api/v1/accounts/${acc.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      await apiFetch(`/api/v1/accounts/${acc.id}`, {
+        method: 'PATCH',
         body: JSON.stringify({ nickname: newName }),
       })
       setAccounts(a => a.map(x => x.id === acc.id ? { ...x, nickname: newName } : x))
@@ -120,7 +119,7 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
     setRefreshing(r => ({ ...r, [acc.id]: true }))
     setRefreshMsg(m => ({ ...m, [acc.id]: { text: '', ok: true } }))
     try {
-      const res  = await fetch(`${API}/api/v1/accounts/${acc.id}/refresh-token`, { method: 'POST' })
+      const res  = await apiFetch(`/api/v1/accounts/${acc.id}/refresh-token`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
         const text = data.status === 'oauth_required' ? 'OAuth URL opened' : 'Token refreshed'
@@ -465,8 +464,8 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
                   if (editingCreds.totp_secret) body.totp_secret = editingCreds.totp_secret
                   if (editingCreds.password)    body.password    = editingCreds.password
                   if (Object.keys(body).length) {
-                    await fetch(`${API}/api/v1/accounts/${editingCreds.id}`, {
-                      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                    await apiFetch(`/api/v1/accounts/${editingCreds.id}`, {
+                      method: 'PATCH',
                       body: JSON.stringify(body),
                     })
                   }

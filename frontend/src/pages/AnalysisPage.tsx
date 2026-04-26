@@ -333,16 +333,16 @@ export default function AnalysisPage() {
       .catch(() => {})
   }, [])
 
-  // Lazy-load MF data when user opens that tab
+  // Lazy-load MF data when user first opens that tab
   useEffect(() => {
-    if (tab === 'mf' && !mfData && !mfLoading) {
+    if (tab === 'mf' && !mfData) {
       setMfLoading(true)
       apiFetch('/api/v1/analysis/mutual-funds')
         .then(r => r.json())
         .then(d => { setMfData(d); setMfLoading(false) })
         .catch(() => setMfLoading(false))
     }
-  }, [tab, mfData, mfLoading])
+  }, [tab, mfData])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>

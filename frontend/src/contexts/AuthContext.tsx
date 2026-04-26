@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -27,9 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => localStorage.getItem('invex_token')
   )
   const [isLoading, setIsLoading] = useState(true)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
     if (!token) { setIsLoading(false); return }
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     fetch(`${API_BASE}/api/v1/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((u: User) => { setUser(u); setIsLoading(false) })
       .catch(() => {
         localStorage.removeItem('invex_token')
+        fetchedRef.current = false
         setToken(null)
         setIsLoading(false)
       })
