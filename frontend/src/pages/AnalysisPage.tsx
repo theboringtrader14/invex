@@ -231,7 +231,6 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 <SortableHeader label="Fund Name"  sortKey="fund_name"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} align="left" style={thStyle} />
-                <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', ...thStyle }}>Account</th>
                 <SortableHeader label="Units"       sortKey="units"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="NAV"         sortKey="nav"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="Invested"    sortKey="invested_amount" currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
@@ -239,6 +238,7 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                 <SortableHeader label="P&L"         sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="P&L%"        sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="Grade"       sortKey="grade"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Account"     sortKey="account_id"      currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
               </tr>
             </thead>
             <tbody>
@@ -250,7 +250,6 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                     <td style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 12, maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.fund_name}>
                       {f.fund_name_short}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{f.units?.toFixed(3)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>₹{f.nav?.toFixed(2)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.invested_amount)}</td>
@@ -260,6 +259,7 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade}</span>
                     </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
                   </tr>
                 )
               })}
@@ -779,16 +779,16 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <SortableHeader label="Symbol"  sortKey="symbol"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort} align="left"   style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
-                        <SortableHeader label="Sector"  sortKey="sector"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Value"   sortKey="current_value" currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Weight"  sortKey="weight_pct"    currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Gain%"   sortKey="gain_pct"      currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="PE"      sortKey="pe"            currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Mkt Cap" sortKey="mkt_cap"       currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Grade"   sortKey="grade"         currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Signal"  sortKey="signal"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Symbol"   sortKey="symbol"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}               style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Sector"   sortKey="sector"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Value"    sortKey="current_value" currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Weight"   sortKey="weight_pct"    currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Gain%"    sortKey="gain_pct"      currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="PE"       sortKey="pe"            currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Mkt Cap"  sortKey="mkt_cap"       currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Grade"    sortKey="grade"         currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Signal"   sortKey="signal"        currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Account"  sortKey="account_id"    currentKey={fundSortCol} currentDir={fundSortDir} onSort={handleFundSort}                style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                       </tr>
                     </thead>
                     <tbody>
@@ -797,7 +797,6 @@ export default function AnalysisPage() {
                         return (
                           <tr key={h.symbol + '_' + (h.account_id || i)} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
-                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)' }}>{h.weight_pct}%</td>
@@ -820,6 +819,7 @@ export default function AnalysisPage() {
                             <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontStyle: 'italic', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                               {e?.signal ?? '—'}
                             </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                           </tr>
                         )
                       })}
@@ -902,15 +902,15 @@ export default function AnalysisPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <SortableHeader label="Symbol"  sortKey="symbol"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort} align="left" style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
-                        <SortableHeader label="Sector"  sortKey="sector"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="CMP"    sortKey="cmp"      currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="vs Avg" sortKey="gain_pct" currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="Signal" sortKey="signal"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
-                        <SortableHeader label="RSI"    sortKey="rsi"      currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Symbol"  sortKey="symbol"     currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}             style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Sector"  sortKey="sector"     currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="CMP"     sortKey="cmp"        currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="vs Avg"  sortKey="gain_pct"   currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="Signal"  sortKey="signal"     currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
+                        <SortableHeader label="RSI"     sortKey="rsi"        currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>50DMA</th>
                         <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>200DMA</th>
+                        <SortableHeader label="Account" sortKey="account_id" currentKey={techSortCol} currentDir={techSortDir} onSort={handleTechSort}              style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                       </tr>
                     </thead>
                     <tbody>
@@ -928,7 +928,6 @@ export default function AnalysisPage() {
                         return (
                           <tr key={`tech_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
-                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
                             <td style={{ padding: '10px 12px', minWidth: 160 }}>
@@ -949,6 +948,7 @@ export default function AnalysisPage() {
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'center' }}><DmaChip above={h.above_50} /></td>
                             <td style={{ padding: '10px 12px', textAlign: 'center' }}><DmaChip above={h.above_200} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{h.account_nickname || (h.account_id ? h.account_id.substring(0, 6) : '—')}</td>
                           </tr>
                         )
                       })}
@@ -1329,10 +1329,10 @@ export default function AnalysisPage() {
                           { k: 'recommendation', label: 'Action' },
                           { k: 'grade_rank', label: 'Grade' },
                           { k: 'signal_rank', label: 'Signal' },
+                          { k: 'account_id',  label: 'Account' },
                         ].map(col => (
                           <SortableHeader key={col.k} label={col.label} sortKey={col.k} currentKey={sortCol} currentDir={sortDir} onSort={handleScorecardSort} style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }} />
                         ))}
-                        <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-mute)', fontWeight: 400, fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }}>Account</th>
                       </tr>
                     </thead>
                     <tbody>
