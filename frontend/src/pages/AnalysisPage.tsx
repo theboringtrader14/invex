@@ -469,8 +469,8 @@ export default function AnalysisPage() {
   return (
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
-      {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 16 }}>
+      {/* Header + Tab bar — sticky together */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 12 }}>
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22,
@@ -480,13 +480,11 @@ export default function AnalysisPage() {
         }}>
           Analysis
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)', marginBottom: 16 }}>
           {fundamental
             ? `${fundamental.total_holdings} holdings · ${formatVal(fundamental.total_value || 0)}`
             : 'Fundamental + Technical deep-dive'}
         </div>
-      </div>
-
 
       {/* Tab bar — sliding pill */}
       <div style={{
@@ -497,8 +495,6 @@ export default function AnalysisPage() {
         borderRadius: 'var(--r-lg)',
         padding: 4,
         width: '100%',
-        marginBottom: 20,
-        marginTop: 20
       }}>
         {/* Sliding raised pill */}
         <div style={{
@@ -536,7 +532,9 @@ export default function AnalysisPage() {
           </button>
         ))}
       </div>
+      </div>{/* end sticky header+tabs */}
 
+      <div style={{ paddingTop: 20 }}>
       {loading ? (
         <div style={{ display: 'grid', gap: 16 }}>
           <Skeleton height={200} />
@@ -1402,6 +1400,7 @@ export default function AnalysisPage() {
           100% { background-position:  200% 0; }
         }
       `}</style>
+      </div>{/* end scrollable content */}
     </div>
   )
 }
