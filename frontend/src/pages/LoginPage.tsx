@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { login } from "../services/api"
+import { useAuth } from "../contexts/AuthContext"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -8,13 +8,13 @@ export default function LoginPage() {
   const [error, setError]       = useState("")
   const [loading, setLoading]   = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleLogin = async () => {
     if (!username || !password) return
     setLoading(true); setError("")
     try {
-      const res = await login(username, password)
-      localStorage.setItem("staax_token", res.data.access_token)
+      await login(username, password)
       navigate("/portfolio")
     } catch {
       setError("Invalid credentials")
@@ -113,7 +113,7 @@ export default function LoginPage() {
             </button>
           </div>
           <div style={{ marginTop: "16px", fontSize: "11px", color: "var(--text-mute)", textAlign: "center", fontFamily: "var(--font-body)" }}>
-            Uses STAAX credentials
+            INVEX account — contact admin for access
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { SortableHeader } from '../components/SortableHeader'
 import { useSort } from '../hooks/useSort'
+import { apiFetch } from '../lib/api'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -306,9 +307,9 @@ export default function AnalysisPage() {
   useEffect(() => {
     setLoading(true)
     Promise.all([
-      fetch(`${API}/api/v1/analysis/fundamental`).then(r => r.json()),
-      fetch(`${API}/api/v1/analysis/technical`).then(r => r.json()),
-      fetch(`${API}/api/v1/analysis/scorecard`).then(r => r.json()),
+      apiFetch('/api/v1/analysis/fundamental').then(r => r.json()),
+      apiFetch('/api/v1/analysis/technical').then(r => r.json()),
+      apiFetch('/api/v1/analysis/scorecard').then(r => r.json()),
     ]).then(([f, t, s]) => {
       setFundamental(f)
       setTechnical(t)
@@ -320,13 +321,13 @@ export default function AnalysisPage() {
     })
 
     // Fetch enriched data independently — may be slower (Yahoo Finance fetch)
-    fetch(`${API}/api/v1/analysis/holdings-enriched`)
+    apiFetch('/api/v1/analysis/holdings-enriched')
       .then(r => r.json())
       .then(d => setEnriched(Array.isArray(d) ? d : []))
       .catch(() => setEnriched([]))
 
     // Portfolio summary for header strip
-    fetch(`${API}/api/v1/portfolio/summary`)
+    apiFetch('/api/v1/portfolio/summary')
       .then(r => r.json())
       .then(d => setSummary(d))
       .catch(() => {})
@@ -336,7 +337,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (tab === 'mf' && !mfData && !mfLoading) {
       setMfLoading(true)
-      fetch(`${API}/api/v1/analysis/mutual-funds`)
+      apiFetch('/api/v1/analysis/mutual-funds')
         .then(r => r.json())
         .then(d => { setMfData(d); setMfLoading(false) })
         .catch(() => setMfLoading(false))

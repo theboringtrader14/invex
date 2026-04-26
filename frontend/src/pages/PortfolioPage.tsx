@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { ArrowsClockwise, X, ChartLine, ArrowRight } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
+import { apiFetch } from "../lib/api"
 import { SortableHeader } from "../components/SortableHeader"
 import { useSort } from "../hooks/useSort"
 
@@ -695,10 +696,7 @@ export default function PortfolioPage() {
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem("staax_token")
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
-
-    const acctPromise = fetch(`${INVEX_API}/api/v1/accounts/`)
+    const acctPromise = apiFetch(`/api/v1/accounts/`)
       .then(async r => {
         if (!r.ok) return
         const accts: Array<{ id: string; nickname: string }> = await r.json()

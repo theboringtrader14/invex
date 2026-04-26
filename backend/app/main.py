@@ -7,10 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
-from app.models import holdings, sips, ipo_bots, watchlist, invex_account  # noqa
+from app.models import holdings, sips, ipo_bots, watchlist, invex_account, user  # noqa
 from app.api.v1 import portfolio, sips as sips_api, ipo_bots as ipo_api, watchlist as watchlist_api
 from app.api.v1 import analysis as analysis_api
 from app.api.v1 import accounts as accounts_api
+from app.api.v1 import auth as auth_api
 from app.engine.sip_engine import run_sip_engine, refresh_nse_holidays
 
 logging.basicConfig(level=logging.INFO)
@@ -195,6 +196,7 @@ app.add_middleware(CORSMiddleware,
     ],
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+app.include_router(auth_api.router,      prefix="/api/v1/auth",       tags=["auth"])
 app.include_router(portfolio.router,     prefix="/api/v1/portfolio",  tags=["portfolio"])
 app.include_router(sips_api.router,      prefix="/api/v1/sips",       tags=["sips"])
 app.include_router(ipo_api.router,       prefix="/api/v1/ipo-bots",   tags=["ipo-bots"])

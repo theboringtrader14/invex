@@ -1,32 +1,27 @@
 import axios from 'axios'
+import { authHeaders } from '../lib/api'
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/api/v1`
-const STAAX_API = `${import.meta.env.VITE_STAAX_API_URL || 'http://localhost:8000'}/api/v1`
 
-// Auth still used for SIPs/IPO/Watchlist (write endpoints — kept for future)
-const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('staax_token')}` } })
+const auth = () => ({ headers: authHeaders() })
 
-// Auth — shared with STAAX
-export const login = (username: string, password: string) =>
-  axios.post(`${STAAX_API}/login`, { username, password })
-
-// Portfolio — open endpoints (no auth required)
+// Portfolio
 export const portfolioAPI = {
-  holdings:  () => axios.get(`${API}/portfolio/holdings`),
-  mf:        () => axios.get(`${API}/portfolio/mf`),
-  summary:   () => axios.get(`${API}/portfolio/summary`),
-  snapshots: () => axios.get(`${API}/portfolio/snapshots`),
-  refresh:   () => axios.post(`${API}/portfolio/refresh`, {}),
+  holdings:  () => axios.get(`${API}/portfolio/holdings`, auth()),
+  mf:        () => axios.get(`${API}/portfolio/mf`, auth()),
+  summary:   () => axios.get(`${API}/portfolio/summary`, auth()),
+  snapshots: () => axios.get(`${API}/portfolio/snapshots`, auth()),
+  refresh:   () => axios.post(`${API}/portfolio/refresh`, {}, auth()),
 }
 
 // SIPs
 export const sipsAPI = {
-  list:          () => axios.get(`${API}/sips/`, auth()),
-  create:        (d: any) => axios.post(`${API}/sips/`, d, auth()),
-  update:        (id: string, d: any) => axios.patch(`${API}/sips/${id}`, d, auth()),
-  delete:        (id: string) => axios.delete(`${API}/sips/${id}`, auth()),
-  executions:    (id: string) => axios.get(`${API}/sips/${id}/executions`, auth()),
-  allExecutions: () => axios.get(`${API}/sips/executions`, auth()),
+  list:              () => axios.get(`${API}/sips/`, auth()),
+  create:            (d: any) => axios.post(`${API}/sips/`, d, auth()),
+  update:            (id: string, d: any) => axios.patch(`${API}/sips/${id}`, d, auth()),
+  delete:            (id: string) => axios.delete(`${API}/sips/${id}`, auth()),
+  executions:        (id: string) => axios.get(`${API}/sips/${id}/executions`, auth()),
+  allExecutions:     () => axios.get(`${API}/sips/executions`, auth()),
   executeNow:        () => axios.post(`${API}/sips/execute-now`, {}, auth()),
   executeNowForSip:  (id: string) => axios.post(`${API}/sips/${id}/execute`, {}, auth()),
 }

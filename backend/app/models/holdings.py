@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, Date, DateTime
+from sqlalchemy import Column, String, Integer, Float, Date, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.core.database import Base
@@ -6,6 +6,7 @@ from app.core.database import Base
 class Holdings(Base):
     __tablename__ = "invex_holdings"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("invex_users.id", ondelete="CASCADE"), nullable=True, index=True)
     account_id = Column(String(50), nullable=False)
     symbol = Column(String(20), nullable=False)
     exchange = Column(String(10), nullable=False)
@@ -19,6 +20,7 @@ class Holdings(Base):
 class MFHoldings(Base):
     __tablename__ = "invex_mf_holdings"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("invex_users.id", ondelete="CASCADE"), nullable=True, index=True)
     account_id = Column(String(50), nullable=False)
     fund_name = Column(String(200), nullable=False)
     isin = Column(String(20), nullable=True)
@@ -31,6 +33,7 @@ class MFHoldings(Base):
 class EquityTransaction(Base):
     __tablename__ = "invex_equity_transactions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("invex_users.id", ondelete="CASCADE"), nullable=True, index=True)
     account_id = Column(String(50), nullable=False)
     symbol = Column(String(20), nullable=False)
     trade_date = Column(Date, nullable=False)
@@ -44,6 +47,7 @@ class EquityTransaction(Base):
 class PortfolioSnapshot(Base):
     __tablename__ = "invex_portfolio_snapshots"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("invex_users.id", ondelete="CASCADE"), nullable=True, index=True)
     snapshot_date = Column(Date, nullable=False)
     account_id = Column(String(50), nullable=False)
     portfolio_value = Column(Float, nullable=False)

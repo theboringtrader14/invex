@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.invex_account import InvexAccount
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -73,18 +75,30 @@ def _to_response(acc: InvexAccount) -> dict:
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/")
-async def list_accounts(db: AsyncSession = Depends(get_db)):
-    """List all broker accounts — never returns api_key or totp_secret."""
-    result = await db.execute(select(InvexAccount).order_by(InvexAccount.nickname))
+async def list_accounts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List broker accounts for the authenticated user."""
+    result = await db.execute(
+        select(InvexAccount)
+        .where(InvexAccount.user_id == current_user.id)
+        .order_by(InvexAccount.nickname)
+    )
     accounts = result.scalars().all()
     return [_to_response(a) for a in accounts]
 
 
 @router.post("/")
-async def create_account(body: AccountCreate, db: AsyncSession = Depends(get_db)):
+async def create_account(
+    body: AccountCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Add a new broker account."""
     account = InvexAccount(
         id=uuid.uuid4(),
+        user_id=current_user.id,
         nickname=body.nickname,
         broker=body.broker,
         client_id=body.client_id,
@@ -104,10 +118,11 @@ async def update_account(
     account_id: str,
     body: AccountUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Update nickname, api_key, totp_secret, password, or is_active."""
     result = await db.execute(
-        select(InvexAccount).where(InvexAccount.id == account_id)
+        select(InvexAccount).where(InvexAccount.id == account_id, InvexAccount.user_id == current_user.id)
     )
     account = result.scalar_one_or_none()
     if not account:
@@ -127,6 +142,7 @@ async def update_account(
 async def refresh_token(
     account_id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Re-authenticate with broker and store fresh JWT.
@@ -136,7 +152,7 @@ async def refresh_token(
     Zerodha:   Returns the Kite Connect OAuth URL (manual browser flow required).
     """
     result = await db.execute(
-        select(InvexAccount).where(InvexAccount.id == account_id)
+        select(InvexAccount).where(InvexAccount.id == account_id, InvexAccount.user_id == current_user.id)
     )
     account = result.scalar_one_or_none()
     if not account:

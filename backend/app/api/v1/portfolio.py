@@ -6,9 +6,11 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.core.nse_sector_fetcher import get_sector_from_map
 from app.core.redis_client import redis_client
 from app.models.holdings import Holdings, MFHoldings, PortfolioSnapshot
+from app.models.user import User
 import uuid
 from datetime import date
 
@@ -35,25 +37,40 @@ def _build_holding(r: Holdings, sector_map: dict) -> dict:
 
 
 @router.get("/holdings")
-async def get_holdings(request: Request, db: AsyncSession = Depends(get_db)):
-    # 1. Cache hit — return instantly
-    cached = await redis_client.get(HOLDINGS_CACHE_KEY)
+async def get_holdings(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cache_key = f"invex:holdings:{current_user.id}"
+
+    cached = await redis_client.get(cache_key)
     if cached:
         return json.loads(cached)
 
-    # 2. Cache miss — query DB
     sector_map: dict = getattr(request.app.state, "sector_map", {})
-    result = await db.execute(select(Holdings).order_by(Holdings.account_id, Holdings.symbol))
+    result = await db.execute(
+        select(Holdings)
+        .where(Holdings.user_id == current_user.id)
+        .order_by(Holdings.account_id, Holdings.symbol)
+    )
     rows = result.scalars().all()
     data = [_build_holding(r, sector_map) for r in rows]
 
-    # 3. Populate cache
-    await redis_client.setex(HOLDINGS_CACHE_KEY, CACHE_TTL, json.dumps(data))
+    await redis_client.setex(cache_key, CACHE_TTL, json.dumps(data))
     return data
 
+
 @router.get("/mf")
-async def get_mf(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(MFHoldings).order_by(MFHoldings.fund_name))
+async def get_mf(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(MFHoldings)
+        .where(MFHoldings.user_id == current_user.id)
+        .order_by(MFHoldings.fund_name)
+    )
     rows = result.scalars().all()
     return [{
         "id": str(r.id), "account_id": r.account_id,
@@ -64,17 +81,25 @@ async def get_mf(db: AsyncSession = Depends(get_db)):
         "pnl": round(r.current_value - r.invested_amount, 2) if r.current_value and r.invested_amount else None,
     } for r in rows]
 
+
 @router.get("/summary")
-async def get_summary(db: AsyncSession = Depends(get_db)):
-    holdings = (await db.execute(select(Holdings))).scalars().all()
-    mf = (await db.execute(select(MFHoldings))).scalars().all()
+async def get_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    holdings = (await db.execute(
+        select(Holdings).where(Holdings.user_id == current_user.id)
+    )).scalars().all()
+    mf = (await db.execute(
+        select(MFHoldings).where(MFHoldings.user_id == current_user.id)
+    )).scalars().all()
+
     equity_current  = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
     equity_invested = sum(r.avg_price * r.qty for r in holdings)
     mf_current      = sum(r.current_value or 0 for r in mf)
     mf_invested     = sum(r.invested_amount or 0 for r in mf)
     total_current   = equity_current + mf_current
     total_invested  = equity_invested + mf_invested
-    # day_change on holdings is already (ltp - prev_close) * qty from loaders
     day_pnl = sum((r.day_change or 0) for r in holdings)
     total_value = round(total_current, 2)
     day_change = round(day_pnl, 2)
@@ -95,17 +120,28 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
         "mf_count": len(mf),
     }
 
+
 @router.get("/snapshots")
-async def get_snapshots(db: AsyncSession = Depends(get_db)):
+async def get_snapshots(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(
-        select(PortfolioSnapshot).order_by(PortfolioSnapshot.snapshot_date).limit(365)
+        select(PortfolioSnapshot)
+        .where(PortfolioSnapshot.user_id == current_user.id)
+        .order_by(PortfolioSnapshot.snapshot_date)
+        .limit(365)
     )
     rows = result.scalars().all()
     return [{"date": str(r.snapshot_date), "total_value": r.portfolio_value,
              "invested": r.invested_value, "pnl": r.day_pnl} for r in rows]
 
+
 @router.post("/refresh")
-async def refresh_holdings(db: AsyncSession = Depends(get_db)):
+async def refresh_holdings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Trigger a full holdings refresh from all brokers, then write today's snapshot."""
     from app.data_ingestion.zerodha_loader import load_zerodha_holdings
     from app.data_ingestion.angel_loader import load_angel_holdings
@@ -124,24 +160,25 @@ async def refresh_holdings(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         results["angel"] = {"error": str(e)}
 
-    # Write today's portfolio snapshot for the equity curve
     try:
-        await _write_snapshot(db)
+        await _write_snapshot(db, current_user.id)
         results["snapshot"] = "written"
     except Exception as e:
         results["snapshot"] = {"error": str(e)}
 
-    # Invalidate holdings cache so next /holdings call returns fresh DB data
-    await redis_client.delete(HOLDINGS_CACHE_KEY)
+    cache_key = f"invex:holdings:{current_user.id}"
+    await redis_client.delete(cache_key)
+    await redis_client.delete(HOLDINGS_CACHE_KEY)  # legacy key
 
-    # Background prefetch of market data for all equity symbols (non-blocking)
     try:
         from app.adapters.market_data_adapter import market_data
-        all_holdings = (await db.execute(select(Holdings))).scalars().all()
+        all_holdings = (await db.execute(
+            select(Holdings).where(Holdings.user_id == current_user.id)
+        )).scalars().all()
         equity_symbols = list({
             h.symbol.replace('-EQ', '').replace('-BE', '')
             for h in all_holdings
-            if not (h.isin or '').startswith('INF')  # Skip MF ISINs
+            if not (h.isin or '').startswith('INF')
         })
         asyncio.create_task(market_data.prefetch_portfolio(equity_symbols))
         logger.info(f"[PORTFOLIO] Triggered prefetch for {len(equity_symbols)} symbols")
@@ -150,11 +187,19 @@ async def refresh_holdings(db: AsyncSession = Depends(get_db)):
 
     return {"status": "refreshed", "results": results}
 
-async def _write_snapshot(db: AsyncSession) -> None:
+
+async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
     """Compute total portfolio value and upsert a snapshot row for today."""
     from sqlalchemy import delete as sa_delete
-    holdings = (await db.execute(select(Holdings))).scalars().all()
-    mf       = (await db.execute(select(MFHoldings))).scalars().all()
+
+    q_holdings = select(Holdings)
+    q_mf = select(MFHoldings)
+    if user_id:
+        q_holdings = q_holdings.where(Holdings.user_id == user_id)
+        q_mf = q_mf.where(MFHoldings.user_id == user_id)
+
+    holdings = (await db.execute(q_holdings)).scalars().all()
+    mf       = (await db.execute(q_mf)).scalars().all()
 
     equity_current  = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
     equity_invested = sum(r.avg_price * r.qty for r in holdings)
@@ -165,17 +210,19 @@ async def _write_snapshot(db: AsyncSession) -> None:
     day_pnl         = sum((r.day_change or 0) for r in holdings)
 
     if total_current == 0:
-        return  # No data to snapshot — skip to avoid writing corrupt zero rows
+        return
 
     today = date.today()
-    # Remove existing row for today (upsert via delete + insert)
-    await db.execute(
-        sa_delete(PortfolioSnapshot).where(PortfolioSnapshot.snapshot_date == today)
-    )
+    del_q = sa_delete(PortfolioSnapshot).where(PortfolioSnapshot.snapshot_date == today)
+    if user_id:
+        del_q = del_q.where(PortfolioSnapshot.user_id == user_id)
+    await db.execute(del_q)
+
     snap = PortfolioSnapshot(
         id=uuid.uuid4(),
+        user_id=user_id,
         snapshot_date=today,
-        account_id="all",          # aggregate row
+        account_id="all",
         portfolio_value=round(total_current, 2),
         invested_value=round(total_invested, 2),
         day_pnl=round(day_pnl, 2),

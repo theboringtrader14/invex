@@ -142,18 +142,18 @@ async def get_watchlist_prices(db: AsyncSession = Depends(get_db), user = Depend
 
 @router.get("/")
 async def list_watchlist(db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
-    result = await db.execute(select(Watchlist))
+    result = await db.execute(select(Watchlist).where(Watchlist.user_id == user.id))
     return [_w_dict(w) for w in result.scalars().all()]
 
 @router.post("/")
 async def add_to_watchlist(body: WatchlistAdd, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
-    w = Watchlist(id=uuid_lib.uuid4(), **body.model_dump(), added_at=datetime.now(timezone.utc))
+    w = Watchlist(id=uuid_lib.uuid4(), user_id=user.id, **body.model_dump(), added_at=datetime.now(timezone.utc))
     db.add(w); await db.commit(); await db.refresh(w)
     return _w_dict(w)
 
 @router.patch("/{wid}")
 async def update_watchlist(wid: str, body: dict = Body(...), db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
-    result = await db.execute(select(Watchlist).where(Watchlist.id == wid))
+    result = await db.execute(select(Watchlist).where(Watchlist.id == wid, Watchlist.user_id == user.id))
     w = result.scalar_one_or_none()
     if not w: raise HTTPException(404)
     for k, v in body.items():
@@ -162,7 +162,7 @@ async def update_watchlist(wid: str, body: dict = Body(...), db: AsyncSession = 
 
 @router.delete("/{wid}")
 async def remove_watchlist(wid: str, db: AsyncSession = Depends(get_db), user = Depends(get_current_user)):
-    result = await db.execute(select(Watchlist).where(Watchlist.id == wid))
+    result = await db.execute(select(Watchlist).where(Watchlist.id == wid, Watchlist.user_id == user.id))
     w = result.scalar_one_or_none()
     if not w: raise HTTPException(404)
     await db.delete(w); await db.commit()

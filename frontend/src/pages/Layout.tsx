@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { SignOut, Sun, Moon, User } from '@phosphor-icons/react'
 import InvexAccountsDrawer from '../components/InvexAccountsDrawer'
+import { useAuth } from '../contexts/AuthContext'
 
 const NAV_LINKS = [
   { to: '/portfolio', label: 'Portfolio' },
@@ -30,6 +31,7 @@ export default function Layout() {
     (localStorage.getItem('invex_theme') as 'light' | 'dark') || 'light'
   )
   const [showAccounts, setShowAccounts] = useState(false)
+  const { logout: authLogout } = useAuth()
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -41,7 +43,7 @@ export default function Layout() {
     setTheme(next)
   }
 
-  const logout = () => { localStorage.removeItem('invex_token'); window.location.href = '/login' }
+  const logout = () => { authLogout(); window.location.href = '/login' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>

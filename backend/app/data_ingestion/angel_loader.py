@@ -169,6 +169,7 @@ async def load_angel_holdings(db: AsyncSession) -> dict:
             day_change = round((ltp - close) * qty, 2) if ltp > 0 and close > 0 else None
             holding = Holdings(
                 id=uuid.uuid4(),
+                user_id=acc.user_id,
                 account_id=account_id,
                 symbol=symbol,
                 exchange=h.get("exchange", "NSE"),

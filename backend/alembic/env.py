@@ -6,7 +6,7 @@ import asyncio
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.core.database import Base
-from app.models import holdings, sips, ipo_bots, watchlist, invex_account  # noqa
+from app.models import holdings, sips, ipo_bots, watchlist, invex_account, user  # noqa
 
 config = context.config
 if config.config_file_name:

@@ -125,6 +125,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
             symbol = h.get("tradingsymbol", "")
             holding = Holdings(
                 id=uuid.uuid4(),
+                user_id=invex_acc.user_id if invex_acc else None,
                 account_id=account_id,
                 symbol=symbol,
                 exchange=h.get("exchange", "NSE"),
@@ -153,6 +154,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
             invested = f.get("average_price", 0) * units
             mf = MFHoldings(
                 id=uuid.uuid4(),
+                user_id=invex_acc.user_id if invex_acc else None,
                 account_id=account_id,
                 fund_name=f.get("fund", "") or f.get("tradingsymbol", ""),
                 isin=f.get("isin"),

@@ -3,7 +3,7 @@ InvexAccount — broker account registry for INVEX portfolio tracker.
 Stores credentials and sync state for each brokerage account.
 Bootstrapped at startup from STAAX DB (accounts table).
 """
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
@@ -15,6 +15,7 @@ class InvexAccount(Base):
     __tablename__ = "invex_accounts"
 
     id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id        = Column(UUID(as_uuid=True), ForeignKey("invex_users.id", ondelete="CASCADE"), nullable=True, index=True)
     nickname       = Column(String(50), nullable=False)         # "Mom", "Karthik"
     broker         = Column(String(20), nullable=False)         # "angelone", "zerodha"
     client_id      = Column(String(50), nullable=False)         # KRAH1029
