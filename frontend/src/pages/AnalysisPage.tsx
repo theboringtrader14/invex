@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { SortableHeader } from '../components/SortableHeader'
 import { useSort } from '../hooks/useSort'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { StockDetailModal, NavItem } from '../components/StockDetailModal'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -322,6 +324,9 @@ export default function AnalysisPage() {
   const [recFilter, setRecFilter] = useState<string>('ALL')
   const [sectorFilter, setSectorFilter] = useState<string | null>(null)
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
+  const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
+  const [modalMode, setModalMode] = useState<'fundamental' | 'technical' | 'scorecard'>('fundamental')
+  const navigate = useNavigate()
 
   // Single effect — fires once when token is available, never re-fires (token string is stable)
   useEffect(() => {
@@ -429,6 +434,32 @@ export default function AnalysisPage() {
       return techSortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
     })
   }, [technical, techSortCol, techSortDir])
+
+  // Maps for StockDetailModal
+  const enrichedMap = useMemo(() => {
+    const m: Record<string, any> = {}
+    enriched.forEach((h: any) => { m[`${h.symbol}_${h.account_id}`] = h })
+    return m
+  }, [enriched])
+
+  const technicalMap = useMemo(() => {
+    const m: Record<string, any> = {}
+    ;(technical?.holdings || []).forEach((h: any) => { m[`${h.symbol}_${h.account_id}`] = h })
+    return m
+  }, [technical])
+
+  const scorecardMap = useMemo(() => {
+    const m: Record<string, any> = {}
+    ;(scorecard?.holdings || []).forEach((h: any) => { m[`${h.symbol}_${h.account_id}`] = h })
+    return m
+  }, [scorecard])
+
+  const accountMapAnalysis = useMemo(() => {
+    const m: Record<string, any> = {}
+    enriched.forEach((h: any) => { if (h.account_id) m[h.account_id] = h.account_nickname || h.account_id.slice(0, 6) })
+    ;(technical?.holdings || []).forEach((h: any) => { if (h.account_id) m[h.account_id] = h.account_nickname || '' })
+    return m
+  }, [enriched, technical])
 
   // Pre-join scorecard.holdings with enriched data so grade/signal are sortable
   const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, D: 0 }
@@ -820,7 +851,13 @@ export default function AnalysisPage() {
                       {sortedFundHoldings.filter((h: any) => !sectorFilter || h.sector === sectorFilter).map((h: any, i: number) => {
                         const e = getE(h.symbol)
                         return (
-                          <tr key={h.symbol + '_' + (h.account_id || i)} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <tr
+                            key={h.symbol + '_' + (h.account_id || i)}
+                            onClick={() => { setSelectedNav({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }); setModalMode('fundamental') }}
+                            style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(45,212,191,0.04)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                          >
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
@@ -952,7 +989,13 @@ export default function AnalysisPage() {
                           ? <span style={{ color: 'var(--text-mute)', fontSize: 11 }}>—</span>
                           : <span style={{ fontSize: 10, fontWeight: 700, color: above ? '#0EA66E' : '#FF4444', fontFamily: 'var(--font-mono)' }}>{above ? '↑' : '↓'}</span>
                         return (
-                          <tr key={`tech_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <tr
+                            key={`tech_${h.symbol}_${h.account_id || i}`}
+                            onClick={() => { setSelectedNav({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }); setModalMode('technical') }}
+                            style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(45,212,191,0.04)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                          >
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                             <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>₹{h.price?.toLocaleString('en-IN')}</td>
@@ -999,9 +1042,9 @@ export default function AnalysisPage() {
 
                 const COLUMN_HEIGHT = 294 // same as before
                 const buckets = [
-                  { label: 'Danger', color: '#FF4444', bg: '#FF444410', border: '#FF444422', icon: '●', items: danger },
-                  { label: 'Watch',  color: '#F59E0B', bg: '#F59E0B10', border: '#F59E0B22', icon: '⚠', items: watch  },
-                  { label: 'Strong', color: '#0EA66E', bg: '#0EA66E10', border: '#0EA66E22', icon: '✓', items: strong },
+                  { label: 'Danger', color: '#FF4444', icon: '●', items: danger },
+                  { label: 'Watch',  color: '#F5A623', icon: '⚠', items: watch  },
+                  { label: 'Strong', color: '#0EA66E', icon: '✓', items: strong },
                 ]
                 return (
                   <div style={{ ...neuCard }}>
@@ -1011,28 +1054,40 @@ export default function AnalysisPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                       {buckets.map(b => (
                         <div key={b.label} style={{ display: 'flex', flexDirection: 'column' }}>
-                          {/* Column header */}
+                          {/* Column header — neumorphic inset pill */}
                           <div style={{
-                            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
-                            padding: '5px 10px', borderRadius: 'var(--r-sm)',
-                            background: b.bg, border: `1px solid ${b.border}`,
+                            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10,
+                            padding: '8px 12px', borderRadius: 10,
+                            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                            borderLeft: `3px solid ${b.color}`,
                           }}>
-                            <span style={{ color: b.color, fontSize: 11 }}>{b.icon}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: b.color, letterSpacing: '0.5px', textTransform: 'uppercase' as const }}>
+                            <span style={{ color: b.color, fontSize: 10, lineHeight: 1 }}>{b.icon}</span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                              color: b.color, letterSpacing: '1px', textTransform: 'uppercase' as const, flex: 1,
+                            }}>
                               {b.label}
                             </span>
-                            <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: b.color }}>
+                            {/* Count badge */}
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              minWidth: 20, height: 20, borderRadius: 6,
+                              background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                              fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: b.color,
+                              padding: '0 5px',
+                            }}>
                               {b.items.length}
                             </span>
                           </div>
-                          {/* Scrollable list — fixed height = same as original total */}
-                          <div className="hide-scrollbar" style={{ height: COLUMN_HEIGHT - 37, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {/* Scrollable list */}
+                          <div className="hide-scrollbar" style={{ height: COLUMN_HEIGHT - 46, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {b.items.length === 0 ? (
                               <div style={{ fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', padding: '12px 8px', textAlign: 'center' }}>—</div>
                             ) : b.items.map((msg, i) => (
                               <div key={i} style={{
-                                padding: '7px 10px', borderRadius: 'var(--r-sm)',
-                                background: b.bg, border: `1px solid ${b.border}`,
+                                padding: '7px 10px 7px 12px', borderRadius: 8,
+                                background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                                borderLeft: `2px solid ${b.color}44`,
                                 fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)',
                                 lineHeight: 1.4,
                               }}>
@@ -1394,7 +1449,13 @@ export default function AnalysisPage() {
                         })
                         .map((h: any, i: number) => {
                           return (
-                            <tr key={`score_${h.symbol}_${h.account_id || i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <tr
+                              key={`score_${h.symbol}_${h.account_id || i}`}
+                              onClick={() => { setSelectedNav({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }); setModalMode('scorecard') }}
+                              style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(45,212,191,0.04)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                            >
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{cleanSym(h.symbol)}</td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{h.sector}</td>
                               <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{formatVal(h.current_value)}</td>
@@ -1436,6 +1497,26 @@ export default function AnalysisPage() {
             </div>
           )}
         </>
+      )}
+
+      {selectedNav && (
+        <StockDetailModal
+          currentItem={selectedNav}
+          onClose={() => setSelectedNav(null)}
+          mode={modalMode}
+          navList={
+            modalMode === 'fundamental' ? sortedFundHoldings.map((h: any) => ({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }))
+            : modalMode === 'technical' ? sortedTechHoldings.map((h: any) => ({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }))
+            : (scorecard?.holdings || []).map((h: any) => ({ symbol: cleanSym(h.symbol), account_id: h.account_id || '' }))
+          }
+          onNavigate={item => setSelectedNav(item)}
+          holdingsMap={enrichedMap}
+          enrichedMap={enrichedMap}
+          technicalMap={technicalMap}
+          scorecardMap={scorecardMap}
+          accountMap={accountMapAnalysis}
+          onViewAnalysis={() => { setSelectedNav(null); navigate('/analysis') }}
+        />
       )}
 
       <style>{`

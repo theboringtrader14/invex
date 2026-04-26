@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/api"
 import { useAuth } from "../contexts/AuthContext"
 import { SortableHeader } from "../components/SortableHeader"
 import { useSort } from "../hooks/useSort"
+import { StockDetailModal, NavItem } from "../components/StockDetailModal"
 
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
@@ -517,10 +518,11 @@ function HighlightsCard({ holdings }: { holdings: Holding[] }) {
 
 /* ─── HoldingsTable ──────────────────────────────── */
 function HoldingsTable({
-  holdings, accountMap
+  holdings, accountMap, onRowClick
 }: {
   holdings: Holding[]
   accountMap: Record<string, string>
+  onRowClick: (h: Holding) => void
 }) {
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     const saved = localStorage.getItem(LS_SORT_KEY)
@@ -592,7 +594,13 @@ function HoldingsTable({
             const sym = displaySym(h.symbol)
             const acct = accountMap[h.account_id] ?? h.account_id.slice(0, 8)
             return (
-              <tr key={h.id}>
+              <tr
+                key={h.id}
+                onClick={() => onRowClick(h)}
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(45,212,191,0.04)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '' }}
+              >
                 <td style={{ textAlign: "left" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "13px" }}>{sym}</span>
                 </td>
@@ -695,6 +703,8 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
   const [activeAccount, setActiveAccount] = useState("All")
   const [showEquityModal, setShowEquityModal] = useState(false)
+  const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
+  const [enrichedMap, setEnrichedMap] = useState<Record<string, any>>({})
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
@@ -746,6 +756,20 @@ export default function PortfolioPage() {
     }, 60_000)
     return () => clearInterval(interval)
   }, [load, token])
+
+  // Fetch enriched data for modal
+  useEffect(() => {
+    if (!token) return
+    apiFetch('/api/v1/analysis/holdings-enriched')
+      .then(r => r.json())
+      .then((items: any[]) => {
+        if (!Array.isArray(items)) return
+        const m: Record<string, any> = {}
+        items.forEach(h => { m[`${h.symbol}_${h.account_id}`] = h })
+        setEnrichedMap(m)
+      })
+      .catch(() => {})
+  }, [token])
 
   // Build sorted unique nickname list from the live accountMap
   const accountChips = ["All", ...Array.from(new Set(Object.values(accountMap))).sort()]
@@ -934,7 +958,14 @@ export default function PortfolioPage() {
             {/* Table — no inner inset box, scrollbar hidden */}
             <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px" }}>
               {activeTab === "equity"
-                ? <HoldingsTable holdings={filteredHoldings} accountMap={accountMap} />
+                ? <HoldingsTable
+                    holdings={filteredHoldings}
+                    accountMap={accountMap}
+                    onRowClick={h => setSelectedNav({
+                      symbol: h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'').replace(/\.NS$/i,'').replace(/\.BO$/i,''),
+                      account_id: h.account_id
+                    })}
+                  />
                 : <MFTable mf={filteredMF} />
               }
             </div>
@@ -948,6 +979,29 @@ export default function PortfolioPage() {
       {showEquityModal && (
         <EquityCurveModal snapshots={snapshots} onClose={() => setShowEquityModal(false)} />
       )}
+
+      {selectedNav && (() => {
+        const portfolioNavList: NavItem[] = filteredHoldings.map(h => ({
+          symbol: h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'').replace(/\.NS$/i,'').replace(/\.BO$/i,''),
+          account_id: h.account_id
+        }))
+        return (
+          <StockDetailModal
+            currentItem={selectedNav}
+            onClose={() => setSelectedNav(null)}
+            mode="portfolio"
+            navList={portfolioNavList}
+            onNavigate={item => setSelectedNav(item)}
+            holdingsMap={Object.fromEntries(holdings.map(h => [
+              `${h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'').replace(/\.NS$/i,'').replace(/\.BO$/i,'')}_${h.account_id}`, h
+            ]))}
+            enrichedMap={enrichedMap}
+            technicalMap={{}}
+            scorecardMap={{}}
+            accountMap={accountMap}
+          />
+        )
+      })()}
 
     </div>
   )
