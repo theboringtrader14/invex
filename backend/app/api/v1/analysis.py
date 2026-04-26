@@ -9,17 +9,21 @@ from app.core.database import get_db
 from app.core.redis_client import redis_client
 from app.models.holdings import Holdings, MFHoldings
 from app.models.invex_account import InvexAccount
+from app.models.user import User
+from app.core.auth import get_current_user
 from app.core.nse_sector_fetcher import get_sector_from_map
-from app.api.v1.portfolio import HOLDINGS_CACHE_KEY, _build_holding
+from app.api.v1.portfolio import _build_holding
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-async def _get_account_map(db: AsyncSession) -> dict:
-    """Returns {account_id_str: nickname} for all invex_accounts."""
-    result = await db.execute(select(InvexAccount))
+async def _get_account_map(db: AsyncSession, user_id: str) -> dict:
+    """Returns {account_id_str: nickname} for the current user's accounts."""
+    result = await db.execute(
+        select(InvexAccount).where(InvexAccount.user_id == user_id)
+    )
     return {str(a.id): a.nickname for a in result.scalars().all()}
 
 
@@ -29,12 +33,12 @@ def _clean_sym(s: str) -> str:
     return s.strip()
 
 
-async def _get_holdings(request: Request, db: AsyncSession) -> list:
-    """Return holdings list, preferring Redis cache; falls back to DB query."""
-    cached = await redis_client.get(HOLDINGS_CACHE_KEY)
+async def _get_holdings(request: Request, db: AsyncSession, user_id: str) -> list:
+    """Return holdings for the current user, preferring Redis cache."""
+    cache_key = f"invex:holdings:{user_id}"
+    cached = await redis_client.get(cache_key)
     if cached:
         data = json.loads(cached)
-        # Cache entries use pnl_pct; normalise to gain_pct for analysis code
         for h in data:
             if "gain_pct" not in h:
                 h["gain_pct"] = h.get("pnl_pct") or 0
@@ -44,7 +48,9 @@ async def _get_holdings(request: Request, db: AsyncSession) -> list:
 
     sector_map: dict = getattr(request.app.state, "sector_map", {})
     result = await db.execute(
-        select(Holdings).order_by(Holdings.account_id, Holdings.symbol)
+        select(Holdings)
+        .where(Holdings.user_id == user_id)
+        .order_by(Holdings.account_id, Holdings.symbol)
     )
     rows = result.scalars().all()
     data = [_build_holding(r, sector_map) for r in rows]
@@ -57,10 +63,14 @@ async def _get_holdings(request: Request, db: AsyncSession) -> list:
 
 
 @router.get("/fundamental")
-async def get_fundamental(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_fundamental(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     holdings, account_map = await asyncio.gather(
-        _get_holdings(request, db),
-        _get_account_map(db),
+        _get_holdings(request, db, str(current_user.id)),
+        _get_account_map(db, str(current_user.id)),
     )
 
     # Sector allocation
@@ -213,12 +223,16 @@ def _signal_from_dma(dma: dict | None, gain_pct: float) -> str:
 
 
 @router.get("/technical")
-async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_technical(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     from app.adapters.market_data_adapter import market_data
 
     holdings, account_map = await asyncio.gather(
-        _get_holdings(request, db),
-        _get_account_map(db),
+        _get_holdings(request, db, str(current_user.id)),
+        _get_account_map(db, str(current_user.id)),
     )
 
     # Fetch DMA + RSI for all symbols concurrently (uses 24h price-history cache)
@@ -281,12 +295,16 @@ async def get_technical(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/scorecard")
-async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_scorecard(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     from app.adapters.market_data_adapter import market_data
 
     holdings, account_map = await asyncio.gather(
-        _get_holdings(request, db),
-        _get_account_map(db),
+        _get_holdings(request, db, str(current_user.id)),
+        _get_account_map(db, str(current_user.id)),
     )
     symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
 
@@ -435,11 +453,18 @@ async def get_scorecard(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/mutual-funds")
-async def get_mutual_funds(db: AsyncSession = Depends(get_db)):
+async def get_mutual_funds(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """MF holdings with computed P&L and grade."""
     mf_rows, account_map = await asyncio.gather(
-        db.execute(select(MFHoldings).order_by(MFHoldings.account_id, MFHoldings.fund_name)),
-        _get_account_map(db),
+        db.execute(
+            select(MFHoldings)
+            .where(MFHoldings.user_id == current_user.id)
+            .order_by(MFHoldings.account_id, MFHoldings.fund_name)
+        ),
+        _get_account_map(db, str(current_user.id)),
     )
     mf_list = mf_rows.scalars().all()
 
@@ -493,7 +518,11 @@ async def get_mutual_funds(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/holdings-enriched")
-async def get_holdings_enriched(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_holdings_enriched(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Each holding enriched with Yahoo Finance fundamentals from cache.
     Fundamentals are populated by background prefetch after /refresh.
@@ -501,7 +530,7 @@ async def get_holdings_enriched(request: Request, db: AsyncSession = Depends(get
     """
     from app.adapters.market_data_adapter import market_data
 
-    holdings = await _get_holdings(request, db)
+    holdings = await _get_holdings(request, db, str(current_user.id))
     total_value = sum(h.get('current_value', 0) or 0 for h in holdings)
 
     result = []
