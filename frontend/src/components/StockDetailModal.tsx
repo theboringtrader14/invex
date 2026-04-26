@@ -130,7 +130,8 @@ function PortfolioBody({
   const [analysisGenerated, setAnalysisGenerated] = useState(false)
 
   useEffect(() => {
-    setNoteLoading(true)
+    // Don't reset noteLoading to true on navigation — keep previous content
+    // visible while new data loads silently (prevents flicker)
     setAnalysis(null)
     setAnalysisGenerated(false)
     apiFetch(`/api/v1/stocks/${symbol}/notes?account_id=${accountId}`)
@@ -145,7 +146,6 @@ function PortfolioBody({
       .catch(() => {})
       .finally(() => setNoteLoading(false))
 
-    setHistLoading(true)
     apiFetch(`/api/v1/stocks/${symbol}/history?account_id=${accountId}`)
       .then(r => r.json())
       .then(d => setHistory(d))
@@ -955,11 +955,6 @@ export function StockDetailModal({
     return () => window.removeEventListener('keydown', handler)
   }, [prevItem, nextItem, onNavigate, onClose])
 
-  // Signal Layout to show the shared full-page blur overlay
-  useEffect(() => {
-    document.body.classList.add('invex-overlay')
-    return () => document.body.classList.remove('invex-overlay')
-  }, [])
 
   const showPnlRow = mode === 'portfolio' || mode === 'fundamental' || mode === 'scorecard'
 
@@ -984,12 +979,15 @@ export function StockDetailModal({
         }
       `}</style>
 
-      {/* Click-to-close overlay — blur handled by Layout's shared overlay */}
+      {/* Full-page blur overlay — covers everything including topbar */}
       <div
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         {/* Left Arrow */}

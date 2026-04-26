@@ -45,7 +45,6 @@ export default function Layout() {
   const location = useLocation()
   const [istTime, setIstTime] = useState("")
   const [showAccounts, setShowAccounts] = useState(false)
-  const [overlayActive, setOverlayActive] = useState(false)
 
   useEffect(() => {
     const tick = () =>
@@ -57,15 +56,6 @@ export default function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  // Watch for modals/drawers adding 'invex-overlay' class to body
-  useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setOverlayActive(document.body.classList.contains("invex-overlay"))
-    )
-    obs.observe(document.body, { attributes: true, attributeFilter: ["class"] })
-    return () => obs.disconnect()
-  }, [])
-
   const logout = () => { localStorage.removeItem("staax_token"); window.location.href = 'https://lifexos.co.in' }
 
   return (
@@ -73,16 +63,6 @@ export default function Layout() {
       {/* Ambient background orbs */}
       <div className="bg-orb orb-1" />
       <div className="bg-orb orb-2" />
-
-      {/* ── SHARED BLUR OVERLAY — full page, controlled by modals/drawer via body class ── */}
-      {overlayActive && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 150,
-          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-          background: "rgba(0,0,0,0.15)",
-          pointerEvents: "none",       // clicks fall through to modal/drawer overlays
-        }} />
-      )}
 
       {/* ── SIDEBAR ── */}
       <nav style={{
@@ -139,20 +119,20 @@ export default function Layout() {
         </div>
       </nav>
 
-      {/* ── TOPBAR — sibling of sidebar/right-panel, root div has no z-index so
-             this fixed z=300 competes at document level, above blur (z=150) ── */}
-      <header style={{
-        position: "fixed", top: 0, left: "56px", right: 0,
-        height: "52px", zIndex: 300,
-        background: overlayActive ? "transparent" : "rgba(10,10,11,0.94)",
-        borderBottom: overlayActive ? "none" : "0.5px solid rgba(0,201,167,0.16)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        display: "flex", alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 24px",
-        transition: "background 0.15s",
-      }}>
+      {/* ── RIGHT PANEL ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* ── TOPBAR ── */}
+        <header style={{
+          height: "52px", minHeight: "52px", flexShrink: 0,
+          background: "rgba(10,10,11,0.94)",
+          borderBottom: "0.5px solid rgba(0,201,167,0.16)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          display: "flex", alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+        }}>
           {/* Left — Welcome · name · separator · IST */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <span style={{ fontSize: "12px", color: "rgba(240,237,232,0.38)", fontFamily: "var(--font-body)" }}>
@@ -217,12 +197,10 @@ export default function Layout() {
             </svg>
           </button>
           </div>
-      </header>
+        </header>
 
-      {/* ── RIGHT PANEL — no z-index so it doesn't create a stacking context ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
-        {/* Page content — marginTop offsets the fixed topbar */}
-        <main style={{ flex: 1, overflow: "hidden", height: 0, marginTop: "52px" }}>
+        {/* Page content */}
+        <main style={{ flex: 1, overflow: "hidden", height: 0 }}>
           <Outlet />
         </main>
       </div>

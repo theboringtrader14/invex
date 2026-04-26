@@ -97,11 +97,6 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
     return () => document.removeEventListener('keydown', h)
   }, [onClose])
 
-  // Signal Layout to show the shared full-page blur overlay
-  useEffect(() => {
-    document.body.classList.add('invex-overlay')
-    return () => document.body.classList.remove('invex-overlay')
-  }, [])
 
   const showSaved = (id: string, msg: string) => {
     setSaved(s => ({ ...s, [id]: msg }))
@@ -329,14 +324,17 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Backdrop — click-to-close only, blur handled by Layout's shared overlay */}
+      {/* Full-page blur backdrop */}
       <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 299,
+        position: 'fixed', inset: 0, zIndex: 999,
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
       }} />
 
-      {/* Floating panel — top:88, right:20, width:420 — same as STAAX */}
+      {/* Floating panel — above the blur backdrop */}
       <div ref={panelRef} style={{
-        position: 'fixed', top: 88, right: 20, width: 420, zIndex: 322,
+        position: 'fixed', top: 88, right: 20, width: 420, zIndex: 1000,
         background: 'var(--bg)', boxShadow: 'var(--neu-raised-lg)', borderRadius: 20,
         display: 'flex', flexDirection: 'column',
         maxHeight: 'calc(100vh - 108px)',
