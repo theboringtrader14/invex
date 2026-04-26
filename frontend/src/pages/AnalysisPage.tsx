@@ -669,8 +669,8 @@ export default function AnalysisPage() {
                           return (
                             <div key={i} style={{
                               display: 'inline-flex', alignItems: 'center', gap: 7,
-                              background: color + '12',
-                              border: `1px solid ${color}28`,
+                              background: 'var(--bg)',
+                              boxShadow: 'var(--neu-inset)',
                               borderRadius: 'var(--r-sm)',
                               padding: '6px 12px',
                             }}>
