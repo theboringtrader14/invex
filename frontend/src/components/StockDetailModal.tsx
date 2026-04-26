@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import { apiFetch } from '../lib/api'
 
 export interface NavItem { symbol: string; account_id: string }
@@ -142,6 +143,7 @@ function PortfolioBody({
 
   const saveNote = async () => {
     setSavePending(true)
+    const toastId = toast.loading('Saving...')
     try {
       await apiFetch(`/api/v1/stocks/${symbol}/notes`, {
         method: 'PUT',
@@ -149,9 +151,13 @@ function PortfolioBody({
       })
       setSaveMsg('Saved ✓')
       setTimeout(() => setSaveMsg(''), 2000)
+      toast.dismiss(toastId)
+      toast.success('Story saved')
     } catch {
       setSaveMsg('Error saving')
       setTimeout(() => setSaveMsg(''), 2000)
+      toast.dismiss(toastId)
+      toast.error('Failed to save')
     } finally {
       setSavePending(false)
     }
@@ -160,6 +166,7 @@ function PortfolioBody({
   const runAnalysis = async (force = false) => {
     setAnalysisLoading(true)
     setAnalysisError(null)
+    const toastId = toast.loading('AI is analysing...')
     try {
       const res = await apiFetch(`/api/v1/stocks/${symbol}/analyse`, {
         method: 'POST',
@@ -180,10 +187,20 @@ function PortfolioBody({
         }),
       })
       const d = await res.json()
-      if (d.error) setAnalysisError(d.error)
-      else { setAnalysis(d.analysis); setAnalysisGenerated(true) }
+      if (d.error) {
+        setAnalysisError(d.error)
+        toast.dismiss(toastId)
+        toast.error('Analysis failed')
+      } else {
+        setAnalysis(d.analysis)
+        setAnalysisGenerated(true)
+        toast.dismiss(toastId)
+        toast.success('Analysis complete')
+      }
     } catch {
       setAnalysisError('Failed to fetch analysis')
+      toast.dismiss(toastId)
+      toast.error('Analysis failed')
     } finally {
       setAnalysisLoading(false)
     }

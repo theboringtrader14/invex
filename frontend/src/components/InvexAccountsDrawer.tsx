@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PencilSimple, FloppyDisk, CheckCircle, Warning, SignOut, ArrowsClockwise } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { apiFetch } from '../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -118,19 +119,26 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
   const refreshToken = async (acc: Account) => {
     setRefreshing(r => ({ ...r, [acc.id]: true }))
     setRefreshMsg(m => ({ ...m, [acc.id]: { text: '', ok: true } }))
+    const toastId = toast.loading('Refreshing token...')
     try {
       const res  = await apiFetch(`/api/v1/accounts/${acc.id}/refresh-token`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
         const text = data.status === 'oauth_required' ? 'OAuth URL opened' : 'Token refreshed'
         setRefreshMsg(m => ({ ...m, [acc.id]: { text, ok: true } }))
+        toast.dismiss(toastId)
+        toast.success(text)
         if (data.login_url) window.open(data.login_url, '_blank')
         load()
       } else {
         setRefreshMsg(m => ({ ...m, [acc.id]: { text: data.detail ?? 'Error', ok: false } }))
+        toast.dismiss(toastId)
+        toast.error('Token refresh failed')
       }
     } catch {
       setRefreshMsg(m => ({ ...m, [acc.id]: { text: 'Network error', ok: false } }))
+      toast.dismiss(toastId)
+      toast.error('Token refresh failed')
     } finally {
       setRefreshing(r => ({ ...r, [acc.id]: false }))
     }
@@ -463,15 +471,20 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
                   if (editingCreds.api_key)     body.api_key     = editingCreds.api_key
                   if (editingCreds.totp_secret) body.totp_secret = editingCreds.totp_secret
                   if (editingCreds.password)    body.password    = editingCreds.password
-                  if (Object.keys(body).length) {
-                    await apiFetch(`/api/v1/accounts/${editingCreds.id}`, {
-                      method: 'PATCH',
-                      body: JSON.stringify(body),
-                    })
+                  try {
+                    if (Object.keys(body).length) {
+                      await apiFetch(`/api/v1/accounts/${editingCreds.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(body),
+                      })
+                    }
+                    const id = editingCreds.id
+                    setEditingCreds(null)
+                    showSaved(id, 'ok:Credentials saved')
+                    toast.success('API keys saved')
+                  } catch {
+                    toast.error('Failed to save keys')
                   }
-                  const id = editingCreds.id
-                  setEditingCreds(null)
-                  showSaved(id, 'ok:Credentials saved')
                 }}
                 style={{ width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Save">

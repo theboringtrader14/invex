@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from 'sonner'
 import { useAuth } from "./contexts/AuthContext"
 import Layout from "./pages/Layout"
 import LoginPage from "./pages/LoginPage"
@@ -33,6 +34,20 @@ export default function App() {
           <Route path="analysis" element={<AnalysisPage />} />
         </Route>
       </Routes>
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            fontFamily: 'var(--font-body)',
+            fontSize: '13px',
+            borderRadius: '10px',
+            border: '1px solid var(--border)',
+            background: 'var(--bg-surface)',
+            color: 'var(--text)',
+          },
+          duration: 3000,
+        }}
+      />
     </BrowserRouter>
   )
 }
