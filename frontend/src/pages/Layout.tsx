@@ -116,6 +116,7 @@ export default function Layout() {
             </button>
             <button
               onClick={() => setShowAccounts(v => !v)}
+              onMouseDown={e => e.stopPropagation()}
               title="Broker Accounts"
               style={{
                 ...iconBtnStyle,

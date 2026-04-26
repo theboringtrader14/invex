@@ -478,7 +478,9 @@ export default function AnalysisPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* Header + Tab bar — sticky together */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 12, marginLeft: -54, marginRight: -54, paddingLeft: 54, paddingRight: 54 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 12 }}>
+        {/* Background extender — fills main's side padding to stop scroll-bleed */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: -54, right: -54, background: 'var(--bg)', zIndex: -1 }} />
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22,
