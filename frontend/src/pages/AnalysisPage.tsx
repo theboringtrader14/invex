@@ -304,7 +304,6 @@ export default function AnalysisPage() {
   const [recFilter, setRecFilter] = useState<string>('ALL')
   const [sectorFilter, setSectorFilter] = useState<string | null>(null)
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
-  const [alertFilter, setAlertFilter] = useState<'all' | 'danger' | 'warn' | 'ok'>('all')
 
   // Single effect — fires once when token is available, never re-fires (token string is stable)
   useEffect(() => {
@@ -964,54 +963,63 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
-              {/* Action Alerts */}
+              {/* Action Alerts — 3 bucketed columns, equal fixed height */}
               {(() => {
-                const alerts: { type: 'warn' | 'danger' | 'ok'; msg: string }[] = []
+                const danger: string[] = []
+                const watch:  string[] = []
+                const strong: string[] = []
                 for (const h of technical.holdings) {
                   const sym = cleanSym(h.symbol)
-                  if (h.signal === 'BEAR') alerts.push({ type: 'danger', msg: `${sym} in downtrend` })
-                  if ((h.gain_pct || 0) < -20) alerts.push({ type: 'danger', msg: `${sym} down ${h.gain_pct?.toFixed(1)}% — review position` })
-                  if (h.signal === 'WEAK') alerts.push({ type: 'warn', msg: `${sym} showing weakness — monitor closely` })
-                  if (h.signal === 'STRONG_BULL') alerts.push({ type: 'ok', msg: `${sym} strong momentum +${h.gain_pct?.toFixed(1)}%` })
+                  if (h.signal === 'BEAR')        danger.push(`${sym} in downtrend`)
+                  if ((h.gain_pct || 0) < -20)   danger.push(`${sym} down ${h.gain_pct?.toFixed(1)}%`)
+                  if (h.signal === 'WEAK')         watch.push(`${sym} showing weakness`)
+                  if (h.signal === 'STRONG_BULL') strong.push(`${sym} +${h.gain_pct?.toFixed(1)}%`)
                 }
-                if (alerts.length === 0) return null
-                const iconMap = { warn: '⚠', danger: '●', ok: '✓' }
-                const colorMap = { warn: '#F59E0B', danger: '#FF4444', ok: '#0EA66E' }
-                const chipLabels: { key: 'all' | 'danger' | 'warn' | 'ok'; label: string; color: string }[] = [
-                  { key: 'all',    label: `All · ${alerts.length}`,                              color: 'var(--accent)' },
-                  { key: 'danger', label: `Danger · ${alerts.filter(a => a.type === 'danger').length}`, color: '#FF4444' },
-                  { key: 'warn',   label: `Watch · ${alerts.filter(a => a.type === 'warn').length}`,   color: '#F59E0B' },
-                  { key: 'ok',     label: `Strong · ${alerts.filter(a => a.type === 'ok').length}`,    color: '#0EA66E' },
+                if (!danger.length && !watch.length && !strong.length) return null
+
+                const COLUMN_HEIGHT = 294 // same as before
+                const buckets = [
+                  { label: 'Danger', color: '#FF4444', bg: '#FF444410', border: '#FF444422', icon: '●', items: danger },
+                  { label: 'Watch',  color: '#F59E0B', bg: '#F59E0B10', border: '#F59E0B22', icon: '⚠', items: watch  },
+                  { label: 'Strong', color: '#0EA66E', bg: '#0EA66E10', border: '#0EA66E22', icon: '✓', items: strong },
                 ]
-                const filtered = alertFilter === 'all' ? alerts : alerts.filter(a => a.type === alertFilter)
                 return (
                   <div style={{ ...neuCard }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400 }}>Action Alerts</div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {chipLabels.map(c => {
-                          const isActive = alertFilter === c.key
-                          return (
-                            <button key={c.key} onClick={() => setAlertFilter(c.key)} style={{
-                              display: 'inline-flex', alignItems: 'center',
-                              padding: '4px 14px', borderRadius: 'var(--r-pill)',
-                              fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
-                              letterSpacing: '0.5px',
-                              color: isActive ? c.color : 'var(--text-mute)',
-                              background: 'var(--bg)',
-                              boxShadow: isActive ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
-                              border: 'none', cursor: 'pointer',
-                              transition: 'box-shadow 0.18s, color 0.18s',
-                            }}>{c.label}</button>
-                          )
-                        })}
-                      </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 14 }}>
+                      Action Alerts
                     </div>
-                    <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 294, overflowY: 'auto' }}>
-                      {filtered.map((a, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'var(--r-sm)', background: colorMap[a.type] + '10', border: `1px solid ${colorMap[a.type]}22` }}>
-                          <span style={{ color: colorMap[a.type], fontSize: 13 }}>{iconMap[a.type]}</span>
-                          <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{a.msg}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      {buckets.map(b => (
+                        <div key={b.label} style={{ display: 'flex', flexDirection: 'column' }}>
+                          {/* Column header */}
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+                            padding: '5px 10px', borderRadius: 'var(--r-sm)',
+                            background: b.bg, border: `1px solid ${b.border}`,
+                          }}>
+                            <span style={{ color: b.color, fontSize: 11 }}>{b.icon}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: b.color, letterSpacing: '0.5px', textTransform: 'uppercase' as const }}>
+                              {b.label}
+                            </span>
+                            <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: b.color }}>
+                              {b.items.length}
+                            </span>
+                          </div>
+                          {/* Scrollable list — fixed height = same as original total */}
+                          <div className="hide-scrollbar" style={{ height: COLUMN_HEIGHT - 37, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {b.items.length === 0 ? (
+                              <div style={{ fontSize: 11, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', padding: '12px 8px', textAlign: 'center' }}>—</div>
+                            ) : b.items.map((msg, i) => (
+                              <div key={i} style={{
+                                padding: '7px 10px', borderRadius: 'var(--r-sm)',
+                                background: b.bg, border: `1px solid ${b.border}`,
+                                fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-body)',
+                                lineHeight: 1.4,
+                              }}>
+                                {msg}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
