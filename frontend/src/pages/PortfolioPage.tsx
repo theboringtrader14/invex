@@ -3,6 +3,7 @@ import { ArrowsClockwise, X, ChartLine, ArrowRight } from "@phosphor-icons/react
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
 import { apiFetch } from "../lib/api"
+import { useAuth } from "../contexts/AuthContext"
 import { SortableHeader } from "../components/SortableHeader"
 import { useSort } from "../hooks/useSort"
 
@@ -683,6 +684,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
 
 /* ─── Main Page ──────────────────────────────────── */
 export default function PortfolioPage() {
+  const { token } = useAuth()
   const [summary, setSummary]     = useState<Summary | null>(() => readCache()?.summary ?? null)
   const [holdings, setHoldings]   = useState<Holding[]>(() => readCache()?.holdings ?? [])
   const [mf, setMF]               = useState<MFHolding[]>(() => readCache()?.mf ?? [])
@@ -696,6 +698,7 @@ export default function PortfolioPage() {
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
+    if (!token) return
     const acctPromise = apiFetch(`/api/v1/accounts/`)
       .then(async r => {
         if (!r.ok) return
@@ -726,9 +729,10 @@ export default function PortfolioPage() {
     }).catch(() => { /* data might be empty */ })
 
     await Promise.all([acctPromise, portfolioPromise])
-  }, [])
+  }, [token])
 
   useEffect(() => {
+    if (!token) return
     if (readCache() !== null) {
       setSyncing(true)
       load().finally(() => setSyncing(false))
@@ -741,7 +745,7 @@ export default function PortfolioPage() {
       load().finally(() => setSyncing(false))
     }, 60_000)
     return () => clearInterval(interval)
-  }, [load])
+  }, [load, token])
 
   // Build sorted unique nickname list from the live accountMap
   const accountChips = ["All", ...Array.from(new Set(Object.values(accountMap))).sort()]

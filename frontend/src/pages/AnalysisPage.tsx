@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { SortableHeader } from '../components/SortableHeader'
 import { useSort } from '../hooks/useSort'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -281,6 +282,7 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
 }
 
 export default function AnalysisPage() {
+  const { token } = useAuth()
   const [tab, setTab] = useState<Tab>(() =>
     (localStorage.getItem('invex_analysis_tab') as Tab) || 'fundamental'
   )
@@ -304,8 +306,11 @@ export default function AnalysisPage() {
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
   const [alertFilter, setAlertFilter] = useState<'all' | 'danger' | 'warn' | 'ok'>('all')
 
+  // Single effect — fires once when token is available, never re-fires (token string is stable)
   useEffect(() => {
+    if (!token) return
     setLoading(true)
+
     Promise.all([
       apiFetch('/api/v1/analysis/fundamental').then(r => r.json()),
       apiFetch('/api/v1/analysis/technical').then(r => r.json()),
@@ -320,7 +325,7 @@ export default function AnalysisPage() {
       setLoading(false)
     })
 
-    // Fetch enriched data independently — may be slower (Yahoo Finance fetch)
+    // Enriched data — may lag (Yahoo Finance); resolve independently
     apiFetch('/api/v1/analysis/holdings-enriched')
       .then(r => r.json())
       .then(d => setEnriched(Array.isArray(d) ? d : []))
@@ -331,18 +336,17 @@ export default function AnalysisPage() {
       .then(r => r.json())
       .then(d => setSummary(d))
       .catch(() => {})
-  }, [])
+  }, [token]) // token is a string — stable unless user logs out/in
 
-  // Lazy-load MF data when user first opens that tab
+  // Lazy-load MF data the first time user opens that tab
   useEffect(() => {
-    if (tab === 'mf' && !mfData) {
-      setMfLoading(true)
-      apiFetch('/api/v1/analysis/mutual-funds')
-        .then(r => r.json())
-        .then(d => { setMfData(d); setMfLoading(false) })
-        .catch(() => setMfLoading(false))
-    }
-  }, [tab, mfData])
+    if (!token || tab !== 'mf' || mfData) return
+    setMfLoading(true)
+    apiFetch('/api/v1/analysis/mutual-funds')
+      .then(r => r.json())
+      .then(d => { setMfData(d); setMfLoading(false) })
+      .catch(() => setMfLoading(false))
+  }, [token, tab, mfData])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>
