@@ -73,6 +73,15 @@ async def get_fundamental(
         _get_account_map(db, str(current_user.id)),
     )
 
+    if not holdings:
+        return {
+            'total_holdings': 0, 'total_value': 0,
+            'health_score': None,
+            'sector_allocation': [], 'gain_distribution': [],
+            'top_holdings': [], 'red_flags': [], 'empty': True,
+            'message': 'Connect a broker account to see your portfolio analysis'
+        }
+
     # Sector allocation
     sector_map = {}
     for h in holdings:
@@ -235,6 +244,17 @@ async def get_technical(
         _get_account_map(db, str(current_user.id)),
     )
 
+    if not holdings:
+        return {
+            'holdings': [], 'signal_summary': {
+                'STRONG_BULL': {'count':0,'value':0,'value_pct':0},
+                'BULL': {'count':0,'value':0,'value_pct':0},
+                'NEUTRAL': {'count':0,'value':0,'value_pct':0},
+                'WEAK': {'count':0,'value':0,'value_pct':0},
+                'BEAR': {'count':0,'value':0,'value_pct':0},
+            }, 'empty': True
+        }
+
     # Fetch DMA + RSI for all symbols concurrently (uses 24h price-history cache)
     symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
 
@@ -306,6 +326,21 @@ async def get_scorecard(
         _get_holdings(request, db, str(current_user.id)),
         _get_account_map(db, str(current_user.id)),
     )
+
+    if not holdings:
+        return {
+            'portfolio': {
+                'overall_score': 0, 'fundamental_score': 0, 'technical_score': 0,
+                'buy_count': 0, 'hold_count': 0, 'watch_count': 0,
+                'top_3': [], 'bottom_3': [],
+            },
+            'holdings': [],
+            'benchmark': {'nifty_1y_return': None, 'portfolio_absolute_return': None,
+                          'has_1y_data': False, 'outperforming': None, 'alpha': None,
+                          'note': 'No holdings'},
+            'empty': True
+        }
+
     symbols_clean = [h.get('symbol', '').replace('-EQ', '').replace('-BE', '') for h in holdings]
 
     # Fetch fundamentals + DMA/RSI concurrently
@@ -468,6 +503,9 @@ async def get_mutual_funds(
     )
     mf_list = mf_rows.scalars().all()
 
+    if not mf_list:
+        return {'total_invested':0,'total_current':0,'total_pnl':0,'total_pnl_pct':0,'funds':[],'empty':True}
+
     funds = []
     for m in mf_list:
         invested  = m.invested_amount or 0
@@ -531,6 +569,10 @@ async def get_holdings_enriched(
     from app.adapters.market_data_adapter import market_data
 
     holdings = await _get_holdings(request, db, str(current_user.id))
+
+    if not holdings:
+        return []
+
     total_value = sum(h.get('current_value', 0) or 0 for h in holdings)
 
     result = []

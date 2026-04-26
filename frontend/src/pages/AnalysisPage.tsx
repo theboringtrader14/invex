@@ -281,6 +281,24 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
   )
 }
 
+function EmptyPortfolioState() {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      minHeight: 320, gap: 16, padding: 40,
+      color: 'var(--text-mute)', fontFamily: 'var(--font-body)',
+    }}>
+      <div style={{ fontSize: 40, opacity: 0.3 }}>📊</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-dim)', fontFamily: 'var(--font-display)' }}>
+        No holdings yet
+      </div>
+      <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
+        Connect a broker account in the Accounts drawer to see your portfolio analysis.
+      </div>
+    </div>
+  )
+}
+
 export default function AnalysisPage() {
   const { token } = useAuth()
   const [tab, setTab] = useState<Tab>(() =>
@@ -560,7 +578,8 @@ export default function AnalysisPage() {
       ) : (
         <>
           {/* ═══ TAB 1: FUNDAMENTAL ═══ */}
-          {tab === 'fundamental' && fundamental && (
+          {tab === 'fundamental' && fundamental?.empty && <EmptyPortfolioState />}
+          {tab === 'fundamental' && fundamental && !fundamental.empty && (
             <div style={{ display: 'grid', gap: 20 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'stretch' }}>
                 {/* Health Score Card — compact Option B */}
@@ -842,7 +861,8 @@ export default function AnalysisPage() {
           )}
 
           {/* ═══ TAB 2: TECHNICAL ═══ */}
-          {tab === 'technical' && technical && (
+          {tab === 'technical' && technical?.empty && <EmptyPortfolioState />}
+          {tab === 'technical' && technical && !technical.empty && (
             <div style={{ display: 'grid', gap: 20 }}>
               {/* Signal Overview */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
@@ -1045,6 +1065,7 @@ export default function AnalysisPage() {
                 No mutual fund data — sync Zerodha account first
               </div>
             )
+            if (mfData.empty) return <EmptyPortfolioState />
 
             const funds: any[] = mfData.funds || []
             return (
@@ -1059,7 +1080,8 @@ export default function AnalysisPage() {
           })()}
 
           {/* ═══ TAB 4: SCORECARD ═══ */}
-          {tab === 'scorecard' && scorecard && (
+          {tab === 'scorecard' && scorecard?.empty && <EmptyPortfolioState />}
+          {tab === 'scorecard' && scorecard && !scorecard.empty && (
             <div style={{ display: 'grid', gap: 20 }}>
               {/* Summary Cards — always 5 cols (Grade conditional, Needs Attention always last) */}
               <div style={{ display: 'grid', gridTemplateColumns: portfolioGrade ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
