@@ -5,6 +5,7 @@ import { useSort } from '../hooks/useSort'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { StockDetailModal, NavItem } from '../components/StockDetailModal'
+import { XCircle, Warning, CheckCircle } from '@phosphor-icons/react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -726,7 +727,7 @@ export default function AnalysisPage() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {flags.map((f: any, i: number) => {
                           const color = f.severity === 'danger' ? dangerColor : warnColor
-                          const icon  = f.severity === 'danger' ? '●' : '⚠'
+                          const FlagIcon = f.severity === 'danger' ? XCircle : Warning
                           return (
                             <div key={i} style={{
                               display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -735,7 +736,7 @@ export default function AnalysisPage() {
                               borderRadius: 'var(--r-sm)',
                               padding: '6px 12px',
                             }}>
-                              <span style={{ color, fontSize: 10, lineHeight: 1 }}>{icon}</span>
+                              <FlagIcon size={12} weight="fill" color={color} />
                               <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-body)' }}>{f.msg}</span>
                             </div>
                           )
@@ -1042,9 +1043,9 @@ export default function AnalysisPage() {
 
                 const COLUMN_HEIGHT = 294 // same as before
                 const buckets = [
-                  { label: 'Danger', color: '#FF4444', icon: '●', items: danger },
-                  { label: 'Watch',  color: '#F5A623', icon: '⚠', items: watch  },
-                  { label: 'Strong', color: '#0EA66E', icon: '✓', items: strong },
+                  { label: 'Danger', color: '#FF4444', Icon: XCircle,     weight: 'fill' as const, items: danger },
+                  { label: 'Watch',  color: '#F5A623', Icon: Warning,      weight: 'fill' as const, items: watch  },
+                  { label: 'Strong', color: '#0EA66E', Icon: CheckCircle,  weight: 'fill' as const, items: strong },
                 ]
                 return (
                   <div style={{ ...neuCard }}>
@@ -1061,7 +1062,7 @@ export default function AnalysisPage() {
                             background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
                             borderLeft: `3px solid ${b.color}`,
                           }}>
-                            <span style={{ color: b.color, fontSize: 10, lineHeight: 1 }}>{b.icon}</span>
+                            <b.Icon size={14} weight={b.weight} color={b.color} />
                             <span style={{
                               fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
                               color: b.color, letterSpacing: '1px', textTransform: 'uppercase' as const, flex: 1,
