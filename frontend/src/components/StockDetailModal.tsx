@@ -70,7 +70,7 @@ function GradeChip({ grade }: { grade?: string | null }) {
   )
 }
 
-function SignalChipSmall({ signal }: { signal?: string | null }) {
+function SignalChipSmall({ signal, fontSize = 10 }: { signal?: string | null; fontSize?: number }) {
   const color = signalColor(signal)
   if (!signal) return null
   return (
@@ -78,7 +78,7 @@ function SignalChipSmall({ signal }: { signal?: string | null }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: `${color}18`, color, border: `1px solid ${color}44`,
       borderRadius: 6, padding: '2px 8px',
-      fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+      fontSize, fontWeight: 700, fontFamily: 'var(--font-mono)',
       letterSpacing: 0.5, whiteSpace: 'nowrap',
     }}>{signal.replace('_', ' ')}</span>
   )
@@ -501,7 +501,7 @@ function FundamentalBody({ h, e, sc }: { h: any; e: any; sc: any }) {
           <span style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)', color: gradeColor(vals.grade) }}>
             {vals.grade || '—'}
           </span>
-          <SignalChipSmall signal={vals.signal} />
+          <SignalChipSmall signal={vals.signal} fontSize={13} />
           {recommendation && (
             <span style={{
               marginLeft: 'auto',
