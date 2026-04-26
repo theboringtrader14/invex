@@ -233,27 +233,41 @@ async def get_price_history_endpoint(
 
 
 async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
-    """Compute total portfolio value and upsert a snapshot row for today."""
+    """Compute total portfolio value via SQL (runs after holdings are committed) and upsert today's snapshot."""
     from sqlalchemy import delete as sa_delete
 
-    q_holdings = select(Holdings)
-    q_mf = select(MFHoldings)
-    if user_id:
-        q_holdings = q_holdings.where(Holdings.user_id == user_id)
-        q_mf = q_mf.where(MFHoldings.user_id == user_id)
+    uid_str = str(user_id) if user_id else None
 
-    holdings = (await db.execute(q_holdings)).scalars().all()
-    mf       = (await db.execute(q_mf)).scalars().all()
+    # Raw SQL queries run after holdings are already committed — no ORM cache risk.
+    # ltp takes priority; falls back to avg_price when ltp is NULL or 0.
+    eq_row = (await db.execute(text("""
+        SELECT
+            COALESCE(SUM(COALESCE(NULLIF(ltp, 0), avg_price) * qty), 0)  AS current_val,
+            COALESCE(SUM(avg_price * qty), 0)                             AS invested_val,
+            COALESCE(SUM(COALESCE(day_change, 0)), 0)                     AS day_pnl
+        FROM invex_holdings
+        WHERE (:uid IS NULL OR user_id = :uid::uuid)
+    """), {"uid": uid_str})).fetchone()
 
-    equity_current  = sum((r.ltp or r.avg_price) * r.qty for r in holdings)
-    equity_invested = sum(r.avg_price * r.qty for r in holdings)
-    mf_current      = sum(r.current_value or 0 for r in mf)
-    mf_invested     = sum(r.invested_amount or 0 for r in mf)
-    total_current   = equity_current + mf_current
-    total_invested  = equity_invested + mf_invested
-    day_pnl         = sum((r.day_change or 0) for r in holdings)
+    mf_row = (await db.execute(text("""
+        SELECT
+            COALESCE(SUM(current_value),   0) AS current_val,
+            COALESCE(SUM(invested_amount), 0) AS invested_val
+        FROM invex_mf_holdings
+        WHERE (:uid IS NULL OR user_id = :uid::uuid)
+    """), {"uid": uid_str})).fetchone()
+
+    equity_current  = float(eq_row[0] or 0)
+    equity_invested = float(eq_row[1] or 0)
+    day_pnl         = float(eq_row[2] or 0)
+    mf_current      = float(mf_row[0] or 0)
+    mf_invested     = float(mf_row[1] or 0)
+
+    total_current  = equity_current + mf_current
+    total_invested = equity_invested + mf_invested
 
     if total_current == 0:
+        logger.warning(f"[SNAPSHOT] total_value=0 for user={uid_str} — skipping snapshot write")
         return
 
     today = date.today()
@@ -274,3 +288,4 @@ async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
     )
     db.add(snap)
     await db.commit()
+    logger.info(f"[SNAPSHOT] Written: total={total_current:.2f} equity={equity_current:.2f} mf={mf_current:.2f}")
