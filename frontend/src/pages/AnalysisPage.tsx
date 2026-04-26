@@ -418,7 +418,7 @@ export default function AnalysisPage() {
         grade: e?.grade ?? null,
         signal: e?.signal ?? null,
         grade_rank: GRADE_RANK[e?.grade ?? ''] ?? 0,
-        signal_rank: SIGNAL_RANK[e?.signal ?? ''] ?? 0,
+        signal_rank: SIGNAL_RANK[h.signal ?? ''] ?? 3,
       }
     })
   }, [scorecard, enriched])
