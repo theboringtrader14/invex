@@ -378,10 +378,12 @@ export default function AnalysisPage() {
       if (av == null) return 1; if (bv == null) return -1
       if (typeof av === 'number') return fundSortDir === 'asc' ? av - bv : bv - av
       if (field === '_signal') {
-        const sigOrder = ['STRONG_BULL', 'BULL', 'NEUTRAL', 'WEAK', 'BEAR']
-        const ai = sigOrder.indexOf(av); const bi = sigOrder.indexOf(bv)
-        const ai2 = ai === -1 ? 99 : ai; const bi2 = bi === -1 ? 99 : bi
-        return fundSortDir === 'asc' ? bi2 - ai2 : ai2 - bi2
+        const sigRank: Record<string, number> = {
+          'Multibagger': 6, 'Strong Compounder': 5, 'Momentum Leader': 4,
+          'Steady': 3, 'Laggard': 2, 'Under Watch': 1
+        }
+        const ai = sigRank[av] ?? 3; const bi = sigRank[bv] ?? 3
+        return fundSortDir === 'asc' ? ai - bi : bi - ai
       }
       return fundSortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
     })
