@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { ArrowsClockwise, X, ChartLine, ArrowRight, Crown } from "@phosphor-icons/react"
+import { ArrowsClockwise, X, ChartLine, ArrowRight, Crown, UploadSimple } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
 import { apiFetch } from "../lib/api"
@@ -913,7 +913,7 @@ export default function PortfolioPage() {
           onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--neu-raised-sm)" }}
         >
           Import CAS
-          <ArrowRight size={14} weight="bold" />
+          <UploadSimple size={14} weight="bold" />
         </button>
       </div>
 
