@@ -487,6 +487,39 @@ async def get_scorecard(
     }
 
 
+# Approximate FY25 category average 1Y returns — update quarterly from AMFI/Valueresearch
+_CATEGORY_BENCHMARKS: dict[str, float] = {
+    'large cap': 8.5,
+    'large & mid cap': 10.2,
+    'large and mid cap': 10.2,
+    'mid cap': 12.1,
+    'small cap': 14.3,
+    'elss': 11.8,
+    'flexi cap': 9.7,
+    'flexicap': 9.7,
+    'multi cap': 10.5,
+    'focused fund': 9.2,
+    'value fund': 10.8,
+    'contra fund': 10.0,
+    'income': 7.2,
+    'debt': 6.8,
+    'liquid': 6.5,
+    'hybrid': 8.8,
+    'balanced hybrid': 8.5,
+    'aggressive hybrid': 10.1,
+    'floating rate': 6.9,
+}
+
+def _get_category_benchmark(category: str | None) -> float | None:
+    if not category:
+        return None
+    cat = category.lower()
+    for key, val in _CATEGORY_BENCHMARKS.items():
+        if key in cat:
+            return val
+    return None
+
+
 @router.get("/mutual-funds")
 async def get_mutual_funds(
     db: AsyncSession = Depends(get_db),
@@ -543,6 +576,13 @@ async def get_mutual_funds(
 
     # Phase 2 enrichment: category + 1Y/3Y returns from mfapi.in (concurrent)
     funds = await mf_data.enrich_mf_holdings(funds)
+
+    # Add category benchmark and vs_category for each fund
+    for f in funds:
+        cat_avg = _get_category_benchmark(f.get('category'))
+        f['category_avg_1y'] = cat_avg
+        r1y = f.get('return_1y')
+        f['vs_category'] = round(r1y - cat_avg, 2) if (r1y is not None and cat_avg is not None) else None
 
     funds.sort(key=lambda x: -x['pnl_pct'])
 

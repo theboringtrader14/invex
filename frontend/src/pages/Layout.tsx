@@ -143,7 +143,7 @@ export default function Layout() {
       </div>
 
       {/* Page content — scrollable, header inside each page is sticky */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '16px 54px 24px 54px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '0 54px 24px 54px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
 

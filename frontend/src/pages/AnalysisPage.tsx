@@ -243,21 +243,34 @@ function Speedometer({ level }: { level: RiskLevel }) {
     very_high:  90,
   }
   const labels: Record<RiskLevel, string> = {
-    low: 'Low', moderate: 'Moderate', high: 'High', very_high: 'Very High'
+    low: 'Low', moderate: 'Moderate', high: 'High', very_high: 'Very High',
   }
   const color = colors[level]
-  const angle = angles[level]
-  const rad = (angle * Math.PI) / 180
-  const needleX = 16 + 10 * Math.sin(rad)
-  const needleY = 16 - 10 * Math.cos(rad)
+  const rad = (angles[level] * Math.PI) / 180
+
+  // Arc endpoint must lie on the gauge circle (r=12) — not on the needle (r=10)
+  const arcX = +(16 + 12 * Math.sin(rad)).toFixed(2)
+  const arcY = +(16 - 12 * Math.cos(rad)).toFixed(2)
+  // Needle tip slightly inside the gauge circle
+  const nX = +(16 + 10 * Math.sin(rad)).toFixed(2)
+  const nY = +(16 - 10 * Math.cos(rad)).toFixed(2)
+  // 'low' is the leftmost arc point (4,16) — same as start, skip colored arc
+  const showArc = level !== 'low'
+
   return (
     <svg width="32" height="20" viewBox="0 0 32 20"><title>{labels[level]}</title>
+      {/* Background arc */}
       <path d="M 4 16 A 12 12 0 0 1 28 16"
         fill="none" stroke="var(--border)" strokeWidth="3" strokeLinecap="round" />
-      <path d={`M 4 16 A 12 12 0 0 1 ${needleX.toFixed(2)} ${needleY.toFixed(2)}`}
-        fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
-      <line x1="16" y1="16" x2={needleX.toFixed(2)} y2={needleY.toFixed(2)}
+      {/* Colored fill arc — always starts at left (4,16), ends on gauge circle */}
+      {showArc && (
+        <path d={`M 4 16 A 12 12 0 0 1 ${arcX} ${arcY}`}
+          fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
+      )}
+      {/* Needle from center to tip */}
+      <line x1="16" y1="16" x2={nX} y2={nY}
         stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      {/* Center dot */}
       <circle cx="16" cy="16" r="2" fill={color} />
     </svg>
   )

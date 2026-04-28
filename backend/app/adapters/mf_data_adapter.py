@@ -173,6 +173,42 @@ class MFDataAdapter:
         return result
 
 
+    async def _get_amfi_isin_map(self) -> dict:
+        """
+        Fetch AMFI NAVAll data and return {scheme_code: isin} map.
+        AMFI format: Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;...
+        Cached in Redis for 24h.
+        """
+        cache_key = "amfi_isin_map"
+        cached = await self._cache_get(cache_key)
+        if cached:
+            return cached
+
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.get("https://www.amfiindia.com/spages/NAVAll.txt")
+                text_data = r.text
+
+            isin_map = {}
+            for line in text_data.splitlines():
+                parts = line.split(';')
+                if len(parts) < 4:
+                    continue
+                code_str = parts[0].strip()
+                isin_growth = parts[1].strip()
+                if not code_str.isdigit():
+                    continue
+                if isin_growth and isin_growth.startswith('IN'):
+                    isin_map[int(code_str)] = isin_growth
+
+            await self._cache_set(cache_key, isin_map, NAV_TTL)
+            logger.info(f"[MF] Loaded AMFI ISIN map: {len(isin_map)} schemes")
+            return isin_map
+
+        except Exception as e:
+            logger.warning(f"[MF] AMFI ISIN map fetch failed: {e}")
+            return {}
+
     async def enrich_mf_holdings(self, mf_holdings: list) -> list:
         """
         Enrich a list of MF holding dicts with category, sub_category, return_1y, return_3y.
@@ -207,6 +243,9 @@ class MFDataAdapter:
             logger.warning(f"[MF] Could not resolve scheme for '{fund_name}' (isin={isin})")
             return None
 
+        # Fetch AMFI ISIN map once, shared across all holdings
+        amfi_isin_map = await self._get_amfi_isin_map()
+
         async def _enrich_one(mf: dict) -> dict:
             fund_name = mf.get('fund_name', '')
             isin = mf.get('isin')
@@ -220,6 +259,12 @@ class MFDataAdapter:
                 scheme_code = scheme.get('scheme_code')
                 if not scheme_code:
                     return mf
+
+                # Backfill ISIN from AMFI if broker didn't provide it
+                if not isin and scheme_code and amfi_isin_map:
+                    isin = amfi_isin_map.get(scheme_code)
+                    if isin:
+                        mf['isin'] = isin
 
                 details, returns = await asyncio.gather(
                     self.get_scheme_details(scheme_code),

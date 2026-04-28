@@ -125,6 +125,7 @@ export default function Layout() {
         {/* ── TOPBAR ── */}
         <header style={{
           height: "52px", minHeight: "52px", flexShrink: 0,
+          position: "relative", zIndex: 50,
           background: "rgba(10,10,11,0.94)",
           borderBottom: "0.5px solid rgba(0,201,167,0.16)",
           backdropFilter: "blur(20px)",
