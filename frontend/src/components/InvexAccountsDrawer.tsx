@@ -447,22 +447,26 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
                 ✕
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              {([
-                { key: 'api_key',     label: 'API Key',      type: 'text',     ph: 'API key' },
-                { key: 'totp_secret', label: 'TOTP Secret',  type: 'password', ph: 'Base32 secret — leave blank to keep' },
-                { key: 'password',    label: 'Password',     type: 'password', ph: 'Broker password — leave blank to keep' },
-              ] as const).map(({ key, label, type, ph }) => (
-                <div key={key}>
-                  <label style={lbl}>{label}</label>
-                  <input
-                    style={inp} type={type} placeholder={ph}
-                    value={(editingCreds as any)[key]}
-                    onChange={e => setEditingCreds({ ...editingCreds, [key]: e.target.value })}
-                  />
-                </div>
-              ))}
-            </div>
+            <form autoComplete="off" onSubmit={e => e.preventDefault()}>
+              <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {([
+                  { key: 'api_key',     label: 'API Key',      type: 'text',     ph: 'API key',                              name: 'invex-api-key' },
+                  { key: 'totp_secret', label: 'TOTP Secret',  type: 'password', ph: 'Base32 secret — leave blank to keep',  name: 'invex-totp-secret' },
+                  { key: 'password',    label: 'Password',     type: 'password', ph: 'Broker password — leave blank to keep', name: 'invex-broker-password' },
+                ] as const).map(({ key, label, type, ph, name }) => (
+                  <div key={key}>
+                    <label style={lbl}>{label}</label>
+                    <input
+                      style={inp} type={type} placeholder={ph} name={name}
+                      autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                      value={(editingCreds as any)[key]}
+                      onChange={e => setEditingCreds({ ...editingCreds, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </form>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setEditingCreds(null)}
                 style={{ height: 36, padding: '0 16px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)', color: 'var(--text-dim)', fontSize: 12 }}>
