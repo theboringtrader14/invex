@@ -203,6 +203,29 @@ type MFTabProps = {
   neuCard: React.CSSProperties
 }
 
+function formatPnL(value: number): string {
+  const abs = Math.abs(value)
+  const sign = value >= 0 ? '+' : '-'
+  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(2)}L`
+  if (abs >= 1000) return `${sign}₹${abs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+  return `${sign}₹${abs.toFixed(0)}`
+}
+
+function getRiskLevel(category: string | null): { label: string; color: string } | null {
+  if (!category) return null
+  const cat = category.toLowerCase()
+  if (cat.includes('small cap'))  return { label: 'High Risk',    color: '#FF4444' }
+  if (cat.includes('mid cap'))    return { label: 'Med Risk',     color: '#F59E0B' }
+  if (cat.includes('large & mid') || cat.includes('large and mid')) return { label: 'Med Risk', color: '#F59E0B' }
+  if (cat.includes('large'))      return { label: 'Low-Med Risk', color: '#0EA66E' }
+  if (cat.includes('elss'))       return { label: 'ELSS',         color: '#A78BFA' }
+  if (cat.includes('flexi') || cat.includes('flexicap') || cat.includes('multi cap')) return { label: 'Equity', color: '#F59E0B' }
+  if (cat.includes('equity'))     return { label: 'Equity',       color: '#F59E0B' }
+  if (cat.includes('income') || cat.includes('debt') || cat.includes('liquid') || cat.includes('floating')) return { label: 'Debt', color: '#38BDF8' }
+  if (cat.includes('hybrid'))     return { label: 'Hybrid',       color: '#2DD4BF' }
+  return null
+}
+
 function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
   const { sorted, sortKey: mfSortKey, sortDir: mfSortDir, handleSort: handleMFSort } = useSort<any>(funds, 'pnl_pct')
 
@@ -260,15 +283,29 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>₹{f.nav?.toFixed(2)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.invested_amount)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.current_value)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{f.pnl >= 0 ? '+' : ''}{fmt(Math.abs(f.pnl))}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{formatPnL(f.pnl)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{fmtPct(f.pnl_pct)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade}</span>
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 11, whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.category || ''}>
-                      {f.category
-                        ? f.category.replace(/Equity Scheme\s*-\s*/i, '').replace(/ Fund$/i, '').trim()
-                        : '—'}
+                    <td style={{ padding: '10px 12px', textAlign: 'left', maxWidth: 160 }} title={f.category || ''}>
+                      {f.category ? (() => {
+                        const risk = getRiskLevel(f.category)
+                        const label = f.category.replace(/Equity Scheme\s*-\s*/i, '').replace(/ Fund$/i, '').trim()
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{label}</span>
+                            {risk && (
+                              <span style={{
+                                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px',
+                                padding: '1px 6px', borderRadius: 10, width: 'fit-content',
+                                background: `${risk.color}20`, color: risk.color,
+                                border: `1px solid ${risk.color}40`, whiteSpace: 'nowrap',
+                              }}>{risk.label}</span>
+                            )}
+                          </div>
+                        )
+                      })() : <span style={{ color: 'var(--text-mute)' }}>—</span>}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
                       color: f.return_1y > 0 ? '#0EA66E' : f.return_1y < 0 ? '#FF4444' : 'var(--text-dim)' }}>
