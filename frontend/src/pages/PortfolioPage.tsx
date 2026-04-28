@@ -750,6 +750,7 @@ export default function PortfolioPage() {
   const [casPan, setCasPan] = useState('')
   const [casAccountId, setCasAccountId] = useState('')
   const [casFile, setCasFile] = useState<File | null>(null)
+  const [casDropOpen, setCasDropOpen] = useState(false)
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
@@ -1109,19 +1110,47 @@ export default function PortfolioPage() {
               </span>
             </label>
 
-            {/* Account selector */}
+            {/* Account selector — custom neumorphic dropdown */}
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Account
             </label>
-            <select value={casAccountId} onChange={e => setCasAccountId(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none',
-                       background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                       color: 'var(--text)', fontSize: 13, marginBottom: 16, boxSizing: 'border-box' as const }}>
-              <option value=''>Select account…</option>
-              {Object.entries(accountMap).map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
+            <div style={{ position: 'relative', marginBottom: 16 }}>
+              <button type="button" onClick={() => setCasDropOpen(o => !o)}
+                style={{
+                  width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none',
+                  background: 'var(--bg)', boxShadow: casDropOpen ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                  color: casAccountId ? 'var(--text)' : 'var(--text-mute)',
+                  fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  fontFamily: 'var(--font-body)',
+                }}>
+                <span>{casAccountId ? (accountMap[casAccountId] ?? 'Select account…') : 'Select account…'}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-mute)', display: 'inline-block',
+                  transition: 'transform 0.2s', transform: casDropOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
+              </button>
+              {casDropOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 10,
+                  background: 'var(--bg)', boxShadow: 'var(--neu-raised-lg)', borderRadius: 10,
+                  overflow: 'hidden',
+                }}>
+                  {[{ id: '', name: 'Select account…' }, ...Object.entries(accountMap).map(([id, name]) => ({ id, name }))].map(opt => (
+                    <button key={opt.id} type="button"
+                      onClick={() => { setCasAccountId(opt.id); setCasDropOpen(false) }}
+                      style={{
+                        display: 'block', width: '100%', padding: '9px 14px', border: 'none',
+                        background: casAccountId === opt.id ? 'var(--bg)' : 'transparent',
+                        boxShadow: casAccountId === opt.id ? 'var(--neu-inset)' : 'none',
+                        color: opt.id ? 'var(--text)' : 'var(--text-mute)',
+                        fontSize: 13, textAlign: 'left', cursor: 'pointer',
+                        fontFamily: 'var(--font-body)',
+                      }}>
+                      {opt.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* PAN input */}
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
