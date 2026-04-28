@@ -207,7 +207,8 @@ function formatPnL(value: number): string {
   const abs = Math.abs(value)
   const sign = value >= 0 ? '+' : '-'
   if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(2)}L`
-  if (abs >= 1000) return `${sign}₹${abs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+  if (abs >= 10000)  return `${sign}₹${(abs / 100000).toFixed(3)}L`
+  if (abs >= 1000)   return `${sign}₹${abs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
   return `${sign}₹${abs.toFixed(0)}`
 }
 
@@ -227,14 +228,17 @@ function getRiskLevel(category: string | null): { label: string; color: string }
 }
 
 function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
-  const { sorted, sortKey: mfSortKey, sortDir: mfSortDir, handleSort: handleMFSort } = useSort<any>(funds, 'pnl_pct')
+  const { sorted: sortedA, sortKey: sortKeyA, sortDir: sortDirA, handleSort: handleSortA } = useSort<any>(funds, 'pnl_pct')
+  const { sorted: sortedB, sortKey: sortKeyB, sortDir: sortDirB, handleSort: handleSortB } = useSort<any>(funds, 'return_1y')
 
   const gradeColor: Record<string, string> = { A: '#0EA66E', B: '#2dd4bf', C: '#F59E0B', D: '#FF4444' }
-  const thStyle: React.CSSProperties = { position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }
+  const thA: React.CSSProperties = { position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 1 }
+  const thB: React.CSSProperties = { position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }
+  const nameCell: React.CSSProperties = { padding: '10px 12px', textAlign: 'left', color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 12, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      {/* Section A — Summary strip */}
+    <div style={{ display: 'grid', gap: 24 }}>
+      {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {[
           { label: 'Total Invested',  value: fmt(mfData.total_invested), color: 'var(--text)' },
@@ -248,72 +252,90 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
         ))}
       </div>
 
-      {/* Section B — Fund holdings table */}
+      {/* TABLE A — Fund Holdings (position data) */}
       <div style={{ ...neuCard }}>
         <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 16 }}>
           Fund Holdings · {funds.length}
         </div>
-        <div className="hide-scrollbar" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 436 }}>
+        <div className="hide-scrollbar" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <SortableHeader label="Fund Name"  sortKey="fund_name"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} align="left" style={thStyle} />
-                <SortableHeader label="Units"       sortKey="units"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="NAV"         sortKey="nav"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="Invested"    sortKey="invested_amount" currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="Current"     sortKey="current_value"   currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="P&L"         sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="P&L%"        sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="Grade"       sortKey="grade"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="Category"    sortKey="category"        currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} align="left" style={thStyle} />
-                <SortableHeader label="1Y Return"   sortKey="return_1y"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
-                <SortableHeader label="Account"     sortKey="account_id"      currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Fund Name"  sortKey="fund_name"       currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} align="left" style={thA} />
+                <SortableHeader label="Units"      sortKey="units"           currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="NAV"        sortKey="nav"             currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="Invested"   sortKey="invested_amount" currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="Current"    sortKey="current_value"   currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="P&L"        sortKey="pnl"             currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="P&L%"       sortKey="pnl_pct"         currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
+                <SortableHeader label="Account"    sortKey="account_id"      currentKey={sortKeyA as string | null} currentDir={sortDirA} onSort={k => handleSortA(k as keyof any)} style={thA} />
               </tr>
             </thead>
             <tbody>
-              {sorted.map((f: any) => {
+              {sortedA.map((f: any) => {
                 const pnlColor = f.pnl >= 0 ? 'var(--green)' : 'var(--red)'
-                const gc = gradeColor[f.grade] || 'var(--text-mute)'
                 return (
-                  <tr key={`mf_${f.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 12, maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.fund_name}>
-                      {f.fund_name_short}
-                    </td>
+                  <tr key={`mfA_${f.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={nameCell} title={f.fund_name}>{f.fund_name_short}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{f.units?.toFixed(3)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>₹{f.nav?.toFixed(2)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.invested_amount)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{fmt(f.current_value)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{formatPnL(f.pnl)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontFamily: 'var(--font-mono)', color: pnlColor }}>{fmtPct(f.pnl_pct)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* TABLE B — Fund Intelligence (quality / performance) */}
+      <div style={{ ...neuCard, background: 'var(--bg)' }}>
+        <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, marginBottom: 16 }}>
+          Fund Intelligence
+        </div>
+        <div className="hide-scrollbar" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <SortableHeader label="Fund Name"  sortKey="fund_name"  currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={thB} />
+                <SortableHeader label="Grade"      sortKey="grade"      currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+                <SortableHeader label="Category"   sortKey="category"   currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={thB} />
+                <SortableHeader label="1Y Return"  sortKey="return_1y"  currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+                <SortableHeader label="Day Chg"    sortKey="day_change" currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+              </tr>
+            </thead>
+            <tbody>
+              {sortedB.map((f: any) => {
+                const gc = gradeColor[f.grade] || 'var(--text-mute)'
+                const dayColor = (f.day_change ?? 0) >= 0 ? '#0EA66E' : '#FF4444'
+                return (
+                  <tr key={`mfB_${f.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={nameCell} title={f.fund_name}>{f.fund_name_short}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade || '—'}</span>
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'left', maxWidth: 160 }} title={f.category || ''}>
+                    <td style={{ padding: '10px 12px', textAlign: 'left', maxWidth: 200 }} title={f.category || ''}>
                       {f.category ? (() => {
                         const risk = getRiskLevel(f.category)
                         const label = f.category.replace(/Equity Scheme\s*-\s*/i, '').replace(/ Fund$/i, '').trim()
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{label}</span>
-                            {risk && (
-                              <span style={{
-                                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px',
-                                padding: '1px 6px', borderRadius: 10, width: 'fit-content',
-                                background: `${risk.color}20`, color: risk.color,
-                                border: `1px solid ${risk.color}40`, whiteSpace: 'nowrap',
-                              }}>{risk.label}</span>
-                            )}
+                            {risk && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px', padding: '1px 6px', borderRadius: 10, width: 'fit-content', background: `${risk.color}20`, color: risk.color, border: `1px solid ${risk.color}40`, whiteSpace: 'nowrap' }}>{risk.label}</span>}
                           </div>
                         )
                       })() : <span style={{ color: 'var(--text-mute)' }}>—</span>}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
-                      color: f.return_1y > 0 ? '#0EA66E' : f.return_1y < 0 ? '#FF4444' : 'var(--text-dim)' }}>
-                      {f.return_1y != null
-                        ? `${f.return_1y >= 0 ? '+' : ''}${f.return_1y.toFixed(2)}%`
-                        : '—'}
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: (f.return_1y ?? 0) > 0 ? '#0EA66E' : (f.return_1y ?? 0) < 0 ? '#FF4444' : 'var(--text-dim)' }}>
+                      {f.return_1y != null ? `${f.return_1y >= 0 ? '+' : ''}${f.return_1y.toFixed(2)}%` : '—'}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: dayColor }}>
+                      {f.day_change != null ? formatPnL(f.day_change) : '—'}
+                    </td>
                   </tr>
                 )
               })}
