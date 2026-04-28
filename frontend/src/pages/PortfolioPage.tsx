@@ -735,7 +735,9 @@ export default function PortfolioPage() {
   const [accountMap, setAccountMap] = useState<Record<string, string>>({})
   const [loading, setLoading]     = useState(() => readCache() === null)
   const [syncing, setSyncing]     = useState(false)
-  const [activeTab, setActiveTab]   = useState<ActiveTab>("equity")
+  const [activeTab, setActiveTab]   = useState<ActiveTab>(
+    () => (sessionStorage.getItem('invex_portfolio_tab') as ActiveTab) || 'equity'
+  )
   const [activeAccount, setActiveAccount] = useState("All")
   const [showEquityModal, setShowEquityModal] = useState(false)
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
@@ -972,7 +974,7 @@ export default function PortfolioPage() {
                   transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)"
                 }} />
                 {(["equity", "mf"] as ActiveTab[]).map(tab => (
-                  <button type="button" key={tab} onClick={() => setActiveTab(tab)}
+                  <button type="button" key={tab} onClick={() => { setActiveTab(tab); sessionStorage.setItem('invex_portfolio_tab', tab) }}
                     style={{
                       position: "relative", zIndex: 1,
                       padding: "6px 22px",
