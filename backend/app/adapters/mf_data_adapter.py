@@ -179,13 +179,39 @@ class MFDataAdapter:
         Uses fund_name search to resolve scheme_code, then fetches meta + NAV history.
         Runs concurrently across all holdings.
         """
+        async def _resolve_scheme(fund_name: str, isin: str | None) -> dict | None:
+            """Resolve scheme code via name search, then ISIN fallback, then short-name fallback."""
+            # 1. Full name search ([:30])
+            scheme = await self.search_scheme(fund_name)
+            if scheme and scheme.get('scheme_code'):
+                return scheme
+
+            # 2. ISIN search — mfapi.in indexes by ISIN
+            if isin:
+                scheme = await self.search_scheme(isin)
+                if scheme and scheme.get('scheme_code'):
+                    logger.info(f"[MF] Resolved '{fund_name}' via ISIN {isin}")
+                    return scheme
+
+            # 3. Truncated name (drop plan/option suffix noise)
+            short = fund_name.split(' - ')[0].strip()[:40]
+            if short != fund_name[:30]:
+                scheme = await self.search_scheme(short)
+                if scheme and scheme.get('scheme_code'):
+                    logger.info(f"[MF] Resolved '{fund_name}' via short name '{short}'")
+                    return scheme
+
+            return None
+
         async def _enrich_one(mf: dict) -> dict:
             fund_name = mf.get('fund_name', '')
+            isin = mf.get('isin')
             if not fund_name:
                 return mf
             try:
-                scheme = await self.search_scheme(fund_name)
+                scheme = await _resolve_scheme(fund_name, isin)
                 if not scheme:
+                    logger.debug(f"[MF] No scheme found for '{fund_name}' (isin={isin})")
                     return mf
                 scheme_code = scheme.get('scheme_code')
                 if not scheme_code:

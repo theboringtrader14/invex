@@ -745,6 +745,7 @@ export default function PortfolioPage() {
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
   const [enrichedMap, setEnrichedMap] = useState<Record<string, any>>({})
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [mktCapFilter, setMktCapFilter] = useState<string>('ALL')
   const [showCASImport, setShowCASImport] = useState(false)
   const [casImporting, setCasImporting] = useState(false)
   const [casResult, setCasResult] = useState<any>(null)
@@ -818,7 +819,7 @@ export default function PortfolioPage() {
       .finally(() => setIsRefreshing(false))
   }, [token])
 
-  // Fetch enriched data for modal
+  // Fetch enriched data for modal + market cap filter
   useEffect(() => {
     if (!token) return
     apiFetch('/api/v1/analysis/holdings-enriched')
@@ -831,6 +832,11 @@ export default function PortfolioPage() {
       })
       .catch(() => {})
   }, [token])
+
+  // Reset market cap filter when switching to MF tab
+  useEffect(() => {
+    if (activeTab !== 'equity') setMktCapFilter('ALL')
+  }, [activeTab])
 
   // Build sorted unique nickname list from the live accountMap
   const accountChips = ["All", ...Array.from(new Set(Object.values(accountMap))).sort()]
@@ -846,6 +852,29 @@ export default function PortfolioPage() {
     : mf.filter(f =>
         (accountMap[f.account_id ?? ""] || "").toLowerCase() === activeAccount.toLowerCase()
       )
+
+  // Market cap counts from account-filtered holdings (updates when account chip changes)
+  const MKT_CAP_LABELS = ['ALL', 'Large Cap', 'Mid Cap', 'Small Cap', 'Other'] as const
+  const getMktCat = (h: Holding) =>
+    enrichedMap[`${h.symbol}_${h.account_id}`]?.market_cap_category
+    || enrichedMap[`${h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'')}_${h.account_id}`]?.market_cap_category
+    || 'Other'
+
+  const mktCapCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: filteredHoldings.length }
+    filteredHoldings.forEach(h => {
+      const cat = getMktCat(h)
+      counts[cat] = (counts[cat] || 0) + 1
+    })
+    return counts
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredHoldings, enrichedMap])
+
+  const displayHoldings = useMemo(() => {
+    if (mktCapFilter === 'ALL') return filteredHoldings
+    return filteredHoldings.filter(h => getMktCat(h) === mktCapFilter)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredHoldings, mktCapFilter, enrichedMap])
 
   /* ── Loading skeleton ── */
   if (loading) {
@@ -1024,13 +1053,35 @@ export default function PortfolioPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Market cap filter — equity tab only, shown once enriched data loads */}
+              {activeTab === 'equity' && Object.keys(enrichedMap).length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {MKT_CAP_LABELS.filter(label => label === 'ALL' || (mktCapCounts[label] ?? 0) > 0).map(label => (
+                    <button key={label} type="button" onClick={() => setMktCapFilter(label)}
+                      style={{
+                        fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.8px',
+                        textTransform: 'uppercase', padding: '3px 10px',
+                        borderRadius: 'var(--r-pill)',
+                        border: `1px solid ${mktCapFilter === label ? 'var(--accent)' : 'var(--border)'}`,
+                        background: mktCapFilter === label ? 'rgba(45,212,191,0.10)' : 'transparent',
+                        color: mktCapFilter === label ? 'var(--accent)' : 'var(--text-mute)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}>
+                      {label === 'ALL'
+                        ? `ALL · ${mktCapCounts.ALL}`
+                        : `${label} · ${mktCapCounts[label] ?? 0}`}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Table — no inner inset box, scrollbar hidden */}
             <div className="scroll-hidden" style={{ overflowX: "auto", overflowY: "auto", maxHeight: "620px" }}>
               {activeTab === "equity"
                 ? <HoldingsTable
-                    holdings={filteredHoldings}
+                    holdings={displayHoldings}
                     accountMap={accountMap}
                     crownSymbols={crownSymbols}
                     onRowClick={h => setSelectedNav({
@@ -1053,7 +1104,7 @@ export default function PortfolioPage() {
       )}
 
       {selectedNav && (() => {
-        const portfolioNavList: NavItem[] = filteredHoldings.map(h => ({
+        const portfolioNavList: NavItem[] = displayHoldings.map(h => ({
           symbol: h.symbol.replace(/-EQ$/i,'').replace(/-BE$/i,'').replace(/\.NS$/i,'').replace(/\.BO$/i,''),
           account_id: h.account_id
         }))
