@@ -982,6 +982,75 @@ export default function PortfolioPage() {
         <NiftyBenchmarkStrip compact={true} />
       </div>
 
+      {/* ══ Market Cap Strip — equity tab only, appears once enriched data loads ══ */}
+      {activeTab === 'equity' && Object.keys(enrichedMap).length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--bg-surface)', boxShadow: 'var(--neu-raised)',
+          borderRadius: 'var(--r-lg)', padding: '10px 16px',
+          marginBottom: 12,
+        }}>
+          {(['Large Cap', 'Mid Cap', 'Small Cap'] as const).map(label => {
+            const count = mktCapCounts[label] ?? 0
+            if (count === 0) return null
+            const active = mktCapFilter === label
+            return (
+              <button key={label} type="button" onClick={() => setMktCapFilter(active ? 'ALL' : label)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: 'var(--bg)',
+                  boxShadow: active ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                  borderRadius: 10, padding: '6px 14px',
+                  border: `1px solid ${active ? 'var(--accent)' : 'transparent'}`,
+                  cursor: 'pointer', transition: 'box-shadow 0.18s, border-color 0.18s',
+                }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px',
+                  textTransform: 'uppercase',
+                  color: active ? 'var(--accent)' : 'var(--text-mute)',
+                  transition: 'color 0.18s',
+                }}>{label}</span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 800, lineHeight: 1,
+                  color: active ? 'var(--accent)' : 'var(--text)',
+                  transition: 'color 0.18s',
+                }}>{count}</span>
+              </button>
+            )
+          })}
+          {/* Divider before Other */}
+          {(mktCapCounts['Other'] ?? 0) > 0 && (
+            <div style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 2px' }} />
+          )}
+          {(mktCapCounts['Other'] ?? 0) > 0 && (
+            <button type="button" onClick={() => setMktCapFilter(mktCapFilter === 'Other' ? 'ALL' : 'Other')}
+              style={{
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px',
+                textTransform: 'uppercase', padding: '6px 12px', borderRadius: 10, border: 'none',
+                background: 'var(--bg)',
+                boxShadow: mktCapFilter === 'Other' ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                color: mktCapFilter === 'Other' ? 'var(--accent)' : 'var(--text-mute)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+              <span>Other</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 800, lineHeight: 1, color: mktCapFilter === 'Other' ? 'var(--accent)' : 'var(--text-mute)' }}>{mktCapCounts['Other']}</span>
+            </button>
+          )}
+          {mktCapFilter !== 'ALL' && (
+            <button type="button" onClick={() => setMktCapFilter('ALL')}
+              style={{
+                marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 9,
+                letterSpacing: '0.5px', textTransform: 'uppercase',
+                padding: '4px 10px', borderRadius: 'var(--r-pill)', border: 'none',
+                background: 'transparent', color: 'var(--text-mute)',
+                cursor: 'pointer', opacity: 0.6,
+              }}>
+              × clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ══ ROW 2: HOLDINGS TABLE (full width) ══ */}
       <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
 
@@ -1054,68 +1123,6 @@ export default function PortfolioPage() {
                 ))}
               </div>
 
-              {/* Market cap filter — equity tab only, shown once enriched data loads */}
-              {activeTab === 'equity' && Object.keys(enrichedMap).length > 0 && (
-                <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center' }}>
-                  {(['Large Cap', 'Mid Cap', 'Small Cap'] as const).map(label => {
-                    const count = mktCapCounts[label] ?? 0
-                    if (count === 0) return null
-                    const active = mktCapFilter === label
-                    return (
-                      <button key={label} type="button" onClick={() => setMktCapFilter(active ? 'ALL' : label)}
-                        style={{
-                          background: 'var(--bg-surface)',
-                          boxShadow: active ? 'var(--neu-inset)' : 'var(--neu-raised)',
-                          borderRadius: 'var(--r-lg)',
-                          padding: '8px 16px',
-                          border: `1px solid ${active ? 'var(--accent)' : 'transparent'}`,
-                          cursor: 'pointer', transition: 'box-shadow 0.18s, border-color 0.18s',
-                          display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left',
-                          minWidth: 90,
-                        }}>
-                        <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px',
-                          textTransform: 'uppercase',
-                          color: active ? 'var(--accent)' : 'var(--text-mute)',
-                          transition: 'color 0.18s',
-                        }}>{label}</span>
-                        <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 800, lineHeight: 1,
-                          color: active ? 'var(--accent)' : 'var(--text)',
-                          transition: 'color 0.18s',
-                        }}>{count}</span>
-                      </button>
-                    )
-                  })}
-                  {/* Other as a small pill — less prominent */}
-                  {(mktCapCounts['Other'] ?? 0) > 0 && (
-                    <button type="button" onClick={() => setMktCapFilter(mktCapFilter === 'Other' ? 'ALL' : 'Other')}
-                      style={{
-                        fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.5px',
-                        textTransform: 'uppercase', padding: '3px 10px',
-                        borderRadius: 'var(--r-pill)', border: 'none',
-                        background: 'var(--bg)',
-                        boxShadow: mktCapFilter === 'Other' ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
-                        color: mktCapFilter === 'Other' ? 'var(--accent)' : 'var(--text-mute)',
-                        cursor: 'pointer', transition: 'all 0.15s',
-                      }}>
-                      Other · {mktCapCounts['Other']}
-                    </button>
-                  )}
-                  {/* Clear filter when one is active */}
-                  {mktCapFilter !== 'ALL' && (
-                    <button type="button" onClick={() => setMktCapFilter('ALL')}
-                      style={{
-                        fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.5px',
-                        padding: '3px 10px', borderRadius: 'var(--r-pill)', border: 'none',
-                        background: 'transparent', color: 'var(--text-mute)',
-                        cursor: 'pointer', textDecoration: 'underline', marginLeft: 2,
-                      }}>
-                      clear
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Table — no inner inset box, scrollbar hidden */}
