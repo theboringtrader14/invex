@@ -671,8 +671,8 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
             <SortableHeader label="Invested"      sortKey="invested_amount" currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
             <SortableHeader label="Current Value" sortKey="current_value"   currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
             <SortableHeader label="P&L"           sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
-            <SortableHeader label="P&L%"          sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
-            <SortableHeader label="DAY CHG"        sortKey="day_change"      currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} />
+            <SortableHeader label="P&L%"          sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} align="center" />
+            <SortableHeader label="DAY CHG"        sortKey="day_change"      currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof MFHolding)} align="center" />
           </tr>
         </thead>
         <tbody>
@@ -695,7 +695,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
                 color: (f.pnl_pct ?? 0) >= 0 ? '#0EA66E' : '#FF4444',
                 fontFamily: 'var(--font-mono)',
                 fontSize: 13,
-                textAlign: 'right',
+                textAlign: 'center',
               }}>
                 {f.pnl_pct != null ? `${f.pnl_pct >= 0 ? '+' : ''}${f.pnl_pct.toFixed(2)}%` : "—"}
               </td>
@@ -703,7 +703,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
                 color: (f.day_change ?? 0) >= 0 ? '#0EA66E' : '#FF4444',
                 fontFamily: 'var(--font-mono)',
                 fontSize: 13,
-                textAlign: 'right',
+                textAlign: 'center',
               }}>
                 {(f.day_change ?? 0) >= 0 ? '+' : ''}₹{Math.abs(f.day_change ?? 0).toFixed(0)}
               </td>

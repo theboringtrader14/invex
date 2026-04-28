@@ -173,7 +173,7 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
                 id=uuid.uuid4(),
                 user_id=invex_acc.user_id if invex_acc else None,
                 account_id=account_id,
-                fund_name=f.get("fund", "") or f.get("tradingsymbol", ""),
+                fund_name=(f.get("fund", "") or f.get("tradingsymbol", "")).replace('\\u0026', '&').replace('u0026', '&'),
                 isin=isin,
                 units=units,
                 nav=nav,
