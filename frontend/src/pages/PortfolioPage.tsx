@@ -1140,7 +1140,25 @@ export default function PortfolioPage() {
                   background: 'var(--bg)', boxShadow: 'var(--neu-raised-lg)', borderRadius: 10,
                   overflow: 'hidden',
                 }}>
-                  {[{ id: '', name: 'Select account…' }, ...Object.entries(accountMap).map(([id, name]) => ({ id, name }))].map(opt => (
+                  {(() => {
+                    // Derive unique accounts from loaded holdings (always populated, unlike InvexAccount table)
+                    const seen = new Set<string>()
+                    const opts: { id: string; name: string }[] = [{ id: '', name: 'Select account…' }]
+                    for (const h of holdings) {
+                      if (h.account_id && !seen.has(h.account_id)) {
+                        seen.add(h.account_id)
+                        opts.push({ id: h.account_id, name: accountMap[h.account_id] || h.account_id.slice(0, 8) })
+                      }
+                    }
+                    for (const m of mf) {
+                      const aid = m.account_id || ''
+                      if (aid && !seen.has(aid)) {
+                        seen.add(aid)
+                        opts.push({ id: aid, name: accountMap[aid] || aid.slice(0, 8) })
+                      }
+                    }
+                    return opts
+                  })().map(opt => (
                     <button key={opt.id} type="button"
                       onClick={() => { setCasAccountId(opt.id); setCasDropOpen(false) }}
                       style={{
@@ -1227,7 +1245,13 @@ export default function PortfolioPage() {
                   form.append('pan', casPan)
                   form.append('account_id', casAccountId)
                   try {
-                    const r = await apiFetch('/api/v1/portfolio/import-cas', { method: 'POST', body: form })
+                    // Use raw fetch — apiFetch sets Content-Type: application/json which
+                    // overwrites the browser-generated multipart boundary and breaks parsing
+                    const r = await fetch(`${INVEX_API}/api/v1/portfolio/import-cas`, {
+                      method: 'POST',
+                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                      body: form,
+                    })
                     const data = await r.json()
                     if (!r.ok) {
                       // FastAPI 422 returns detail as array of objects; 400/500 as string
