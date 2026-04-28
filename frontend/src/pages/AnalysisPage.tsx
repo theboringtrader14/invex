@@ -242,6 +242,8 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                 <SortableHeader label="P&L"         sortKey="pnl"             currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="P&L%"        sortKey="pnl_pct"         currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="Grade"       sortKey="grade"           currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
+                <SortableHeader label="Category"    sortKey="category"        currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} align="left" style={thStyle} />
+                <SortableHeader label="1Y Return"   sortKey="return_1y"       currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
                 <SortableHeader label="Account"     sortKey="account_id"      currentKey={mfSortKey as string | null} currentDir={mfSortDir} onSort={k => handleMFSort(k as keyof any)} style={thStyle} />
               </tr>
             </thead>
@@ -263,6 +265,17 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade}</span>
                     </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-dim)', fontFamily: 'var(--font-body)', fontSize: 11, whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.category || ''}>
+                      {f.category
+                        ? f.category.replace(/Equity Scheme\s*-\s*/i, '').replace(/ Fund$/i, '').trim()
+                        : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
+                      color: f.return_1y > 0 ? '#0EA66E' : f.return_1y < 0 ? '#FF4444' : 'var(--text-dim)' }}>
+                      {f.return_1y != null
+                        ? `${f.return_1y >= 0 ? '+' : ''}${f.return_1y.toFixed(2)}%`
+                        : '—'}
+                    </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{f.account_nickname || f.account_id?.substring(0, 6) || '—'}</td>
                   </tr>
                 )
@@ -272,13 +285,6 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
         </div>
       </div>
 
-      {/* Section C — Phase 2 placeholder */}
-      <div style={{ ...neuCard, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 16, opacity: 0.4 }}>◎</span>
-        <span style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
-          Category analysis, expense ratios, and 1Y / 3Y returns coming in Phase 2 — data from mfapi.in
-        </span>
-      </div>
     </div>
   )
 }

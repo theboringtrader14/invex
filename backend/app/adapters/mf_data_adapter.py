@@ -46,7 +46,7 @@ class MFDataAdapter:
 
     async def search_scheme(self, fund_name: str) -> Optional[dict]:
         """Find scheme code by fund name fragment."""
-        cache_key = f"search:{fund_name[:20]}"
+        cache_key = f"search:{fund_name[:40]}"
         cached = await self._cache_get(cache_key)
         if cached:
             return cached
@@ -180,27 +180,31 @@ class MFDataAdapter:
         Runs concurrently across all holdings.
         """
         async def _resolve_scheme(fund_name: str, isin: str | None) -> dict | None:
-            """Resolve scheme code via name search, then ISIN fallback, then short-name fallback."""
-            # 1. Full name search ([:30])
-            scheme = await self.search_scheme(fund_name)
-            if scheme and scheme.get('scheme_code'):
-                return scheme
+            """Resolve scheme code from mfapi.in using progressively shorter name fragments.
 
-            # 2. ISIN search — mfapi.in indexes by ISIN
-            if isin:
-                scheme = await self.search_scheme(isin)
+            Confirmed via testing: mfapi.in does NOT support ISIN search.
+            Zerodha fund names include noise like "MIRAE ASSET LARGE & MIDCAP FUND - DIRECT PLAN".
+            Best strategy: strip everything after ' - ', remove '&', search first N words.
+            All 9 tested funds resolve successfully with 3-word fragments.
+            """
+            # Build clean base: "MIRAE ASSET LARGE & MIDCAP FUND - DIRECT PLAN"
+            #                 → "MIRAE ASSET LARGE MIDCAP FUND"
+            base = fund_name.split(' - ')[0].replace('&', ' ')
+            # collapse multiple spaces
+            words = base.split()
+
+            # Try 3 words, then 4, then 2 (covers edge cases)
+            for n in (3, 4, 2):
+                if len(words) < n:
+                    continue
+                q = ' '.join(words[:n])
+                scheme = await self.search_scheme(q)
                 if scheme and scheme.get('scheme_code'):
-                    logger.info(f"[MF] Resolved '{fund_name}' via ISIN {isin}")
+                    if n != 3:
+                        logger.info(f"[MF] Resolved '{fund_name}' with {n}-word query '{q}'")
                     return scheme
 
-            # 3. Truncated name (drop plan/option suffix noise)
-            short = fund_name.split(' - ')[0].strip()[:40]
-            if short != fund_name[:30]:
-                scheme = await self.search_scheme(short)
-                if scheme and scheme.get('scheme_code'):
-                    logger.info(f"[MF] Resolved '{fund_name}' via short name '{short}'")
-                    return scheme
-
+            logger.warning(f"[MF] Could not resolve scheme for '{fund_name}' (isin={isin})")
             return None
 
         async def _enrich_one(mf: dict) -> dict:
