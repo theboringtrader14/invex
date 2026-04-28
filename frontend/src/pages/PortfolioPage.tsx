@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext"
 import { SortableHeader } from "../components/SortableHeader"
 import { useSort } from "../hooks/useSort"
 import { StockDetailModal, NavItem } from "../components/StockDetailModal"
+import NiftyBenchmarkStrip from "../components/NiftyBenchmarkStrip"
 
 /* ─── Types ─────────────────────────────────────── */
 type Holding = {
@@ -945,6 +946,11 @@ export default function PortfolioPage() {
           value={summary ? `${(summary.day_pnl ?? 0) >= 0 ? "+" : ""}${fmt(summary.day_pnl)}` : "—"}
           valueColor={pnlColor(summary?.day_pnl)}
         />
+      </div>
+
+      {/* ══ Benchmark Strip ══ */}
+      <div style={{ marginBottom: 16 }}>
+        <NiftyBenchmarkStrip compact={true} />
       </div>
 
       {/* ══ ROW 2: HOLDINGS TABLE (full width) ══ */}

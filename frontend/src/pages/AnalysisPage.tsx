@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { StockDetailModal, NavItem } from '../components/StockDetailModal'
 import { XCircle, Warning, CheckCircle } from '@phosphor-icons/react'
+import NiftyBenchmarkStrip from '../components/NiftyBenchmarkStrip'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -14,26 +15,6 @@ const cleanSym = (s: string) =>
 
 type Tab = 'fundamental' | 'technical' | 'mf' | 'scorecard'
 
-function Sparkline({ data, width = 120, height = 32 }: { data: {date: string, value: number}[], width?: number, height?: number }) {
-  if (!data || data.length < 2) return null
-  const values = data.map(d => d.value)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-  const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width
-    const y = height - ((d.value - min) / range) * (height - 2) - 1
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-  const lastVal = values[values.length - 1]
-  const lineColor = lastVal >= 100 ? '#0EA66E' : '#FF4444'
-  return (
-    <svg width={width} height={height} style={{ overflow: 'visible', display: 'block' }}>
-      <polyline points={points} fill="none" stroke={lineColor}
-        strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 function scoreColor(score: number) {
   if (score >= 75) return 'var(--green)'
@@ -345,7 +326,6 @@ export default function AnalysisPage() {
   const [signalFilter, setSignalFilter] = useState<string | null>(null)
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
   const [modalMode, setModalMode] = useState<'fundamental' | 'technical' | 'scorecard'>('fundamental')
-  const [niftyHistory, setNiftyHistory] = useState<{date: string, value: number}[]>([])
   const navigate = useNavigate()
 
   // Single effect — fires once when token is available, never re-fires (token string is stable)
@@ -389,15 +369,6 @@ export default function AnalysisPage() {
       .then(d => { setMfData(d); setMfLoading(false) })
       .catch(() => setMfLoading(false))
   }, [token, tab, mfData])
-
-  // Fetch Nifty sparkline data when scorecard tab is active
-  useEffect(() => {
-    if (tab !== 'scorecard' || !token) return
-    apiFetch('/api/v1/portfolio/price-history?symbol=NIFTY50&period=1y')
-      .then(r => r.json())
-      .then(d => setNiftyHistory(d.nifty || []))
-      .catch(() => {})
-  }, [tab, token])
 
   // Look up enriched entry by symbol (handles -EQ/-BE suffix)
   const getE = (symbol: string) =>
@@ -1230,45 +1201,7 @@ export default function AnalysisPage() {
               </div>
 
               {/* Benchmark comparison strip */}
-              {scorecard.benchmark && (() => {
-                const bm = scorecard.benchmark
-                const ret = bm.portfolio_absolute_return
-                const retColor = ret != null ? (ret >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-mute)'
-                return (
-                  <div style={{
-                    ...neuCard,
-                    padding: '14px 20px',
-                    display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
-                  }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-mute)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 400, flexShrink: 0 }}>vs Nifty 50</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portfolio (since inception)</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: retColor }}>
-                        {ret != null ? `${ret >= 0 ? '+' : ''}${ret}%` : '—'}
-                      </span>
-                    </div>
-                    <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nifty 50 (1Y)</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                        {bm.nifty_1y_return != null ? `${bm.nifty_1y_return >= 0 ? '+' : ''}${bm.nifty_1y_return}%` : '—'}
-                      </span>
-                      {niftyHistory.length >= 2 && (
-                        <Sparkline data={niftyHistory} width={120} height={32} />
-                      )}
-                    </div>
-                    <span style={{
-                      marginLeft: 'auto', flexShrink: 0,
-                      background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
-                      borderRadius: 'var(--r-pill)', padding: '4px 14px',
-                      fontSize: 10, fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-mute)', letterSpacing: '0.5px',
-                    }}>
-                      Alpha available after 1Y of snapshots
-                    </span>
-                  </div>
-                )
-              })()}
+              <NiftyBenchmarkStrip compact={false} />
 
               {/* SWOT Analysis */}
               {(() => {
