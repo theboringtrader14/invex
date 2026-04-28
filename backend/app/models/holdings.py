@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, Date, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Date, DateTime, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.core.database import Base
@@ -26,6 +26,9 @@ class MFHoldings(Base):
     isin = Column(String(20), nullable=True)
     units = Column(Float, nullable=False)
     nav = Column(Float, nullable=True)
+    previous_nav = Column(Numeric(12, 4), nullable=True)
+    day_change = Column(Numeric(12, 2), nullable=True, default=0)
+    day_change_pct = Column(Numeric(8, 4), nullable=True, default=0)
     invested_amount = Column(Float, nullable=True)
     current_value = Column(Float, nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=True)

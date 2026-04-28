@@ -144,22 +144,42 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
     # ── MF holdings ────────────────────────────────────────────────────────────
     raw_mf = await fetch_mf_holdings(account_info["api_key"] or api_key, token)
     if raw_mf:
+        # Capture existing NAVs before delete so we can compute day_change
+        prev_nav_result = await db.execute(text(
+            'SELECT isin, nav FROM invex_mf_holdings WHERE account_id = :aid AND isin IS NOT NULL'
+        ), {'aid': account_id})
+        prev_nav_map = {row[0]: float(row[1]) for row in prev_nav_result.fetchall() if row[1] is not None}
+
         await db.execute(delete(MFHoldings).where(MFHoldings.account_id == account_id))
         now = datetime.now(timezone.utc)
         for f in raw_mf:
             units = f.get("quantity", 0)
             if units <= 0:
                 continue
+            isin = f.get("isin")
             nav = f.get("last_price", 0)
             invested = f.get("average_price", 0) * units
+
+            # Compute day change vs previous NAV
+            previous_nav = prev_nav_map.get(isin) if isin else None
+            current_nav = float(nav)
+            day_change = 0.0
+            day_change_pct = 0.0
+            if previous_nav and previous_nav != current_nav:
+                day_change = round((current_nav - previous_nav) * float(units), 2)
+                day_change_pct = round((current_nav - previous_nav) / previous_nav * 100, 4)
+
             mf = MFHoldings(
                 id=uuid.uuid4(),
                 user_id=invex_acc.user_id if invex_acc else None,
                 account_id=account_id,
                 fund_name=f.get("fund", "") or f.get("tradingsymbol", ""),
-                isin=f.get("isin"),
+                isin=isin,
                 units=units,
                 nav=nav,
+                previous_nav=previous_nav,
+                day_change=day_change,
+                day_change_pct=day_change_pct,
                 invested_amount=invested,
                 current_value=nav * units,
                 updated_at=now,

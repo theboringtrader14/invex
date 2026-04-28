@@ -72,14 +72,22 @@ async def get_mf(
         .order_by(MFHoldings.fund_name)
     )
     rows = result.scalars().all()
-    return [{
-        "id": str(r.id), "account_id": r.account_id,
-        "fund_name": r.fund_name, "isin": r.isin,
-        "units": r.units, "nav": r.nav,
-        "invested_amount": r.invested_amount,
-        "current_value": r.current_value,
-        "pnl": round(r.current_value - r.invested_amount, 2) if r.current_value and r.invested_amount else None,
-    } for r in rows]
+    out = []
+    for mf in rows:
+        pnl = float(mf.current_value or 0) - float(mf.invested_amount or 0)
+        pnl_pct = round(pnl / float(mf.invested_amount) * 100, 2) if mf.invested_amount else 0.0
+        out.append({
+            "id": str(mf.id), "account_id": mf.account_id,
+            "fund_name": mf.fund_name, "isin": mf.isin,
+            "units": mf.units, "nav": mf.nav,
+            "invested_amount": mf.invested_amount,
+            "current_value": mf.current_value,
+            "pnl": round(pnl, 2),
+            "pnl_pct": pnl_pct,
+            "day_change": float(mf.day_change or 0),
+            "day_change_pct": float(mf.day_change_pct or 0),
+        })
+    return out
 
 
 @router.get("/summary")
@@ -100,9 +108,17 @@ async def get_summary(
     mf_invested     = sum(r.invested_amount or 0 for r in mf)
     total_current   = equity_current + mf_current
     total_invested  = equity_invested + mf_invested
-    day_pnl = sum((r.day_change or 0) for r in holdings)
+    equity_day = (await db.scalar(text(
+        'SELECT COALESCE(SUM(day_change), 0) FROM invex_holdings WHERE user_id = :uid'
+    ), {'uid': str(current_user.id)})) or 0.0
+
+    mf_day = (await db.scalar(text(
+        'SELECT COALESCE(SUM(day_change), 0) FROM invex_mf_holdings WHERE user_id = :uid'
+    ), {'uid': str(current_user.id)})) or 0.0
+
+    total_day_pnl = equity_day + mf_day
     total_value = round(total_current, 2)
-    day_change = round(day_pnl, 2)
+    day_change = round(total_day_pnl, 2)
     day_change_pct = round(day_change / total_value * 100, 2) if total_value else 0.0
     return {
         "total_portfolio_value": total_value,
