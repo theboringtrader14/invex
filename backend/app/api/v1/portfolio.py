@@ -2,7 +2,7 @@
 import asyncio
 import json
 import logging
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from app.core.database import get_db
@@ -305,3 +305,75 @@ async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
     db.add(snap)
     await db.commit()
     logger.info(f"[SNAPSHOT] Written: total={total_current:.2f} equity={equity_current:.2f} mf={mf_current:.2f}")
+
+
+@router.post("/import-cas")
+async def import_cas(
+    file: UploadFile = File(...),
+    pan: str = Form(...),
+    account_id: str = Form(''),
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Parse CAMS CAS PDF and import MF transactions. PAN used only to decrypt — never stored or logged."""
+    import tempfile, os, re as _re
+    from app.services.cas_parser import parse_cams_cas
+
+    pan = pan.upper().strip()
+    if not _re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]$', pan):
+        raise HTTPException(400, detail="Invalid PAN format (expected e.g. ABCDE1234F)")
+
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        result = parse_cams_cas(tmp_path, pan)
+        pan = ''  # discard immediately after use
+        if result['errors'] and not result['mf_transactions']:
+            raise HTTPException(400, detail=result['errors'][0])
+
+        txns = result.get('mf_transactions', [])
+        dates = [t['date'] for t in txns if t.get('date')]
+        mf_txn_count = 0
+        for txn in txns:
+            try:
+                await db.execute(text("""
+                    INSERT INTO invex_mf_transactions
+                      (user_id, account_id, folio_number, fund_name, isin,
+                       transaction_date, transaction_type, units, nav, source)
+                    VALUES
+                      (:uid, :aid, :folio, :fund, :isin, :dt, :ttype, :units, :nav, 'cas_import')
+                    ON CONFLICT (user_id, folio_number, transaction_date, transaction_type, units) DO NOTHING
+                """), {
+                    'uid': str(current_user.id),
+                    'aid': account_id or None,
+                    'folio': txn.get('folio'),
+                    'fund': txn.get('fund_name'),
+                    'isin': txn.get('isin'),
+                    'dt': txn.get('date'),
+                    'ttype': txn.get('txn_type'),
+                    'units': txn.get('units'),
+                    'nav': txn.get('nav'),
+                })
+                mf_txn_count += 1
+            except Exception:
+                pass
+
+        await db.commit()
+
+        return {
+            'success': True,
+            'account_holder': result.get('account_holder'),
+            'period': result.get('period'),
+            'mf_holdings_found': len(result.get('mf_holdings', [])),
+            'mf_transactions_imported': mf_txn_count,
+            'date_range': {
+                'from': min(dates) if dates else None,
+                'to': max(dates) if dates else None,
+            },
+            'errors': result.get('errors', []),
+        }
+    finally:
+        os.unlink(tmp_path)

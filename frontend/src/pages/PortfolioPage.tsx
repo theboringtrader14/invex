@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { createPortal } from "react-dom"
 import { ArrowsClockwise, X, ChartLine, ArrowRight, Crown } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
 import { portfolioAPI } from "../services/api"
@@ -743,6 +744,12 @@ export default function PortfolioPage() {
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
   const [enrichedMap, setEnrichedMap] = useState<Record<string, any>>({})
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showCASImport, setShowCASImport] = useState(false)
+  const [casImporting, setCasImporting] = useState(false)
+  const [casResult, setCasResult] = useState<any>(null)
+  const [casPan, setCasPan] = useState('')
+  const [casAccountId, setCasAccountId] = useState('')
+  const [casFile, setCasFile] = useState<File | null>(null)
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
@@ -868,10 +875,10 @@ export default function PortfolioPage() {
       {/* ══ HEADER ══ */}
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0, display: 'flex', alignItems: 'center' }}>
+          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             Portfolio
             {isRefreshing && (
-              <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 8, fontFamily: 'var(--font-body)', fontWeight: 400 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-mute)', fontFamily: 'var(--font-body)', fontWeight: 400 }}>
                 Refreshing…
               </span>
             )}
@@ -888,10 +895,10 @@ export default function PortfolioPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/analysis")}
+          onClick={() => { setShowCASImport(true); setCasResult(null) }}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: "var(--bg-surface)",
+            background: "var(--bg)",
             boxShadow: "var(--neu-raised-sm)",
             border: "none",
             borderRadius: "var(--r-pill)",
@@ -905,7 +912,7 @@ export default function PortfolioPage() {
           onMouseEnter={e => { e.currentTarget.style.boxShadow = "var(--neu-raised)" }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = "var(--neu-raised-sm)" }}
         >
-          View Portfolio Analysis
+          Import CAS
           <ArrowRight size={14} weight="bold" />
         </button>
       </div>
@@ -1061,6 +1068,142 @@ export default function PortfolioPage() {
           />
         )
       })()}
+
+      {/* ══ CAS IMPORT MODAL ══ */}
+      {showCASImport && createPortal(
+        <div onClick={() => { setShowCASImport(false); setCasPan(''); setCasFile(null); setCasResult(null) }} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)', zIndex: 2000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg)', boxShadow: 'var(--neu-raised)', borderRadius: 20,
+            padding: 28, width: 440,
+          }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, color: 'var(--text)' }}>
+              Import CAMS Statement
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-mute)', marginBottom: 20 }}>
+              Download from mfcentral.com → Statements → CAS. Password is your PAN.
+            </div>
+
+            {/* File picker */}
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              CAS PDF File
+            </label>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              background: 'var(--bg)', boxShadow: 'var(--neu-inset)', borderRadius: 8,
+              padding: '8px 12px', marginBottom: 16,
+            }}>
+              <input type="file" accept=".pdf"
+                onChange={e => setCasFile(e.target.files?.[0] || null)}
+                style={{ display: 'none' }} />
+              <span style={{
+                padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                color: 'var(--text-dim)', whiteSpace: 'nowrap',
+              }}>Choose File</span>
+              <span style={{ fontSize: 12, color: casFile ? 'var(--text)' : 'var(--text-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {casFile ? casFile.name : 'No file chosen'}
+              </span>
+            </label>
+
+            {/* Account selector */}
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Account
+            </label>
+            <select value={casAccountId} onChange={e => setCasAccountId(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none',
+                       background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                       color: 'var(--text)', fontSize: 13, marginBottom: 16, boxSizing: 'border-box' as const }}>
+              <option value=''>Select account…</option>
+              {Object.entries(accountMap).map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+
+            {/* PAN input */}
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              PAN (unlocks PDF)
+            </label>
+            <div style={{ fontSize: 10, color: 'var(--text-mute)', marginBottom: 6 }}>
+              Never stored — used only to read the PDF, then discarded.
+            </div>
+            <input type="password" placeholder="e.g. ABCDE1234F" maxLength={10}
+              autoComplete="new-password" autoCorrect="off" spellCheck={false}
+              value={casPan}
+              onChange={e => setCasPan(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: 'none',
+                       background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                       color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' as const,
+                       marginBottom: 20, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }} />
+
+            {casResult && (
+              <div style={{ marginBottom: 16, padding: 12, borderRadius: 10,
+                            background: 'var(--bg)', boxShadow: 'var(--neu-inset)',
+                            fontSize: 12, color: 'var(--text)' }}>
+                {casResult.success ? (
+                  <div>
+                    <div style={{ color: 'var(--green)', fontWeight: 600, marginBottom: 4 }}>
+                      ✓ Import successful
+                    </div>
+                    <div>{casResult.mf_transactions_imported} MF transactions · {casResult.mf_holdings_found} funds</div>
+                    {casResult.date_range?.from && (
+                      <div style={{ color: 'var(--text-mute)', marginTop: 2 }}>
+                        {casResult.date_range.from} → {casResult.date_range.to}
+                      </div>
+                    )}
+                    <div style={{ color: 'var(--text-mute)', marginTop: 4, fontSize: 11 }}>
+                      Dates used for XIRR and tax calculations.
+                    </div>
+                  </div>
+                ) : (
+                  <span style={{ color: 'var(--red)' }}>Error: {casResult.detail || casResult.errors?.[0] || 'Import failed'}</span>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowCASImport(false); setCasPan(''); setCasFile(null); setCasResult(null) }}
+                style={{ height: 36, padding: '0 16px', borderRadius: 10, border: 'none',
+                         cursor: 'pointer', background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                         color: 'var(--text-dim)', fontSize: 12 }}>
+                Cancel
+              </button>
+              <button
+                disabled={casImporting || !casFile || casPan.length !== 10}
+                onClick={async () => {
+                  if (!casFile || casPan.length !== 10) return
+                  setCasImporting(true)
+                  setCasResult(null)
+                  const form = new FormData()
+                  form.append('file', casFile)
+                  form.append('pan', casPan)
+                  form.append('account_id', casAccountId)
+                  try {
+                    const r = await apiFetch('/api/v1/portfolio/import-cas', { method: 'POST', body: form })
+                    const data = await r.json()
+                    setCasResult(data)
+                    setCasPan('')  // clear PAN from state immediately
+                    if (data.success) load()
+                  } catch (e) {
+                    setCasResult({ success: false, errors: ['Upload failed'] })
+                  } finally {
+                    setCasImporting(false)
+                  }
+                }}
+                style={{ height: 36, padding: '0 16px', borderRadius: 10, border: 'none',
+                         cursor: casImporting ? 'not-allowed' : 'pointer',
+                         background: 'var(--bg)', boxShadow: casImporting ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                         color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                {casImporting ? 'Importing…' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   )
