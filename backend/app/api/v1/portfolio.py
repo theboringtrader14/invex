@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 HOLDINGS_CACHE_KEY = "invex:holdings:all"
-CACHE_TTL = 300  # 5 minutes
+CACHE_TTL = 60  # 1 minute
 
 
 def _build_holding(r: Holdings, sector_map: dict) -> dict:
@@ -246,7 +246,7 @@ async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
             COALESCE(SUM(avg_price * qty), 0)                             AS invested_val,
             COALESCE(SUM(COALESCE(day_change, 0)), 0)                     AS day_pnl
         FROM invex_holdings
-        WHERE (:uid IS NULL OR user_id = :uid::uuid)
+        WHERE user_id = :uid
     """), {"uid": uid_str})).fetchone()
 
     mf_row = (await db.execute(text("""
@@ -254,7 +254,7 @@ async def _write_snapshot(db: AsyncSession, user_id=None) -> None:
             COALESCE(SUM(current_value),   0) AS current_val,
             COALESCE(SUM(invested_amount), 0) AS invested_val
         FROM invex_mf_holdings
-        WHERE (:uid IS NULL OR user_id = :uid::uuid)
+        WHERE user_id = :uid
     """), {"uid": uid_str})).fetchone()
 
     equity_current  = float(eq_row[0] or 0)

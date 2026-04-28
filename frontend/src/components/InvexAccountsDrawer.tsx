@@ -4,6 +4,7 @@
  * neumorphic tokens, and component patterns — with INVEX teal accent.
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { PencilSimple, FloppyDisk, CheckCircle, Warning, SignOut, ArrowsClockwise } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { apiFetch } from '../lib/api'
@@ -421,18 +422,18 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
         </div>
       </div>
 
-      {/* ── Edit API Keys modal ── */}
-      {editingCreds && (
+      {/* ── Edit API Keys modal — rendered via portal to escape drawer stacking context ── */}
+      {editingCreds && createPortal(
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 400,
-            background: 'rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            position: 'fixed', inset: 0, zIndex: 2000,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           onClick={() => setEditingCreds(null)}>
           <div
-            style={{ background: 'var(--bg)', boxShadow: 'var(--neu-raised)', borderRadius: 20, padding: 28, width: 420, maxWidth: '90%' }}
+            style={{ background: 'var(--bg)', boxShadow: 'var(--neu-raised)', borderRadius: 16, padding: 24, width: 420, maxWidth: '90%' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
@@ -494,7 +495,8 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

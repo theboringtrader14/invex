@@ -721,6 +721,7 @@ export default function PortfolioPage() {
   const [showEquityModal, setShowEquityModal] = useState(false)
   const [selectedNav, setSelectedNav] = useState<NavItem | null>(null)
   const [enrichedMap, setEnrichedMap] = useState<Record<string, any>>({})
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
@@ -772,6 +773,20 @@ export default function PortfolioPage() {
     }, 60_000)
     return () => clearInterval(interval)
   }, [load, token])
+
+  // Auto-refresh holdings from brokers on mount (non-blocking)
+  useEffect(() => {
+    if (!token) return
+    setIsRefreshing(true)
+    apiFetch('/api/v1/portfolio/refresh', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => {
+        const total = (d.results?.zerodha?.equity || 0) + (d.results?.angel?.total || 0)
+        if (total > 0) load()
+      })
+      .catch(() => {})
+      .finally(() => setIsRefreshing(false))
+  }, [token])
 
   // Fetch enriched data for modal
   useEffect(() => {
@@ -832,8 +847,13 @@ export default function PortfolioPage() {
       {/* ══ HEADER ══ */}
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0 }}>
+          <h1 style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, margin: 0, display: 'flex', alignItems: 'center' }}>
             Portfolio
+            {isRefreshing && (
+              <span style={{ fontSize: 12, color: 'var(--text-mute)', marginLeft: 8, fontFamily: 'var(--font-body)', fontWeight: 400 }}>
+                Refreshing…
+              </span>
+            )}
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 3, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 6 }}>
             {filteredHoldings.length} stocks · {filteredMF.length} funds
