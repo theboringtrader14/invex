@@ -679,7 +679,7 @@ function MFTable({ mf }: { mf: MFHolding[] }) {
           {sorted.map(f => (
             <tr key={f.id}>
               <td style={{ textAlign: "left" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "12px" }}>{f.fund_name}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--accent)", fontSize: "12px" }}>{f.fund_name.replace(/ - DIRECT PLAN/gi, ' - DIRECT').replace(/ DIRECT PLAN/gi, ' DIRECT')}</span>
               </td>
               <td style={numStyle}>{f.units.toFixed(3)}</td>
               <td style={numStyle}>{f.nav ? `₹${f.nav.toFixed(2)}` : "—"}</td>
