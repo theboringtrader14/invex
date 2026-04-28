@@ -1188,7 +1188,17 @@ export default function PortfolioPage() {
                     </div>
                   </div>
                 ) : (
-                  <span style={{ color: 'var(--red)' }}>Error: {casResult.detail || casResult.errors?.[0] || 'Import failed'}</span>
+                  <span style={{ color: 'var(--red)' }}>Error: {
+                    (() => {
+                      const d = casResult.detail
+                      const e = casResult.errors?.[0]
+                      if (typeof d === 'string') return d
+                      if (Array.isArray(d)) return d.map((x: any) => x.msg || JSON.stringify(x)).join('; ')
+                      if (typeof e === 'string') return e
+                      if (e) return JSON.stringify(e)
+                      return 'Import failed'
+                    })()
+                  }</span>
                 )}
               </div>
             )}
@@ -1213,9 +1223,18 @@ export default function PortfolioPage() {
                   try {
                     const r = await apiFetch('/api/v1/portfolio/import-cas', { method: 'POST', body: form })
                     const data = await r.json()
-                    setCasResult(data)
-                    setCasPan('')  // clear PAN from state immediately
-                    if (data.success) load()
+                    if (!r.ok) {
+                      // FastAPI 422 returns detail as array of objects; 400/500 as string
+                      const d = data?.detail
+                      const errMsg = Array.isArray(d)
+                        ? d.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
+                        : typeof d === 'string' ? d : JSON.stringify(data)
+                      setCasResult({ success: false, errors: [errMsg] })
+                    } else {
+                      setCasResult(data)
+                      setCasPan('')  // clear PAN from state immediately
+                      if (data.success) load()
+                    }
                   } catch (e) {
                     setCasResult({ success: false, errors: ['Upload failed'] })
                   } finally {
