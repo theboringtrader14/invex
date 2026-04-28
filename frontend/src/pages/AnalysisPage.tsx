@@ -212,19 +212,63 @@ function formatPnL(value: number): string {
   return `${sign}₹${abs.toFixed(0)}`
 }
 
-function getRiskLevel(category: string | null): { label: string; color: string } | null {
-  if (!category) return null
+type RiskLevel = 'low' | 'moderate' | 'high' | 'very_high'
+
+function getRiskLevel(category: string | null): RiskLevel {
+  if (!category) return 'moderate'
   const cat = category.toLowerCase()
-  if (cat.includes('small cap'))  return { label: 'High Risk',    color: '#FF4444' }
-  if (cat.includes('mid cap'))    return { label: 'Med Risk',     color: '#F59E0B' }
-  if (cat.includes('large & mid') || cat.includes('large and mid')) return { label: 'Med Risk', color: '#F59E0B' }
-  if (cat.includes('large'))      return { label: 'Low-Med Risk', color: '#0EA66E' }
-  if (cat.includes('elss'))       return { label: 'ELSS',         color: '#A78BFA' }
-  if (cat.includes('flexi') || cat.includes('flexicap') || cat.includes('multi cap')) return { label: 'Equity', color: '#F59E0B' }
-  if (cat.includes('equity'))     return { label: 'Equity',       color: '#F59E0B' }
-  if (cat.includes('income') || cat.includes('debt') || cat.includes('liquid') || cat.includes('floating')) return { label: 'Debt', color: '#38BDF8' }
-  if (cat.includes('hybrid'))     return { label: 'Hybrid',       color: '#2DD4BF' }
-  return null
+  if (cat.includes('small cap'))  return 'very_high'
+  if (cat.includes('mid cap'))    return 'high'
+  if (cat.includes('flexi') || cat.includes('flexicap') || cat.includes('multi cap')) return 'high'
+  if (cat.includes('large & mid') || cat.includes('large and mid')) return 'moderate'
+  if (cat.includes('large cap'))  return 'moderate'
+  if (cat.includes('elss'))       return 'high'
+  if (cat.includes('income') || cat.includes('debt') || cat.includes('liquid') || cat.includes('floating')) return 'low'
+  if (cat.includes('hybrid'))     return 'moderate'
+  if (cat.includes('equity'))     return 'high'
+  return 'moderate'
+}
+
+function Speedometer({ level }: { level: RiskLevel }) {
+  const colors: Record<RiskLevel, string> = {
+    low:       '#0EA66E',
+    moderate:  '#F59E0B',
+    high:      '#FF6B35',
+    very_high: '#FF4444',
+  }
+  const angles: Record<RiskLevel, number> = {
+    low:       -90,
+    moderate:  -30,
+    high:       30,
+    very_high:  90,
+  }
+  const labels: Record<RiskLevel, string> = {
+    low: 'Low', moderate: 'Moderate', high: 'High', very_high: 'Very High'
+  }
+  const color = colors[level]
+  const angle = angles[level]
+  const rad = (angle * Math.PI) / 180
+  const needleX = 16 + 10 * Math.sin(rad)
+  const needleY = 16 - 10 * Math.cos(rad)
+  return (
+    <svg width="32" height="20" viewBox="0 0 32 20"><title>{labels[level]}</title>
+      <path d="M 4 16 A 12 12 0 0 1 28 16"
+        fill="none" stroke="var(--border)" strokeWidth="3" strokeLinecap="round" />
+      <path d={`M 4 16 A 12 12 0 0 1 ${needleX.toFixed(2)} ${needleY.toFixed(2)}`}
+        fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
+      <line x1="16" y1="16" x2={needleX.toFixed(2)} y2={needleY.toFixed(2)}
+        stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="16" cy="16" r="2" fill={color} />
+    </svg>
+  )
+}
+
+function cleanCategory(category: string | null): string {
+  if (!category) return '—'
+  return category
+    .replace(/Equity Scheme\s*-\s*/i, '')
+    .replace(/\s*Fund$/i, '')
+    .trim()
 }
 
 function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
@@ -301,46 +345,51 @@ function MFAnalysisTab({ mfData, funds, fmt, fmtPct, neuCard }: MFTabProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <SortableHeader label="Fund Name"  sortKey="fund_name"  currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={thB} />
-                <SortableHeader label="Grade"      sortKey="grade"      currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
-                <SortableHeader label="Category"   sortKey="category"   currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={thB} />
-                <SortableHeader label="1Y Return"  sortKey="return_1y"  currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
-                <SortableHeader label="Day Chg"    sortKey="day_change" currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+                <SortableHeader label="Fund Name"    sortKey="fund_name"   currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={{ ...thB, minWidth: 180 }} />
+                <SortableHeader label="Grade"        sortKey="grade"       currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+                <SortableHeader label="Category"     sortKey="category"    currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} align="left" style={thB} />
+                <SortableHeader label="Risk"         sortKey="category"    currentKey={null} currentDir={null} onSort={() => {}} style={{ ...thB, width: 48 }} />
+                <SortableHeader label="1Y Return"    sortKey="return_1y"   currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
+                <SortableHeader label="Vs Category"  sortKey="vs_category" currentKey={sortKeyB as string | null} currentDir={sortDirB} onSort={k => handleSortB(k as keyof any)} style={thB} />
               </tr>
             </thead>
             <tbody>
               {sortedB.map((f: any) => {
                 const gc = gradeColor[f.grade] || 'var(--text-mute)'
-                const dayColor = (f.day_change ?? 0) >= 0 ? '#0EA66E' : '#FF4444'
                 return (
                   <tr key={`mfB_${f.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={nameCell} title={f.fund_name}>{f.fund_name_short}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface)', boxShadow: 'var(--neu-inset)', borderRadius: 4, padding: '2px 8px', color: gc, fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', minWidth: 24 }}>{f.grade || '—'}</span>
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'left', maxWidth: 200 }} title={f.category || ''}>
-                      {f.category ? (() => {
-                        const risk = getRiskLevel(f.category)
-                        const label = f.category.replace(/Equity Scheme\s*-\s*/i, '').replace(/ Fund$/i, '').trim()
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{label}</span>
-                            {risk && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.8px', padding: '1px 6px', borderRadius: 10, width: 'fit-content', background: `${risk.color}20`, color: risk.color, border: `1px solid ${risk.color}40`, whiteSpace: 'nowrap' }}>{risk.label}</span>}
-                          </div>
-                        )
-                      })() : <span style={{ color: 'var(--text-mute)' }}>—</span>}
+                    <td style={{ padding: '10px 12px', textAlign: 'left', maxWidth: 160 }} title={f.category || ''}>
+                      <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                        {cleanCategory(f.category)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '6px 12px', textAlign: 'center', width: 48 }}>
+                      <Speedometer level={getRiskLevel(f.category)} />
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: (f.return_1y ?? 0) > 0 ? '#0EA66E' : (f.return_1y ?? 0) < 0 ? '#FF4444' : 'var(--text-dim)' }}>
                       {f.return_1y != null ? `${f.return_1y >= 0 ? '+' : ''}${f.return_1y.toFixed(2)}%` : '—'}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: dayColor }}>
-                      {f.day_change != null ? formatPnL(f.day_change) : '—'}
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600 }}>
+                      {f.vs_category != null ? (
+                        <span style={{ color: f.vs_category >= 0 ? '#0EA66E' : '#FF4444' }}>
+                          {f.vs_category >= 0 ? '+' : ''}{f.vs_category.toFixed(1)}%{' '}{f.vs_category >= 0 ? '↑' : '↓'}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-mute)', fontSize: 10 }}>—</span>
+                      )}
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 9, color: 'var(--text-mute)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
+          * Category averages are approximate (FY25 data). Updated quarterly.
         </div>
       </div>
 
@@ -595,7 +644,7 @@ export default function AnalysisPage() {
     <div style={{ animation: 'fadeUp 400ms cubic-bezier(0,0,0.2,1) both' }}>
 
       {/* Header + Tab bar — sticky together */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: 12 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingTop: 16, paddingBottom: 12 }}>
         {/* Background extender — fills main's side padding to stop scroll-bleed */}
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: -54, right: -54, background: 'var(--bg)', zIndex: -1 }} />
         <div style={{
