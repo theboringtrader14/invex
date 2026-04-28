@@ -492,7 +492,8 @@ async def get_mutual_funds(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """MF holdings with computed P&L and grade."""
+    """MF holdings with computed P&L, grade, and enriched category/returns from mfapi.in."""
+    from app.adapters.mf_data_adapter import mf_data
     mf_rows, account_map = await asyncio.gather(
         db.execute(
             select(MFHoldings)
@@ -534,10 +535,14 @@ async def get_mutual_funds(
             'pnl_pct':          pnl_pct,
             'grade':            grade,
             'category':         None,
+            'sub_category':     None,
             'expense_ratio':    None,
             'return_1y':        None,
             'return_3y':        None,
         })
+
+    # Phase 2 enrichment: category + 1Y/3Y returns from mfapi.in (concurrent)
+    funds = await mf_data.enrich_mf_holdings(funds)
 
     funds.sort(key=lambda x: -x['pnl_pct'])
 

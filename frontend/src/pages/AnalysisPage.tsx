@@ -497,7 +497,7 @@ export default function AnalysisPage() {
     STRONG_BULL: 5, BULL: 4, NEUTRAL: 3, WEAK: 2, BEAR: 1,
     // Display labels (scorecard API returns these)
     'Multibagger': 5, 'Momentum Leader': 5, 'Strong Compounder': 4,
-    'Steady': 3, 'Laggard': 2, 'Under Watch': 1,
+    'Steady': 3, 'Laggard': 2, 'Under Watch': 1, 'Danger Zone': 1,
   }
   const scorecardHoldings = useMemo(() => {
     if (!scorecard) return []
@@ -509,7 +509,7 @@ export default function AnalysisPage() {
         grade: e?.grade ?? h.grade ?? null,
         signal: e?.signal ?? rawSignal ?? null,
         grade_rank: GRADE_RANK[h.grade ?? ''] ?? 0,
-        signal_rank: SIGNAL_RANK[rawSignal ?? ''] ?? 3,
+        signal_rank: SIGNAL_RANK[rawSignal] ?? SIGNAL_RANK[h.signal] ?? 3,
       }
     })
   }, [scorecard, enriched])

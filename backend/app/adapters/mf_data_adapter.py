@@ -173,5 +173,41 @@ class MFDataAdapter:
         return result
 
 
+    async def enrich_mf_holdings(self, mf_holdings: list) -> list:
+        """
+        Enrich a list of MF holding dicts with category, sub_category, return_1y, return_3y.
+        Uses fund_name search to resolve scheme_code, then fetches meta + NAV history.
+        Runs concurrently across all holdings.
+        """
+        async def _enrich_one(mf: dict) -> dict:
+            fund_name = mf.get('fund_name', '')
+            if not fund_name:
+                return mf
+            try:
+                scheme = await self.search_scheme(fund_name)
+                if not scheme:
+                    return mf
+                scheme_code = scheme.get('scheme_code')
+                if not scheme_code:
+                    return mf
+
+                details, returns = await asyncio.gather(
+                    self.get_scheme_details(scheme_code),
+                    self.compute_returns(scheme_code),
+                )
+                if details:
+                    mf['category'] = details.get('category')
+                    mf['sub_category'] = None   # mfapi.in has no sub_category field
+                if returns:
+                    mf['return_1y'] = returns.get('return_1y_pct')
+                    mf['return_3y'] = returns.get('return_3y_pct')
+            except Exception:
+                pass
+            return mf
+
+        enriched = await asyncio.gather(*[_enrich_one(mf) for mf in mf_holdings])
+        return list(enriched)
+
+
 # Singleton
 mf_data = MFDataAdapter()

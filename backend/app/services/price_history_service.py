@@ -21,7 +21,7 @@ async def fetch_symbol_history(symbol: str, days: int = 1825):
             if hist.empty:
                 return []
             return [
-                {'date': str(idx.date()), 'close': float(row['Close']),
+                {'date': idx.date(), 'close': float(row['Close']),
                  'open': float(row['Open']), 'high': float(row['High']),
                  'low': float(row['Low']), 'volume': int(row['Volume'])}
                 for idx, row in hist.iterrows()
