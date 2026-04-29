@@ -5,6 +5,8 @@ import gsap from 'gsap'
 import * as d3 from 'd3'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import SparklesCanvas from '../components/v2/SparklesCanvas'
+import BackgroundPaths from '../components/v2/BackgroundPaths'
 
 gsap.registerPlugin(useGSAP)
 
@@ -84,6 +86,9 @@ export default function InvexV2Page() {
   const [kpi,        setKpi]        = useState({ pnl_pct:0, day_pnl:0, count:0, equity:0 })
 
   const nodesRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const glowRef = useRef<HTMLDivElement>(null)
+  const [canvasDims, setCanvasDims] = useState({ w: 860, h: 520 })
 
   /* ── fetch ── */
   useEffect(() => {
@@ -191,6 +196,17 @@ export default function InvexV2Page() {
     return () => clearInterval(t)
   }, [insights.length])
 
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const obs = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect
+      setCanvasDims({ w: Math.round(width), h: Math.round(height) })
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
   /* ── filtered nodes ── */
   const filtered = React.useMemo(()=>{
     switch(filter) {
@@ -224,18 +240,35 @@ export default function InvexV2Page() {
   }, [filtered, mode, getVal])
 
   /* ── GSAP entrance ── */
-  useGSAP(()=>{
-    if (!nodesRef.current || loading) return
-    gsap.fromTo(
-      nodesRef.current.children,
+  useGSAP(() => {
+    if (!canvasRef.current) return
+    const nodeEls = canvasRef.current.querySelectorAll('.matrix-node')
+    if (!nodeEls.length) return
+    gsap.fromTo(nodeEls,
       { scale: 0, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.4, stagger: 0.02, ease: 'back.out(1.7)', transformOrigin:'center center' }
+      {
+        scale: 1, opacity: 1, duration: 0.5,
+        stagger: { amount: 0.4, from: 'random' },
+        ease: 'back.out(2)',
+      }
     )
-  }, { dependencies: [filtered.length, modeIdx, loading], scope: nodesRef })
+  }, { scope: canvasRef, dependencies: [filtered.length, modeIdx, filter] })
 
   /* ── conviction ── */
   const getConv = (n:Node) => convMap.get(n.id) ?? n.conviction_level
   const setConv = (id:string, v:number) => setConvMap(m=>new Map(m).set(id,v))
+
+  /* ── mouse glow ── */
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canvasRef.current || !glowRef.current) return
+    const rect = canvasRef.current.getBoundingClientRect()
+    gsap.to(glowRef.current, {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      duration: 0.6,
+      ease: 'power2.out',
+    })
+  }, [])
 
   /* ── render ── */
   const pnlColor = (v:number) => v>=0 ? C.green : C.red
@@ -246,6 +279,32 @@ export default function InvexV2Page() {
       @keyframes crownPulse {
         0%, 100% { box-shadow: 0 0 8px #F59E0B30, 0 4px 16px rgba(0,0,0,0.4); }
         50% { box-shadow: 0 0 0 3px #F59E0B20, 0 0 24px #F59E0B60, 0 0 48px #F59E0B20, 0 8px 32px rgba(0,0,0,0.6); }
+      }
+      @keyframes ambientPulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+      @supports (backdrop-filter: blur(1px)) {
+        .matrix-node {
+          backdrop-filter: blur(16px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+        }
+      }
+      .matrix-node::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.18) 0%, transparent 50%);
+        pointer-events: none;
+      }
+      .matrix-node::after {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.12);
+        pointer-events: none;
       }
     `}</style>
     <div style={{ width:'100vw', height:'100vh', background:C.bg, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
@@ -306,7 +365,23 @@ export default function InvexV2Page() {
       <div style={{ flex:1, display:'flex', gap:16, padding:'0 24px 16px', overflow:'hidden', minHeight:0 }}>
 
         {/* CANVAS */}
-        <div style={{ flex:1, position:'relative', background:C.bg, borderRadius:16, border:`1px solid ${C.border}`, overflow:'hidden', minHeight:0 }}>
+        <div ref={canvasRef} style={{ flex:1, position:'relative', background:C.bg, borderRadius:16, border:`1px solid ${C.border}`, overflow:'hidden', minHeight:0 }}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseLeave={() => glowRef.current && gsap.to(glowRef.current, { opacity: 0, duration: 0.3 })}
+          onMouseEnter={() => glowRef.current && gsap.to(glowRef.current, { opacity: 1, duration: 0.3 })}
+        >
+
+          {/* Animated paths */}
+          <BackgroundPaths width={canvasDims.w} height={canvasDims.h} />
+          {/* Sparkle particles */}
+          <SparklesCanvas color="#C9F53B" />
+          {/* Mouse glow */}
+          <div ref={glowRef} style={{
+            position:'absolute', width:320, height:320, borderRadius:'50%',
+            background:'radial-gradient(circle, rgba(201,245,59,0.08) 0%, transparent 70%)',
+            transform:'translate(-50%, -50%)',
+            pointerEvents:'none', left:0, top:0, opacity:0,
+          }} />
 
           {/* Ambient radial glow */}
           <div className="canvas-ambient" style={{
