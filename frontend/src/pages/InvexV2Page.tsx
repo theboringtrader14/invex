@@ -5,8 +5,8 @@ import gsap from 'gsap'
 import * as d3 from 'd3'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
-import SparklesCanvas from '../components/v2/SparklesCanvas'
-import BackgroundPaths from '../components/v2/BackgroundPaths'
+import { SparklesCore } from '../components/v2/SparklesCore'
+import { BackgroundPaths } from '../components/ui/background-paths'
 
 gsap.registerPlugin(useGSAP)
 
@@ -88,7 +88,7 @@ export default function InvexV2Page() {
   const nodesRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const glowRef = useRef<HTMLDivElement>(null)
-  const [canvasDims, setCanvasDims] = useState({ w: 860, h: 520 })
+  // canvasDims removed — BackgroundPaths no longer needs explicit dimensions
 
   /* ── fetch ── */
   useEffect(() => {
@@ -196,16 +196,7 @@ export default function InvexV2Page() {
     return () => clearInterval(t)
   }, [insights.length])
 
-  useEffect(() => {
-    const el = canvasRef.current
-    if (!el) return
-    const obs = new ResizeObserver(entries => {
-      const { width, height } = entries[0].contentRect
-      setCanvasDims({ w: Math.round(width), h: Math.round(height) })
-    })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
+  // ResizeObserver for canvasDims removed — BackgroundPaths now uses CSS fill
 
   /* ── filtered nodes ── */
   const filtered = React.useMemo(()=>{
@@ -372,27 +363,35 @@ export default function InvexV2Page() {
         >
 
           {/* Animated paths */}
-          <BackgroundPaths width={canvasDims.w} height={canvasDims.h} />
+          <BackgroundPaths />
           {/* Sparkle particles */}
-          <SparklesCanvas color="#C9F53B" />
+          <SparklesCore
+            id="matrix-sparkles"
+            background="transparent"
+            particleColor="#C9F53B"
+            particleDensity={50}
+            minSize={0.4}
+            maxSize={1.8}
+            speed={1.5}
+          />
+          {/* Center radial glow */}
+          <div className="canvas-ambient" style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201,245,59,0.04) 0%, transparent 70%)',
+            animation: 'ambientPulse 4s ease-in-out infinite',
+          }} />
+          {/* Grid */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: `linear-gradient(rgba(201,245,59,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(201,245,59,0.025) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }} />
           {/* Mouse glow */}
           <div ref={glowRef} style={{
             position:'absolute', width:320, height:320, borderRadius:'50%',
             background:'radial-gradient(circle, rgba(201,245,59,0.08) 0%, transparent 70%)',
             transform:'translate(-50%, -50%)',
             pointerEvents:'none', left:0, top:0, opacity:0,
-          }} />
-
-          {/* Ambient radial glow */}
-          <div className="canvas-ambient" style={{
-            position:'absolute', inset:0, pointerEvents:'none',
-            background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201,245,59,0.04) 0%, transparent 70%)',
-          }} />
-          {/* Grid overlay */}
-          <div style={{
-            position:'absolute', inset:0, pointerEvents:'none',
-            backgroundImage:`linear-gradient(rgba(201,245,59,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(201,245,59,0.025) 1px, transparent 1px)`,
-            backgroundSize:'60px 60px',
           }} />
 
           {/* Axis labels */}
