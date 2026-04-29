@@ -778,7 +778,7 @@ export default function InvexV2Page() {
       </div>
 
       {/* MAIN ROW */}
-      <div style={{ flex:1, display:'flex', gap:14, padding:'10px 24px 14px', overflow:'hidden', minHeight:0, maxHeight:'calc(75vh - 132px)' }}>
+      <div style={{ flex:1, display:'flex', gap:10, padding:'10px 0 14px', overflow:'hidden', minHeight:0, maxHeight:'calc(75vh - 132px)' }}>
 
         {/* CANVAS */}
         <div ref={canvasRef}
