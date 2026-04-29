@@ -29,7 +29,7 @@ const C = {
 
 /* ─── Axis modes ──────────────────────────────────────────────────────── */
 const MODES = [
-  { id:'perf_risk',     label:'Performance vs Risk',       x:{key:'pnl_pct',          label:'Return %'},    y:{key:'risk_score',       label:'Risk'},      q:{tr:'Champions',    br:'Momentum Bets',  tl:'Sleeping Giants', bl:'Capital Traps'} },
+  { id:'perf_risk',     label:'Performance vs Weight',      x:{key:'pnl_pct',          label:'Return %'},    y:{key:'weight',           label:'Weight %'},  q:{tr:'Big Winners',  br:'Small Winners',  tl:'Heavy Anchors',   bl:'Trim Candidates'} },
   { id:'fund_tech',     label:'Fundamental vs Technical',  x:{key:'fundamental_score', label:'Fundamental'}, y:{key:'technical_score',  label:'Technical'}, q:{tr:'Buy Zone',     br:'Buy on Dip',     tl:'Overbought',      bl:'Avoid'} },
   { id:'weight_return', label:'Weight vs Return',          x:{key:'weight',            label:'Portfolio %'}, y:{key:'pnl_pct',          label:'Return %'},  q:{tr:'Core Winners', br:'Heavy Losers',   tl:'Small Gems',      bl:'Trim These'} },
   { id:'conv_perf',     label:'Conviction vs Performance', x:{key:'conviction_level',  label:'Conviction'},  y:{key:'pnl_pct',          label:'Return %'},  q:{tr:'Right Calls',  br:'Wrong Bets',     tl:'Lucky Wins',      bl:'Regret Zone'} },
@@ -51,14 +51,6 @@ const SECTOR_RISK: Record<string,number> = {
   'Banking & Finance':0.5,'Pharma':0.45,'Index Fund':0.2,'Large Cap':0.3,
 }
 
-function nodeColor(n:Node):string {
-  if (n.is_crown) return C.amber
-  if (n.pnl_pct > 50) return C.green
-  if (n.pnl_pct > 0)  return '#34d399'
-  if (n.pnl_pct > -15) return '#6b7280'
-  return C.red
-}
-
 function fmtL(v:number):string {
   const abs=Math.abs(v), sign=v>=0?'+':'-'
   if (abs>=100000) return `${sign}₹${(abs/100000).toFixed(2)}L`
@@ -68,7 +60,6 @@ function fmtL(v:number):string {
 
 function strip(sym:string):string { return sym.replace(/-(EQ|BE)$/,'') }
 
-const CANVAS_W = 860, CANVAS_H = 520
 const FILTERS = ['All','Winners','Losers','Large Cap','Mid Cap','Small Cap','Crown Jewels']
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
@@ -80,8 +71,6 @@ export default function InvexV2Page() {
   const [modeIdx,    setModeIdx]    = useState(0)
   const [filter,     setFilter]     = useState('All')
   const [selected,   setSelected]   = useState<Node|null>(null)
-  const [hovered,    setHovered]    = useState<string|null>(null)
-  const [insightIdx, setInsightIdx] = useState(0)
   const [convMap,    setConvMap]    = useState<Map<string,number>>(new Map())
   const [kpi,        setKpi]        = useState({ pnl_pct:0, day_pnl:0, count:0, equity:0 })
   const [canvasDims, setCanvasDims] = useState({ w: 860, h: 520 })
@@ -89,6 +78,8 @@ export default function InvexV2Page() {
   const nodesRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const glowRef = useRef<HTMLDivElement>(null)
+  const tickerRef = useRef<HTMLDivElement>(null)
+  const tickerIdxRef = useRef(0)
   // Track actual canvas pixel dimensions for accurate node positioning
   useEffect(() => {
     if (!canvasRef.current) return
@@ -133,7 +124,6 @@ export default function InvexV2Page() {
           const t    = tMap.get(key) ?? {}
           const sc   = scMap.get(key) ?? {}
           const rsi  = t.rsi ?? 50
-          const rsiDev = Math.abs(rsi - 50) / 50
           const sectorKey = h.market_cap ?? e.market_cap ?? null
           const sectorRisk = sectorKey ? (SECTOR_RISK[sectorKey] ?? 0.5) : 0.5
           return {
@@ -203,11 +193,22 @@ export default function InvexV2Page() {
   }, [nodes, kpi])
 
   useEffect(() => {
-    const t = setInterval(()=>setInsightIdx(i=>(i+1)%insights.length), 4000)
+    if (!insights.length) return
+    tickerIdxRef.current = 0
+    if (tickerRef.current) tickerRef.current.textContent = '◆ ' + insights[0]
+    const t = setInterval(() => {
+      tickerIdxRef.current = (tickerIdxRef.current + 1) % insights.length
+      if (tickerRef.current) {
+        gsap.to(tickerRef.current, { y: -10, opacity: 0, duration: 0.2, onComplete: () => {
+          if (tickerRef.current) {
+            tickerRef.current.textContent = '◆ ' + insights[tickerIdxRef.current]
+            gsap.fromTo(tickerRef.current, { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3 })
+          }
+        }})
+      }
+    }, 4000)
     return () => clearInterval(t)
-  }, [insights.length])
-
-  // ResizeObserver for canvasDims removed — BackgroundPaths now uses CSS fill
+  }, [insights])
 
   /* ── filtered nodes ── */
   const filtered = React.useMemo(()=>{
@@ -314,6 +315,15 @@ export default function InvexV2Page() {
         0%, 100% { opacity: 0.6; }
         50% { opacity: 1; }
       }
+      .matrix-node:not([data-selected="true"]):hover {
+        transform: translate(-50%, -50%) scale(1.08) !important;
+        z-index: 10 !important;
+        filter: brightness(1.5) saturate(1.2);
+      }
+      .matrix-node[data-selected="true"] {
+        transform: translate(-50%, -50%) scale(1.15) !important;
+        z-index: 20 !important;
+      }
       @supports (backdrop-filter: blur(1px)) {
         .matrix-node {
           backdrop-filter: blur(16px) saturate(180%) !important;
@@ -337,7 +347,7 @@ export default function InvexV2Page() {
         pointer-events: none;
       }
     `}</style>
-    <div style={{ width:'100vw', height:'100vh', background:`radial-gradient(ellipse 70% 50% at 15% 30%, rgba(201,245,59,0.07) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 85% 75%, rgba(14,166,110,0.05) 0%, transparent 55%), radial-gradient(ellipse 40% 30% at 50% 50%, rgba(201,245,59,0.02) 0%, transparent 70%), ${C.bg}`, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
+    <div style={{ position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:`radial-gradient(ellipse 70% 50% at 15% 30%, rgba(201,245,59,0.07) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 85% 75%, rgba(14,166,110,0.05) 0%, transparent 55%), radial-gradient(ellipse 40% 30% at 50% 50%, rgba(201,245,59,0.02) 0%, transparent 70%), ${C.bg}`, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
 
       {/* HEADER */}
       <div style={{ padding:'20px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
@@ -359,12 +369,9 @@ export default function InvexV2Page() {
 
       {/* TICKER */}
       <div style={{ margin:'14px 24px 0', height:32, background:C.surface, borderLeft:`3px solid ${C.lime}`, borderRadius:'0 6px 6px 0', display:'flex', alignItems:'center', paddingLeft:12, overflow:'hidden', position:'relative' }}>
-        <AnimatePresence mode="wait">
-          <motion.span key={insightIdx} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.35}}
-            style={{ fontSize:11, color:C.textDim, letterSpacing:0.5 }}>
-            {insights[insightIdx]}
-          </motion.span>
-        </AnimatePresence>
+        <div ref={tickerRef} style={{ fontSize:11, color:C.textDim, letterSpacing:0.5 }}>
+          ◆ Loading portfolio data…
+        </div>
       </div>
 
       {/* MODE SWITCHER */}
@@ -467,14 +474,12 @@ export default function InvexV2Page() {
                 : n.pnl_pct > -15 ? '#6b7280'
                 : '#FF4444'
               const isSelected = selected?.id === n.id
-              const isHovered  = hovered === n.id
               const r   = szSc(n.current_value)
               const dia = r * 2
               return (
                 <div key={n.id}
                   className="matrix-node"
-                  onMouseEnter={()=>setHovered(n.id)}
-                  onMouseLeave={()=>setHovered(null)}
+                  data-selected={isSelected ? 'true' : undefined}
                   onClick={()=>setSelected(s=>s?.id===n.id?null:n)}
                   style={{
                     position: 'absolute',
@@ -483,21 +488,15 @@ export default function InvexV2Page() {
                     width: dia,
                     height: dia,
                     borderRadius: '50%',
-                    transform: isSelected
-                      ? 'translate(-50%, -50%) scale(1.15)'
-                      : isHovered
-                      ? 'translate(-50%, -50%) scale(1.08)'
-                      : 'translate(-50%, -50%) scale(1)',
+                    transform: 'translate(-50%, -50%) scale(1)',
                     cursor: 'pointer',
-                    zIndex: isSelected ? 20 : isHovered ? 10 : 1,
+                    zIndex: isSelected ? 20 : 1,
                     background: `radial-gradient(circle at 30% 30%, ${glowColor}28 0%, ${glowColor}08 60%, transparent 100%)`,
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
-                    border: `1.5px solid ${glowColor}${isSelected ? '90' : isHovered ? '60' : '30'}`,
+                    border: `1.5px solid ${glowColor}${isSelected ? '90' : '30'}`,
                     boxShadow: isSelected
                       ? `0 0 0 2px ${glowColor}30, 0 0 20px ${glowColor}50, 0 0 40px ${glowColor}20, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 ${glowColor}40`
-                      : isHovered
-                      ? `0 0 0 1px ${glowColor}25, 0 0 16px ${glowColor}45, 0 0 32px ${glowColor}15, 0 8px 24px rgba(0,0,0,0.5)`
                       : `0 0 8px ${glowColor}20, 0 4px 16px rgba(0,0,0,0.4)`,
                     transition: 'box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease',
                     animation: n.is_crown ? 'crownPulse 2.5s ease-in-out infinite' : 'none',
