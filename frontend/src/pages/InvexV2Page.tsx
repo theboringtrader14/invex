@@ -84,11 +84,22 @@ export default function InvexV2Page() {
   const [insightIdx, setInsightIdx] = useState(0)
   const [convMap,    setConvMap]    = useState<Map<string,number>>(new Map())
   const [kpi,        setKpi]        = useState({ pnl_pct:0, day_pnl:0, count:0, equity:0 })
+  const [canvasDims, setCanvasDims] = useState({ w: 860, h: 520 })
 
   const nodesRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const glowRef = useRef<HTMLDivElement>(null)
-  // canvasDims removed — BackgroundPaths no longer needs explicit dimensions
+  // Track actual canvas pixel dimensions for accurate node positioning
+  useEffect(() => {
+    if (!canvasRef.current) return
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setCanvasDims({ w: entry.contentRect.width, h: entry.contentRect.height })
+      }
+    })
+    ro.observe(canvasRef.current)
+    return () => ro.disconnect()
+  }, [])
 
   /* ── fetch ── */
   useEffect(() => {
@@ -116,7 +127,7 @@ export default function InvexV2Page() {
         const tMap  = new Map(techs.map((t:any)=>[`${t.symbol}|${t.account_id}`, t]))
         const scMap = new Map(scores.map((s:any)=>[`${s.symbol}|${s.account_id}`, s]))
 
-        const raw: Node[] = holdings.map((h:any) => {
+        const raw: Node[] = holdings.map((h:any, index:number) => {
           const key  = `${h.symbol}|${h.account_id}`
           const e    = eMap.get(key) ?? {}
           const t    = tMap.get(key) ?? {}
@@ -143,7 +154,7 @@ export default function InvexV2Page() {
             pe:                e.pe ?? null,
             fundamental_score: e.fundamental_score ?? 50,
             technical_score:   t.technical_score   ?? 50,
-            risk_score:        rsiDev * 0.6 + sectorRisk * 0.4,
+            risk_score:        sectorRisk * 0.5 + (Math.abs(h.pnl_pct ?? 0) / 300 * 0.3) + (index * 0.02 * 0.2),
             conviction_level:  3,
             is_crown:          false,
             market_cap:        h.market_cap ?? e.market_cap ?? null,
@@ -217,18 +228,46 @@ export default function InvexV2Page() {
     return (n as unknown as Record<string,number>)[key] ?? 0
   }, [])
 
-  const { xSc, ySc, szSc } = React.useMemo(()=>{
+  const { xSc, ySc, szSc, positions } = React.useMemo(()=>{
     const xs = filtered.map(n=>getVal(n, mode.x.key))
     const ys = filtered.map(n=>getVal(n, mode.y.key))
     const xMin = d3.min(xs) ?? 0, xMax = d3.max(xs) ?? 1
     const yMin = d3.min(ys) ?? 0, yMax = d3.max(ys) ?? 1
     const xPad = Math.abs(xMax-xMin)*0.1 || 1
     const yPad = Math.abs(yMax-yMin)*0.1 || 1
-    const xSc  = d3.scaleLinear().domain([xMin-xPad, xMax+xPad]).range([CANVAS_W*0.10, CANVAS_W*0.90])
-    const ySc  = d3.scaleLinear().domain([yMin-yPad, yMax+yPad]).range([CANVAS_H*0.90, CANVAS_H*0.10])
+    const w = canvasDims.w || 860
+    const h = canvasDims.h || 520
+    const xSc  = d3.scaleLinear().domain([xMin-xPad, xMax+xPad]).range([w*0.10, w*0.90])
+    const ySc  = d3.scaleLinear().domain([yMin-yPad, yMax+yPad]).range([h*0.90, h*0.10])
     const szSc = d3.scaleSqrt().domain([0, d3.max(filtered.map(n=>n.current_value)) ?? 1]).range([14,52])
-    return { xSc, ySc, szSc }
-  }, [filtered, mode, getVal])
+
+    // Compute positions as percentages, then apply collision separation
+    const pcts = filtered.map(n => ({
+      x: xSc(getVal(n, mode.x.key)) / w * 100,
+      y: ySc(getVal(n, mode.y.key)) / h * 100,
+    }))
+    const MIN_DIST = 8
+    for (let pass = 0; pass < 3; pass++) {
+      pcts.forEach((a, i) => {
+        pcts.forEach((b, j) => {
+          if (i === j) return
+          const dx = a.x - b.x
+          const dy = a.y - b.y
+          const dist = Math.sqrt(dx*dx + dy*dy)
+          if (dist < MIN_DIST && dist > 0) {
+            const push = (MIN_DIST - dist) / 2
+            a.x += (dx / dist) * push * 0.5
+            a.y += (dy / dist) * push * 0.5
+            b.x -= (dx / dist) * push * 0.5
+            b.y -= (dy / dist) * push * 0.5
+          }
+        })
+      })
+    }
+    const positions = new Map(filtered.map((n, i) => [n.id, { x: pcts[i].x * w / 100, y: pcts[i].y * h / 100 }]))
+
+    return { xSc, ySc, szSc, positions }
+  }, [filtered, mode, getVal, canvasDims])
 
   /* ── GSAP entrance ── */
   useGSAP(() => {
@@ -298,7 +337,7 @@ export default function InvexV2Page() {
         pointer-events: none;
       }
     `}</style>
-    <div style={{ width:'100vw', height:'100vh', background:C.bg, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
+    <div style={{ width:'100vw', height:'100vh', background:`radial-gradient(ellipse 70% 50% at 15% 30%, rgba(201,245,59,0.07) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 85% 75%, rgba(14,166,110,0.05) 0%, transparent 55%), radial-gradient(ellipse 40% 30% at 50% 50%, rgba(201,245,59,0.02) 0%, transparent 70%), ${C.bg}`, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
 
       {/* HEADER */}
       <div style={{ padding:'20px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
@@ -384,7 +423,7 @@ export default function InvexV2Page() {
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
             backgroundImage: `linear-gradient(rgba(201,245,59,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(201,245,59,0.025) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
+            backgroundSize: '96px 40px',
           }} />
           {/* Mouse glow */}
           <div ref={glowRef} style={{
@@ -439,8 +478,8 @@ export default function InvexV2Page() {
                   onClick={()=>setSelected(s=>s?.id===n.id?null:n)}
                   style={{
                     position: 'absolute',
-                    left: xSc(getVal(n, mode.x.key)),
-                    top:  ySc(getVal(n, mode.y.key)),
+                    left: positions.get(n.id)?.x ?? xSc(getVal(n, mode.x.key)),
+                    top:  positions.get(n.id)?.y ?? ySc(getVal(n, mode.y.key)),
                     width: dia,
                     height: dia,
                     borderRadius: '50%',
