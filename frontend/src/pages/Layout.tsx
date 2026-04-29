@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/portfolio', label: 'Portfolio' },
   { to: '/watchlist', label: 'Watchlist' },
   { to: '/analysis',  label: 'Analysis'  },
+  { to: '/invex-v2',  label: 'Matrix'    },
 ]
 
 const iconBtnStyle: React.CSSProperties = {
