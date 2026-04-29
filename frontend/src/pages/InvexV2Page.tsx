@@ -6,6 +6,8 @@ import * as d3 from 'd3'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
+gsap.registerPlugin(useGSAP)
+
 /* ─── Tokens ─────────────────────────────────────────────────────────── */
 const C = {
   lime:       '#C9F53B',
@@ -239,7 +241,14 @@ export default function InvexV2Page() {
   const pnlColor = (v:number) => v>=0 ? C.green : C.red
 
   return (
-    <div style={{ minHeight:'100vh', background:C.bg, fontFamily:'JetBrains Mono, monospace', color:C.text, display:'flex', flexDirection:'column', gap:0 }}>
+    <>
+    <style>{`
+      @keyframes crownPulse {
+        0%, 100% { box-shadow: 0 0 8px #F59E0B30, 0 4px 16px rgba(0,0,0,0.4); }
+        50% { box-shadow: 0 0 0 3px #F59E0B20, 0 0 24px #F59E0B60, 0 0 48px #F59E0B20, 0 8px 32px rgba(0,0,0,0.6); }
+      }
+    `}</style>
+    <div style={{ width:'100vw', height:'100vh', background:C.bg, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:'JetBrains Mono, monospace', color:C.text }}>
 
       {/* HEADER */}
       <div style={{ padding:'20px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
@@ -294,10 +303,22 @@ export default function InvexV2Page() {
       </div>
 
       {/* MAIN ROW */}
-      <div style={{ display:'flex', gap:16, padding:'16px 24px 24px', flex:1 }}>
+      <div style={{ flex:1, display:'flex', gap:16, padding:'0 24px 16px', overflow:'hidden', minHeight:0 }}>
 
         {/* CANVAS */}
-        <div style={{ flex:1, position:'relative', height:CANVAS_H, background:C.bg, borderRadius:16, border:`1px solid ${C.border}`, overflow:'hidden' }}>
+        <div style={{ flex:1, position:'relative', background:C.bg, borderRadius:16, border:`1px solid ${C.border}`, overflow:'hidden', minHeight:0 }}>
+
+          {/* Ambient radial glow */}
+          <div className="canvas-ambient" style={{
+            position:'absolute', inset:0, pointerEvents:'none',
+            background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201,245,59,0.04) 0%, transparent 70%)',
+          }} />
+          {/* Grid overlay */}
+          <div style={{
+            position:'absolute', inset:0, pointerEvents:'none',
+            backgroundImage:`linear-gradient(rgba(201,245,59,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(201,245,59,0.025) 1px, transparent 1px)`,
+            backgroundSize:'60px 60px',
+          }} />
 
           {/* Axis labels */}
           <span style={{ position:'absolute', bottom:8, left:'50%', transform:'translateX(-50%)', fontSize:9, color:C.textDim, fontFamily:'JetBrains Mono,monospace', letterSpacing:1 }}>{mode.x.label} →</span>
@@ -327,37 +348,58 @@ export default function InvexV2Page() {
           {/* Nodes container */}
           <div ref={nodesRef} style={{ position:'absolute', inset:0 }}>
             {!loading && filtered.map(n=>{
-              const xv  = getVal(n, mode.x.key)
-              const yv  = getVal(n, mode.y.key)
-              const r   = szSc(n.current_value) / 2
+              const glowColor = n.is_crown ? '#F59E0B'
+                : n.pnl_pct > 30 ? '#0EA66E'
+                : n.pnl_pct > 0  ? '#34d399'
+                : n.pnl_pct > -15 ? '#6b7280'
+                : '#FF4444'
+              const isSelected = selected?.id === n.id
+              const isHovered  = hovered === n.id
+              const r   = szSc(n.current_value)
               const dia = r * 2
-              const cx  = xSc(xv)
-              const cy  = ySc(yv)
-              const col = nodeColor(n)
-              const isHov = hovered === n.id
-              const isSel = selected?.id === n.id
               return (
                 <div key={n.id}
+                  className="matrix-node"
                   onMouseEnter={()=>setHovered(n.id)}
                   onMouseLeave={()=>setHovered(null)}
                   onClick={()=>setSelected(s=>s?.id===n.id?null:n)}
                   style={{
-                    position:'absolute',
-                    left: cx - r, top: cy - r,
-                    width: dia, height: dia,
-                    borderRadius:'50%',
-                    background: `radial-gradient(circle, ${col}4d 0%, transparent 70%)`,
-                    border: `1px solid ${isSel ? C.lime : isHov ? C.lime : col}80`,
-                    boxShadow: n.is_crown ? `0 0 12px ${C.amber}66` : isSel ? `0 0 10px ${C.lime}66` : 'none',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    cursor:'pointer',
-                    transform: isSel ? 'scale(1.2)' : isHov ? 'scale(1.15)' : 'scale(1)',
-                    transition:'transform 0.18s, border 0.18s, box-shadow 0.18s',
-                    zIndex: isSel ? 20 : isHov ? 10 : 1,
-                    userSelect:'none',
+                    position: 'absolute',
+                    left: xSc(getVal(n, mode.x.key)),
+                    top:  ySc(getVal(n, mode.y.key)),
+                    width: dia,
+                    height: dia,
+                    borderRadius: '50%',
+                    transform: isSelected
+                      ? 'translate(-50%, -50%) scale(1.15)'
+                      : isHovered
+                      ? 'translate(-50%, -50%) scale(1.08)'
+                      : 'translate(-50%, -50%) scale(1)',
+                    cursor: 'pointer',
+                    zIndex: isSelected ? 20 : isHovered ? 10 : 1,
+                    background: `radial-gradient(circle at 30% 30%, ${glowColor}28 0%, ${glowColor}08 60%, transparent 100%)`,
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: `1.5px solid ${glowColor}${isSelected ? '90' : isHovered ? '60' : '30'}`,
+                    boxShadow: isSelected
+                      ? `0 0 0 2px ${glowColor}30, 0 0 20px ${glowColor}50, 0 0 40px ${glowColor}20, 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 ${glowColor}40`
+                      : isHovered
+                      ? `0 0 0 1px ${glowColor}25, 0 0 16px ${glowColor}45, 0 0 32px ${glowColor}15, 0 8px 24px rgba(0,0,0,0.5)`
+                      : `0 0 8px ${glowColor}20, 0 4px 16px rgba(0,0,0,0.4)`,
+                    transition: 'box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease',
+                    animation: n.is_crown ? 'crownPulse 2.5s ease-in-out infinite' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 4,
+                    userSelect: 'none',
                   }}>
-                  <span style={{ fontSize:9, color:'#fff', fontFamily:'JetBrains Mono,monospace', fontWeight:700, textAlign:'center', lineHeight:1.1, pointerEvents:'none' }}>
+                  <span style={{ fontSize:9, color:'#fff', fontFamily:'JetBrains Mono,monospace', fontWeight:700, textAlign:'center', lineHeight:1.1, pointerEvents:'none', textShadow:`0 0 10px ${glowColor}60` }}>
                     {n.symbol.length>6?n.symbol.slice(0,5)+'…':n.symbol}
+                  </span>
+                  <span style={{ fontSize:8, pointerEvents:'none', textShadow: n.pnl_pct >= 0 ? '0 0 8px #0EA66E80' : '0 0 8px #FF444480', color: n.pnl_pct >= 0 ? '#34d399' : '#FF4444', lineHeight:1.1 }}>
+                    {n.pnl_pct >= 0 ? '+' : ''}{n.pnl_pct.toFixed(1)}%
                   </span>
                 </div>
               )
@@ -461,5 +503,6 @@ export default function InvexV2Page() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   )
 }

@@ -23,6 +23,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth()
+  if (isLoading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -33,8 +40,8 @@ export default function App() {
           <Route path="portfolio" element={<PortfolioPage />} />
           <Route path="watchlist" element={<WatchlistPage />} />
           <Route path="analysis" element={<AnalysisPage />} />
-          <Route path="invex-v2" element={<ProtectedRoute><InvexV2Page /></ProtectedRoute>} />
         </Route>
+        <Route path="/invex-v2" element={<AuthGuard><InvexV2Page /></AuthGuard>} />
       </Routes>
       <Toaster
         position="bottom-right"
