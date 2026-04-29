@@ -1102,6 +1102,19 @@ export default function PortfolioPage() {
                 ))}
               </div>
 
+              {/* Matrix view link */}
+              <a href="/invex-v2" style={{
+                fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: 1,
+                padding: '6px 16px', borderRadius: 20, textDecoration: 'none',
+                textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'var(--bg-surface)',
+                color: '#C9F53B',
+                boxShadow: '2px 2px 6px rgba(0,0,0,0.5),-1px -1px 3px rgba(255,255,255,0.04)',
+                border: '1px solid rgba(201,245,59,0.2)',
+              }}>
+                ◈ Matrix
+              </a>
+
               {/* Account filter chips */}
               <div style={{ display: "flex", gap: 6 }}>
                 {accountChips.map(acct => (
