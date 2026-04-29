@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage"
 import PortfolioPage from "./pages/PortfolioPage"
 import WatchlistPage from "./pages/WatchlistPage"
 import AnalysisPage from "./pages/AnalysisPage"
+import InvexV2Page from "./pages/InvexV2Page"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="portfolio" element={<PortfolioPage />} />
           <Route path="watchlist" element={<WatchlistPage />} />
           <Route path="analysis" element={<AnalysisPage />} />
+          <Route path="invex-v2" element={<ProtectedRoute><InvexV2Page /></ProtectedRoute>} />
         </Route>
       </Routes>
       <Toaster
