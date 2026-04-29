@@ -5,10 +5,10 @@ import InvexAccountsDrawer from '../components/InvexAccountsDrawer'
 import { useAuth } from '../contexts/AuthContext'
 
 const NAV_LINKS = [
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/watchlist', label: 'Watchlist' },
-  { to: '/analysis',  label: 'Analysis'  },
-  { to: '/invex-v2',  label: 'Matrix'    },
+  { to: '/portfolio', label: 'Portfolio', lime: false },
+  { to: '/analysis',  label: 'Analysis',  lime: false },
+  { to: '/invex-v2',  label: 'Matrix',    lime: true  },
+  { to: '/watchlist', label: 'Watchlist', lime: false },
 ]
 
 const iconBtnStyle: React.CSSProperties = {
@@ -56,7 +56,7 @@ export default function Layout() {
           margin: '0 auto',
           borderRadius: 100,
           background: 'var(--bg)',
-          boxShadow: 'var(--neu-raised)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -80,23 +80,32 @@ export default function Layout() {
           </div>
 
           {/* CENTER — Nav tabs */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 32, height: '100%' }}>
-            {NAV_LINKS.map(({ to, label }) => (
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {NAV_LINKS.map(({ to, label, lime }) => (
               <NavLink
                 key={to}
                 to={to}
                 style={({ isActive }) => ({
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
                   textDecoration: 'none',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  fontFamily: "var(--font-body)",
-                  color: isActive ? 'var(--accent)' : 'var(--text-dim)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase' as const,
                   whiteSpace: 'nowrap',
-                  transition: 'color 0.18s ease'
+                  padding: '5px 14px',
+                  borderRadius: 20,
+                  transition: 'all 0.18s ease',
+                  color: lime ? '#C9F53B' : isActive ? 'var(--text)' : 'var(--text-dim)',
+                  background: isActive ? 'var(--bg)' : 'transparent',
+                  boxShadow: isActive
+                    ? lime
+                      ? '2px 2px 6px rgba(0,0,0,0.7), -1px -1px 3px rgba(255,255,255,0.04), 0 0 8px rgba(201,245,59,0.12)'
+                      : '2px 2px 6px rgba(0,0,0,0.7), -1px -1px 3px rgba(255,255,255,0.04)'
+                    : 'none',
+                  border: isActive
+                    ? lime ? '1px solid rgba(201,245,59,0.20)' : '1px solid rgba(255,255,255,0.06)'
+                    : '1px solid transparent',
                 })}
               >
                 {label}
