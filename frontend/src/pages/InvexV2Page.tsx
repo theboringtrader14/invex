@@ -459,12 +459,12 @@ export default function InvexV2Page() {
       </div>
 
       {/* MAIN ROW */}
-      <div style={{ flex:1, display:'flex', gap:14, padding:'10px 24px 14px', overflow:'hidden', minHeight:0 }}>
+      <div style={{ flex:1, display:'flex', gap:14, padding:'10px 24px 14px', overflow:'hidden', minHeight:0, maxHeight:'calc(75vh - 132px)' }}>
 
         {/* CANVAS */}
         <div ref={canvasRef}
           style={{
-            flex:1, width:'100%', position:'relative', minHeight:0, overflow:'hidden',
+            flex:1, minWidth:0, position:'relative', minHeight:0, overflow:'hidden',
             background:'rgba(0,0,0,0.28)', borderRadius:14,
             boxShadow:`inset 4px 4px 20px rgba(0,0,0,0.85),inset -2px -2px 10px rgba(255,255,255,0.02)`,
           }}
@@ -572,16 +572,19 @@ export default function InvexV2Page() {
           </div>
         </div>
 
-        {/* DETAIL PANEL — FIX 5: width 320, slide from right */}
+        {/* DETAIL PANEL — width collapses to 0 when no node selected */}
         <AnimatePresence>
-          {selected ? (
+          {selected && (
             <motion.div key="panel"
-              initial={{ x:340, opacity:0 }} animate={{ x:0, opacity:1 }} exit={{ x:340, opacity:0 }}
+              initial={{ width:0, opacity:0 }} animate={{ width:360, opacity:1 }} exit={{ width:0, opacity:0 }}
               transition={{ type:'spring', stiffness:300, damping:30 }}
               style={{
-                width:320, background:C.bg, borderRadius:14, padding:18,
+                overflow:'hidden', flexShrink:0, height:'100%',
+              }}>
+            <div style={{
+                width:360, height:'100%', background:C.bg, borderRadius:14, padding:18,
                 display:'flex', flexDirection:'column', gap:12,
-                overflowY:'auto', flexShrink:0,
+                overflowY:'auto',
                 boxShadow:`-6px 0 20px rgba(0,0,0,0.8),-1px 0 0 ${C.shadowLight},${neu(true)}`,
               }}>
 
@@ -653,12 +656,7 @@ export default function InvexV2Page() {
                   </button>
                 ))}
               </div>
-            </motion.div>
-          ) : (
-            <motion.div key="empty"
-              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-              style={{ width:320, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <span style={{ fontSize:11, color:C.textMute, fontStyle:'italic' }}>← click any node</span>
+            </div>
             </motion.div>
           )}
         </AnimatePresence>
