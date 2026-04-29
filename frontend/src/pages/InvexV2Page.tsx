@@ -42,10 +42,11 @@ const MODES = [
 interface Node {
   id: string; symbol: string; name: string; sector: string|null; account: string|null; account_id: string
   pnl_pct: number; pnl: number; current_value: number; weight: number; avg_price: number; ltp: number
-  grade: string|null; signal: string|null; pe: number
+  grade: string|null; signal: string|null; pe: number; pb: number|null
   fundamental_score: number; technical_score: number; risk_score: number; conviction_level: number
   volatility_proxy: number
   is_crown: boolean; market_cap: string|null; rsi: number|null; action: string|null
+  above_50dma: boolean|null; above_200dma: boolean|null
 }
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -103,6 +104,272 @@ function fireBurst(e: React.MouseEvent) {
   if (canvas?.__burst) canvas.__burst(rect.left + rect.width / 2, rect.top + rect.height / 2)
 }
 
+/* ─── Panel helpers ────────────────────────────────────────────────── */
+const chipSt = (color: string): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center',
+  fontSize: 9, fontFamily: 'JetBrains Mono, monospace',
+  padding: '2px 8px', borderRadius: 20, letterSpacing: 1,
+  border: `1px solid ${color}40`, color, background: 'transparent', whiteSpace: 'nowrap',
+})
+
+function gradeCol(g?: string|null) {
+  if (g==='A') return '#0EA66E'; if (g==='B') return '#F59E0B'
+  if (g==='C') return '#6B7280'; return '#FF4444'
+}
+function sigCol(s?: string|null) {
+  if (!s) return '#4a5568'
+  if (s.includes('BULL')||s==='Multibagger'||s==='Strong Compounder'||s==='Momentum Leader') return '#0EA66E'
+  if (s==='NEUTRAL') return '#6B7280'
+  if (s.includes('WEAK')||s==='Under Watch') return '#F59E0B'
+  if (s.includes('BEAR')||s==='Laggard') return '#FF4444'
+  return '#4a5568'
+}
+function actionCol(a?: string|null) {
+  if (a==='BUY') return '#0EA66E'; if (a==='HOLD') return '#F59E0B'; return '#FF4444'
+}
+
+function generateSWOT(n: Node) {
+  const s: string[] = [], w: string[] = [], o: string[] = [], t: string[] = []
+  if (n.pnl_pct > 50)              s.push(`+${n.pnl_pct.toFixed(0)}% gain`)
+  if (n.grade === 'A')             s.push('Grade A quality')
+  if (n.above_200dma)              s.push('Above 200 DMA')
+  if (n.pe && n.pe < 15)           s.push(`Low PE ${n.pe.toFixed(0)}`)
+  if (n.pnl_pct < -15)             w.push(`${n.pnl_pct.toFixed(0)}% underwater`)
+  if (n.rsi && n.rsi > 75)         w.push(`Overbought RSI ${n.rsi.toFixed(0)}`)
+  if (n.above_200dma === false)    w.push('Below 200 DMA')
+  if (n.grade === 'D')             w.push('Grade D')
+  if (n.rsi && n.rsi < 35)         o.push(`Oversold RSI ${n.rsi.toFixed(0)}`)
+  if (n.action === 'BUY')          o.push('Scorecard: BUY')
+  if (n.pnl_pct < 0 && n.above_200dma) o.push('Dip in uptrend')
+  if (n.rsi && n.rsi > 70)         t.push('Pullback risk')
+  if (n.above_50dma === false)     t.push('Below 50 DMA')
+  if (n.pnl_pct < -25)             t.push('Deep loss — review')
+  return { s: s.slice(0,2), w: w.slice(0,2), o: o.slice(0,2), t: t.slice(0,2) }
+}
+
+interface PanelProps {
+  node: Node; getConv:(n:Node)=>number; setConv:(id:string,v:number)=>void; onClose:()=>void
+}
+
+function IntelligencePanel({ node, getConv, setConv, onClose }: PanelProps) {
+  const [notes,           setNotes]           = useState({ story:'', purchase_reason:'', conviction_level:0 })
+  const [storyOpen,       setStoryOpen]       = useState(false)
+  const [analysis,        setAnalysis]        = useState<string|null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError,   setAnalysisError]   = useState<string|null>(null)
+  const [savePending,     setSavePending]     = useState(false)
+
+  useEffect(() => {
+    setNotes({ story:'', purchase_reason:'', conviction_level:0 })
+    setAnalysis(null); setAnalysisError(null); setStoryOpen(false)
+    apiFetch(`/api/v1/stocks/${node.symbol}/notes?account_id=${node.account_id}`)
+      .then(r=>r.json())
+      .then(d=>setNotes({ story:d.story||'', purchase_reason:d.purchase_reason||'', conviction_level:d.conviction_level||0 }))
+      .catch(()=>{})
+  }, [node.symbol, node.account_id])
+
+  const runAnalysis = async () => {
+    setAnalysisLoading(true); setAnalysisError(null)
+    try {
+      const res = await apiFetch(`/api/v1/stocks/${node.symbol}/analyse`, {
+        method:'POST',
+        body: JSON.stringify({ account_id:node.account_id, story:notes.story, purchase_reason:notes.purchase_reason,
+          conviction_level:notes.conviction_level, sector:node.sector, avg_price:node.avg_price,
+          ltp:node.ltp, pnl:node.pnl, pnl_pct:node.pnl_pct, grade:node.grade, signal:node.signal, pe:node.pe }),
+      })
+      const d = await res.json()
+      if (d.error) setAnalysisError(d.error); else setAnalysis(d.analysis)
+    } catch { setAnalysisError('Failed') }
+    finally  { setAnalysisLoading(false) }
+  }
+
+  const saveStory = async () => {
+    setSavePending(true)
+    try { await apiFetch(`/api/v1/stocks/${node.symbol}/notes`, { method:'PUT', body:JSON.stringify({ account_id:node.account_id, ...notes }) }) }
+    catch {}
+    finally { setSavePending(false) }
+  }
+
+  const pnlC  = (v:number) => v>=0 ? C.green : C.red
+  const swot  = generateSWOT(node)
+  const div   = <div style={{ height:1, background:'rgba(255,255,255,0.06)', margin:'6px 0' }} />
+
+  return (
+    <div style={{ width:360, height:'100%', background:C.bg, borderRadius:14, padding:18,
+      display:'flex', flexDirection:'column', gap:0, overflowY:'auto',
+      boxShadow:`-6px 0 20px rgba(0,0,0,0.8),-1px 0 0 ${C.shadowLight},${neu(true)}` }}>
+
+      {/* HEADER */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+        <div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:'Syne,sans-serif' }}>{node.symbol}</div>
+          <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{node.account ?? 'Portfolio'}</div>
+        </div>
+        <button onClick={onClose}
+          style={{ background:C.bg, color:C.textDim, border:'none', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:neu(true) }}>×</button>
+      </div>
+
+      {/* Chips */}
+      <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginBottom:10 }}>
+        {node.sector     && <span style={chipSt('#6B7280')}>{node.sector}</span>}
+        {node.market_cap && <span style={chipSt('#4a5568')}>{node.market_cap}</span>}
+        {node.grade      && <span style={chipSt(gradeCol(node.grade))}>Grade {node.grade}</span>}
+        {node.signal     && <span style={chipSt(sigCol(node.signal))}>{node.signal.replace('_',' ')}</span>}
+        {node.action     && <span style={chipSt(actionCol(node.action))}>{node.action}</span>}
+        {node.is_crown   && <span style={chipSt('#F59E0B')}>👑 Crown</span>}
+      </div>
+      {div}
+
+      {/* P&L hero */}
+      <div style={{ background:C.surface2, borderRadius:10, padding:'12px 14px', display:'flex', justifyContent:'space-between', boxShadow:neu(false), margin:'8px 0' }}>
+        <div>
+          <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>P&L</div>
+          <div style={{ fontSize:22, fontWeight:700, color:pnlC(node.pnl_pct) }}>{node.pnl_pct>=0?'+':''}{node.pnl_pct.toFixed(2)}%</div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>AMOUNT</div>
+          <div style={{ fontSize:14, color:pnlC(node.pnl), fontWeight:600 }}>{fmtL(node.pnl)}</div>
+        </div>
+      </div>
+
+      {/* Position stats */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+        {([
+          { label:'LTP',   value:`₹${node.ltp.toLocaleString('en-IN')}` },
+          { label:'Avg',   value:`₹${node.avg_price.toLocaleString('en-IN')}` },
+          { label:'Value', value:fmtL(node.current_value) },
+          { label:'Wt',    value:`${node.weight.toFixed(2)}%` },
+        ] as const).map(r=>(
+          <div key={r.label} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
+            <div style={{ fontSize:9, color:C.textDim }}>{r.label}</div>
+            <div style={{ fontSize:12, color:C.text, fontWeight:600, marginTop:2 }}>{r.value}</div>
+          </div>
+        ))}
+      </div>
+      {div}
+
+      {/* Fundamentals */}
+      <div style={{ marginTop:6 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>FUNDAMENTALS</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+          {([
+            { label:'PE', value: node.pe ? node.pe.toFixed(1) : '—' },
+            { label:'PB', value: node.pb ? node.pb.toFixed(1) : '—' },
+          ] as const).map(r=>(
+            <div key={r.label} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
+              <div style={{ fontSize:9, color:C.textDim }}>{r.label}</div>
+              <div style={{ fontSize:12, color:C.text, fontWeight:600, marginTop:2 }}>{r.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {div}
+
+      {/* Technical */}
+      <div style={{ marginTop:6, marginBottom:8 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>TECHNICAL</div>
+        {node.rsi != null && (
+          <div style={{ marginBottom:8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+              <span style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>RSI</span>
+              <span style={{ fontSize:10, color:C.text }}>{node.rsi.toFixed(1)}</span>
+            </div>
+            <div style={{ height:6, background:C.surface2, borderRadius:3, overflow:'hidden', boxShadow:neu(false) }}>
+              <div style={{ height:'100%', width:`${node.rsi}%`, background:C.lime, borderRadius:3, transition:'width 0.4s' }} />
+            </div>
+          </div>
+        )}
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          {node.above_50dma  != null && <span style={chipSt(node.above_50dma  ? C.green : C.red)}>{node.above_50dma  ? '↑' : '↓'} 50 DMA</span>}
+          {node.above_200dma != null && <span style={chipSt(node.above_200dma ? C.green : C.red)}>{node.above_200dma ? '↑' : '↓'} 200 DMA</span>}
+        </div>
+      </div>
+      {div}
+
+      {/* Conviction */}
+      <div style={{ marginTop:6, marginBottom:8 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>CONVICTION</div>
+        <div style={{ display:'flex', gap:6 }}>
+          {[1,2,3,4,5].map(v=>(
+            <button key={v} onClick={()=>setConv(node.id, v)}
+              style={{ width:28, height:28, borderRadius:'50%', border:'none', background:C.bg, cursor:'pointer', fontSize:11, fontWeight:700,
+                color:getConv(node)>=v?C.lime:C.textMute, boxShadow:getConv(node)>=v?neu(false):neu(true), transition:'all 0.15s' }}>
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+      {div}
+
+      {/* SWOT Scorecard */}
+      <div style={{ marginTop:6, marginBottom:8 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>SCORECARD</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+          {([
+            { key:'s', label:'S — Strength', color:C.green,   items:swot.s },
+            { key:'w', label:'W — Weakness', color:C.red,     items:swot.w },
+            { key:'o', label:'O — Opportunity', color:'#2dd4bf', items:swot.o },
+            { key:'t', label:'T — Threat',    color:C.amber,  items:swot.t },
+          ] as const).map(q=>(
+            <div key={q.key} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
+              <div style={{ fontSize:8, fontWeight:700, color:q.color, marginBottom:4, letterSpacing:0.5 }}>{q.label}</div>
+              {q.items.length
+                ? q.items.map((it,i)=><div key={i} style={{ fontSize:9, color:C.textDim, lineHeight:1.5 }}>· {it}</div>)
+                : <div style={{ fontSize:9, color:C.textMute }}>—</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+      {div}
+
+      {/* Investment Story */}
+      <div style={{ marginTop:6, marginBottom:8 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>INVESTMENT STORY</div>
+        {notes.story
+          ? <div style={{ fontSize:10, color:C.textDim, fontStyle:'italic', lineHeight:1.6, marginBottom:6 }}>{notes.story}</div>
+          : null}
+        <button onClick={()=>setStoryOpen(v=>!v)}
+          style={{ fontSize:9, color:notes.story?C.textDim:C.lime, background:C.surface2, border:'none',
+            cursor:'pointer', letterSpacing:1, borderRadius:8, padding:'7px 10px',
+            width:'100%', textAlign:'left', boxShadow:neu(false) }}>
+          {storyOpen ? '▲ Collapse' : notes.story ? '▼ Edit story' : '+ Add your story…'}
+        </button>
+        {storyOpen && (
+          <div style={{ marginTop:6, display:'flex', flexDirection:'column', gap:6 }}>
+            <textarea value={notes.story} onChange={e=>setNotes(n=>({...n,story:e.target.value}))}
+              rows={4} placeholder="Why did you buy? What's your thesis?"
+              style={{ background:C.surface2, border:`1px solid rgba(255,255,255,0.08)`, borderRadius:8,
+                padding:8, fontSize:10, color:C.text, resize:'vertical', fontFamily:'var(--font-body)',
+                boxShadow:neu(false), outline:'none', width:'100%' }} />
+            <button onClick={saveStory} disabled={savePending}
+              style={{ background:C.lime, color:'#0d1117', border:'none', borderRadius:8,
+                padding:'6px', fontSize:10, fontWeight:700, cursor:'pointer', letterSpacing:0.5 }}>
+              {savePending ? 'Saving…' : 'Save Story'}
+            </button>
+          </div>
+        )}
+      </div>
+      {div}
+
+      {/* AI Analysis */}
+      <div style={{ marginTop:6, paddingBottom:8 }}>
+        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>AI ANALYSIS</div>
+        {analysis
+          ? <div style={{ fontSize:10, color:C.textDim, lineHeight:1.6, background:C.surface2, borderRadius:8, padding:10, boxShadow:neu(false) }}>{analysis}</div>
+          : analysisError
+            ? <div style={{ fontSize:10, color:C.red }}>{analysisError}</div>
+            : <button onClick={runAnalysis} disabled={analysisLoading}
+                style={{ background:C.bg, color:C.lime, border:`1px solid rgba(201,245,59,0.2)`,
+                  borderRadius:8, padding:'8px 14px', fontSize:10, fontWeight:600,
+                  cursor:analysisLoading?'wait':'pointer', boxShadow:neu(true), letterSpacing:0.5, width:'100%' }}>
+                {analysisLoading ? '⏳ Analysing…' : '✦ Analyse with AI'}
+              </button>
+        }
+      </div>
+    </div>
+  )
+}
+
 /* ─── Page ────────────────────────────────────────────────────────────── */
 export default function InvexV2Page() {
   useAuth()
@@ -116,11 +383,16 @@ export default function InvexV2Page() {
   const [kpi,        setKpi]      = useState({ pnl_pct:0, day_pnl:0, count:0, equity:0 })
   const [canvasDims, setCanvasDims] = useState({ w: 860, h: 520 })
 
-  const nodesRef     = useRef<HTMLDivElement>(null)
-  const canvasRef    = useRef<HTMLDivElement>(null)
-  const glowRef      = useRef<HTMLDivElement>(null)
-  const tickerRef    = useRef<HTMLDivElement>(null)
-  const tickerIdxRef = useRef(0)
+  const nodesRef      = useRef<HTMLDivElement>(null)
+  const canvasRef     = useRef<HTMLDivElement>(null)
+  const glowRef       = useRef<HTMLDivElement>(null)
+  const tickerRef     = useRef<HTMLDivElement>(null)
+  const tickerIdxRef  = useRef(0)
+  const transformRef  = useRef<HTMLDivElement>(null)
+  const zoomRef       = useRef(1)
+  const panRef        = useRef({ x: 0, y: 0 })
+  const isDraggingRef = useRef(false)
+  const lastMouseRef  = useRef({ x: 0, y: 0 })
 
   /* ── canvas ResizeObserver ── */
   useEffect(() => {
@@ -187,7 +459,8 @@ export default function InvexV2Page() {
             ltp:               h.ltp ?? 0,
             grade:             sc.grade ?? e.grade ?? null,
             signal:            t.signal ?? e.signal ?? null,
-            pe:                e.pe ?? 25,   // default to market avg; spreads PE axis
+            pe:                e.pe ?? 25,
+            pb:                e.pb ?? null,
             fundamental_score: e.fundamental_score ?? 50,
             technical_score:   t.technical_score   ?? 50,
             risk_score:        sectorRisk * 0.5 + (absPnl / 300 * 0.3) + (index * 0.02 * 0.2),
@@ -197,6 +470,8 @@ export default function InvexV2Page() {
             market_cap:        h.market_cap ?? e.market_cap ?? null,
             rsi,
             action:            e.action ?? null,
+            above_50dma:       t.above_50dma ?? null,
+            above_200dma:      t.above_200dma ?? null,
           }
         })
 
@@ -330,15 +605,59 @@ export default function InvexV2Page() {
   const getConv = (n:Node) => convMap.get(n.id) ?? n.conviction_level
   const setConv = (id:string, v:number) => setConvMap(m=>new Map(m).set(id,v))
 
-  /* ── mouse glow (GSAP only, zero setState) ── */
+  /* ── zoom / pan (all DOM-direct, zero setState) ── */
+  const applyTransform = useCallback(() => {
+    if (transformRef.current) {
+      transformRef.current.style.transform =
+        `translate(${panRef.current.x}px,${panRef.current.y}px) scale(${zoomRef.current})`
+    }
+  }, [])
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? 0.85 : 1.15
+    zoomRef.current = Math.max(0.4, Math.min(4, zoomRef.current * delta))
+    applyTransform()
+  }, [applyTransform])
+
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.matrix-node')) return
+    isDraggingRef.current = true
+    lastMouseRef.current = { x: e.clientX, y: e.clientY }
+    if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing'
+  }, [])
+
+  const handleCanvasMouseUp = useCallback(() => {
+    isDraggingRef.current = false
+    if (canvasRef.current) canvasRef.current.style.cursor = 'grab'
+  }, [])
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.matrix-node')) return
+    zoomRef.current = 1
+    panRef.current = { x: 0, y: 0 }
+    if (transformRef.current) {
+      gsap.to(transformRef.current, { x: 0, y: 0, scale: 1, duration: 0.4, ease: 'power2.inOut' })
+    }
+  }, [])
+
+  /* ── mouse glow + pan (GSAP only, zero setState) ── */
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDraggingRef.current) {
+      const dx = e.clientX - lastMouseRef.current.x
+      const dy = e.clientY - lastMouseRef.current.y
+      panRef.current.x += dx
+      panRef.current.y += dy
+      lastMouseRef.current = { x: e.clientX, y: e.clientY }
+      applyTransform()
+    }
     if (!canvasRef.current || !glowRef.current) return
     const rect = canvasRef.current.getBoundingClientRect()
     gsap.to(glowRef.current, {
       x: e.clientX - rect.left, y: e.clientY - rect.top,
       duration: 0.5, ease: 'power2.out', overwrite: 'auto',
     })
-  }, [])
+  }, [applyTransform])
 
   const pnlColor = (v:number) => v>=0 ? C.green : C.red
 
@@ -465,12 +784,16 @@ export default function InvexV2Page() {
         <div ref={canvasRef}
           style={{
             flex:1, minWidth:0, position:'relative', minHeight:0, overflow:'hidden',
-            background:'rgba(0,0,0,0.28)', borderRadius:14,
+            background:'rgba(0,0,0,0.28)', borderRadius:14, cursor:'grab',
             boxShadow:`inset 4px 4px 20px rgba(0,0,0,0.85),inset -2px -2px 10px rgba(255,255,255,0.02)`,
           }}
           onMouseMove={handleCanvasMouseMove}
-          onMouseLeave={()=>glowRef.current && gsap.to(glowRef.current,{opacity:0,duration:0.3})}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={()=>{ isDraggingRef.current=false; if(glowRef.current) gsap.to(glowRef.current,{opacity:0,duration:0.3}); if(canvasRef.current) canvasRef.current.style.cursor='grab' }}
           onMouseEnter={()=>glowRef.current && gsap.to(glowRef.current,{opacity:1,duration:0.3})}
+          onWheel={handleWheel}
+          onDoubleClick={handleDoubleClick}
         >
           {/* Grid — FIX 4: 96×32px (20% shorter cells) */}
           <div style={{
@@ -518,7 +841,13 @@ export default function InvexV2Page() {
             </div>
           )}
 
-          {/* Nodes */}
+          {/* Zoom hint */}
+          <div style={{ position:'absolute', bottom:8, right:12, fontSize:8, fontFamily:'JetBrains Mono,monospace', color:'rgba(201,245,59,0.18)', letterSpacing:1, pointerEvents:'none', userSelect:'none' }}>
+            SCROLL ZOOM · DRAG PAN · DBL-CLICK RESET
+          </div>
+
+          {/* Nodes — inside transform wrapper for zoom/pan */}
+          <div ref={transformRef} style={{ position:'absolute', inset:0, transformOrigin:'50% 50%' }}>
           <div ref={nodesRef} style={{ position:'absolute', inset:0 }}>
             {!loading && filtered.map(n=>{
               const glowColor = n.is_crown ? '#F59E0B'
@@ -570,6 +899,7 @@ export default function InvexV2Page() {
               )
             })}
           </div>
+          </div>{/* end transformRef */}
         </div>
 
         {/* DETAIL PANEL — width collapses to 0 when no node selected */}
@@ -581,82 +911,12 @@ export default function InvexV2Page() {
               style={{
                 overflow:'hidden', flexShrink:0, height:'100%',
               }}>
-            <div style={{
-                width:360, height:'100%', background:C.bg, borderRadius:14, padding:18,
-                display:'flex', flexDirection:'column', gap:12,
-                overflowY:'auto',
-                boxShadow:`-6px 0 20px rgba(0,0,0,0.8),-1px 0 0 ${C.shadowLight},${neu(true)}`,
-              }}>
-
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                <div>
-                  <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:'Syne,sans-serif' }}>{selected.symbol}</div>
-                  <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{selected.account ?? 'Portfolio'}</div>
-                </div>
-                <button onClick={()=>setSelected(null)}
-                  style={{ background:C.bg, color:C.textDim, border:'none', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:neu(true) }}>
-                  ×
-                </button>
-              </div>
-
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                {selected.grade    && <span style={{ fontSize:10, background:C.limeDim, border:`1px solid ${C.limeBorder}`, color:C.lime,  borderRadius:12, padding:'3px 10px' }}>Grade {selected.grade}</span>}
-                {selected.signal   && <span style={{ fontSize:10, background:'rgba(14,166,110,0.08)', border:'1px solid rgba(14,166,110,0.25)', color:C.green, borderRadius:12, padding:'3px 10px' }}>{selected.signal}</span>}
-                {selected.is_crown && <span style={{ fontSize:10, background:'rgba(245,158,11,0.08)',  border:'1px solid rgba(245,158,11,0.25)',  color:C.amber, borderRadius:12, padding:'3px 10px' }}>👑 Crown</span>}
-              </div>
-
-              <div style={{ background:C.surface2, borderRadius:10, padding:'12px 14px', display:'flex', justifyContent:'space-between', boxShadow:neu(false) }}>
-                <div>
-                  <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>P&L</div>
-                  <div style={{ fontSize:22, fontWeight:700, color:pnlColor(selected.pnl_pct) }}>{selected.pnl_pct>=0?'+':''}{selected.pnl_pct.toFixed(2)}%</div>
-                </div>
-                <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>AMOUNT</div>
-                  <div style={{ fontSize:14, color:pnlColor(selected.pnl), fontWeight:600 }}>{fmtL(selected.pnl)}</div>
-                </div>
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                {[
-                  { label:'LTP',   value:`₹${selected.ltp.toLocaleString('en-IN')}` },
-                  { label:'Avg',   value:`₹${selected.avg_price.toLocaleString('en-IN')}` },
-                  { label:'Value', value:fmtL(selected.current_value) },
-                  { label:'Wt',    value:`${selected.weight.toFixed(2)}%` },
-                ].map(r=>(
-                  <div key={r.label} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
-                    <div style={{ fontSize:9, color:C.textDim }}>{r.label}</div>
-                    <div style={{ fontSize:12, color:C.text, fontWeight:600, marginTop:2 }}>{r.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {selected.rsi != null && (
-                <div>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                    <span style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>RSI</span>
-                    <span style={{ fontSize:10, color:C.text }}>{selected.rsi.toFixed(1)}</span>
-                  </div>
-                  <div style={{ height:6, background:C.surface2, borderRadius:3, overflow:'hidden', boxShadow:neu(false) }}>
-                    <div style={{ height:'100%', width:`${selected.rsi}%`, background:C.lime, borderRadius:3, transition:'width 0.4s' }} />
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display:'flex', gap:8, fontSize:10, color:C.textDim }}>
-                {selected.sector     && <span style={{ background:C.surface2, borderRadius:6, padding:'4px 8px', boxShadow:neu(false) }}>{selected.sector}</span>}
-                {selected.market_cap && <span style={{ background:C.surface2, borderRadius:6, padding:'4px 8px', boxShadow:neu(false) }}>{selected.market_cap}</span>}
-              </div>
-
-              <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:2 }}>CONVICTION</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {[1,2,3,4,5].map(v=>(
-                  <button key={v} onClick={()=>setConv(selected.id, v)}
-                    style={{ width:28, height:28, borderRadius:'50%', border:'none', background:C.bg, cursor:'pointer', fontSize:11, fontWeight:700, color:getConv(selected)>=v?C.lime:C.textMute, boxShadow:getConv(selected)>=v?neu(false):neu(true), transition:'all 0.15s' }}>
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <IntelligencePanel
+              node={selected}
+              getConv={getConv}
+              setConv={setConv}
+              onClose={()=>setSelected(null)}
+            />
             </motion.div>
           )}
         </AnimatePresence>
