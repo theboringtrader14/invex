@@ -6,29 +6,30 @@ import * as d3 from 'd3'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import PixelBurst from '../components/v2/PixelBurst'
+import chartIcon3d  from '../assets/icons3d/invex-chart.webp'
+import targetIcon3d from '../assets/icons3d/goalex-target.webp'
+import techIcon3d   from '../assets/icons3d/finex-dollar.webp'
 
 gsap.registerPlugin(useGSAP)
 
-/* ─── Neumorphic tokens ───────────────────────────────────────────────── */
+/* ─── Design tokens — CSS vars for theme, semantic for functional ─────── */
 const C = {
-  lime:        '#C9F53B',
-  limeDim:     'rgba(201,245,59,0.08)',
-  limeBorder:  'rgba(201,245,59,0.20)',
-  bg:          '#0d1117',
-  surface2:    '#0a0e14',
-  text:        '#e2e8f0',
-  textDim:     '#4a5568',
-  textMute:    '#252e3c',
+  accent:      '#2dd4bf',                   // teal — hardcoded for non-style usage
+  accentDim:   'rgba(45,212,191,0.08)',
+  accentBorder:'rgba(45,212,191,0.20)',
+  bg:          'var(--bg)',
+  surface2:    'var(--bg-surface)',
+  text:        'var(--text)',
+  textDim:     'var(--text-dim)',
+  textMute:    'var(--text-mute)',
   green:       '#0EA66E',
   red:         '#FF4444',
   amber:       '#F59E0B',
-  shadowDark:  'rgba(0,0,0,0.85)',
-  shadowLight: 'rgba(255,255,255,0.04)',
 }
 
 const neu = (raised = true) => raised
-  ? `4px 4px 12px ${C.shadowDark}, -2px -2px 8px ${C.shadowLight}`
-  : `inset 2px 2px 6px ${C.shadowDark}, inset -1px -1px 4px ${C.shadowLight}`
+  ? 'var(--neu-raised-sm)'
+  : 'var(--neu-inset)'
 
 /* ─── Axis modes ──────────────────────────────────────────────────────── */
 const MODES = [
@@ -47,6 +48,7 @@ interface Node {
   volatility_proxy: number
   is_crown: boolean; market_cap: string|null; rsi: number|null; action: string|null
   above_50dma: boolean|null; above_200dma: boolean|null
+  overall_score: number
 }
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -54,6 +56,10 @@ const SECTOR_RISK: Record<string,number> = {
   'Small Cap':0.9,'Mid Cap':0.7,'Technology':0.65,'Auto':0.6,'Defence':0.7,
   'Infrastructure':0.55,'Energy':0.5,'Materials':0.55,'FMCG':0.3,'Utilities':0.25,
   'Banking & Finance':0.5,'Pharma':0.45,'Index Fund':0.2,'Large Cap':0.3,
+}
+
+function gradeToScore(grade: string | null): number {
+  return ({A: 85, B: 70, C: 55, D: 35} as Record<string, number>)[grade || ''] ?? 50
 }
 
 function fmtL(v:number):string {
@@ -73,21 +79,21 @@ const SPARKLE_DATA = Array.from({length:40}, (_,i) => ({
   x:   (i * 137.508) % 100,
   y:   (i * 97.421)  % 100,
   sz:  1 + (i % 3),
-  op:  0.13 + (i % 5) * 0.04,
+  op:  0.08 + (i % 5) * 0.03,
   dur: 3 + (i % 5),
   del: -(i * 0.7),
 }))
 
 const SparkleLayer = React.memo(function SparkleLayer() {
   return (
-    <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0, overflow:'hidden' }}>
+    <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:0, overflow:'hidden' }}>
       {SPARKLE_DATA.map((s,i) => (
         <div key={i} style={{
           position: 'absolute',
           left: `${s.x}%`, top: `${s.y}%`,
           width: s.sz, height: s.sz,
           borderRadius: '50%',
-          background: '#C9F53B',
+          background: '#2dd4bf',
           opacity: s.op,
           pointerEvents: 'none',
           animation: `sparkleFloat ${s.dur}s ease-in-out infinite ${s.del}s`,
@@ -117,12 +123,12 @@ function gradeCol(g?: string|null) {
   if (g==='C') return '#6B7280'; return '#FF4444'
 }
 function sigCol(s?: string|null) {
-  if (!s) return '#4a5568'
+  if (!s) return 'var(--text-mute)'
   if (s.includes('BULL')||s==='Multibagger'||s==='Strong Compounder'||s==='Momentum Leader') return '#0EA66E'
   if (s==='NEUTRAL') return '#6B7280'
   if (s.includes('WEAK')||s==='Under Watch') return '#F59E0B'
   if (s.includes('BEAR')||s==='Laggard') return '#FF4444'
-  return '#4a5568'
+  return 'var(--text-mute)'
 }
 function actionCol(a?: string|null) {
   if (a==='BUY') return '#0EA66E'; if (a==='HOLD') return '#F59E0B'; return '#FF4444'
@@ -159,14 +165,42 @@ function IntelligencePanel({ node, getConv, setConv, onClose }: PanelProps) {
   const [analysisError,   setAnalysisError]   = useState<string|null>(null)
   const [savePending,     setSavePending]     = useState(false)
 
+  /* Tab refs — zero useState for tab switching */
+  const activeTabRef    = useRef<'fund'|'tech'|'overall'>('fund')
+  const fundBtnRef      = useRef<HTMLButtonElement>(null)
+  const techBtnRef      = useRef<HTMLButtonElement>(null)
+  const overallBtnRef   = useRef<HTMLButtonElement>(null)
+  const fundContentRef  = useRef<HTMLDivElement>(null)
+  const techContentRef  = useRef<HTMLDivElement>(null)
+  const overallContentRef = useRef<HTMLDivElement>(null)
+
+  const switchTab = useCallback((tab: 'fund'|'tech'|'overall') => {
+    activeTabRef.current = tab
+    const tabs    = ['fund','tech','overall'] as const
+    const btnRefs = [fundBtnRef, techBtnRef, overallBtnRef]
+    const contentRefs = [fundContentRef, techContentRef, overallContentRef]
+    tabs.forEach((t, i) => {
+      const btn     = btnRefs[i].current
+      const content = contentRefs[i].current
+      const isActive = t === tab
+      if (btn) {
+        btn.style.background  = isActive ? 'rgba(45,212,191,0.12)' : 'transparent'
+        btn.style.color       = isActive ? 'var(--accent)' : 'var(--text-dim)'
+        btn.style.boxShadow   = isActive ? 'var(--neu-inset)' : 'none'
+      }
+      if (content) content.style.display = isActive ? 'block' : 'none'
+    })
+  }, [])
+
   useEffect(() => {
+    switchTab('fund')
     setNotes({ story:'', purchase_reason:'', conviction_level:0 })
     setAnalysis(null); setAnalysisError(null); setStoryOpen(false)
     apiFetch(`/api/v1/stocks/${node.symbol}/notes?account_id=${node.account_id}`)
       .then(r=>r.json())
       .then(d=>setNotes({ story:d.story||'', purchase_reason:d.purchase_reason||'', conviction_level:d.conviction_level||0 }))
       .catch(()=>{})
-  }, [node.symbol, node.account_id])
+  }, [node.symbol, node.account_id, switchTab])
 
   const runAnalysis = async () => {
     setAnalysisLoading(true); setAnalysisError(null)
@@ -190,182 +224,372 @@ function IntelligencePanel({ node, getConv, setConv, onClose }: PanelProps) {
     finally { setSavePending(false) }
   }
 
-  const pnlC  = (v:number) => v>=0 ? C.green : C.red
-  const swot  = generateSWOT(node)
-  const div   = <div style={{ height:1, background:'rgba(255,255,255,0.06)', margin:'6px 0' }} />
+  const swot = generateSWOT(node)
+
+  /* ── Inner helpers (defined inside for access to node/theme) ── */
+  const SectionHeader = ({ label }: { label: string }) => (
+    <div style={{ fontSize:9, color:'var(--text-dim)', fontFamily:'var(--font-mono)', letterSpacing:2,
+      textTransform:'uppercase', marginBottom:8, marginTop:4 }}>
+      {label}
+    </div>
+  )
+
+  const StatCell = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ background:'var(--bg)', borderRadius:8, padding:'8px 10px', boxShadow:'var(--neu-inset)' }}>
+      <div style={{ fontSize:8, color:'var(--text-mute)', fontFamily:'var(--font-mono)', letterSpacing:1, textTransform:'uppercase' }}>{label}</div>
+      <div style={{ fontSize:12, color:'var(--text)', fontWeight:700, fontFamily:'var(--font-mono)', marginTop:2 }}>{value}</div>
+    </div>
+  )
+
+  const ScoreBar = ({ label, score }: { label: string; score: number }) => (
+    <div style={{ marginBottom:10 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+        <span style={{ fontSize:9, color:'var(--text-dim)', fontFamily:'var(--font-mono)', letterSpacing:1 }}>{label}</span>
+        <span style={{ fontSize:11, color:'var(--accent)', fontFamily:'var(--font-mono)', fontWeight:700 }}>{score}</span>
+      </div>
+      <div style={{ height:4, background:'var(--bg)', borderRadius:4, overflow:'hidden', boxShadow:'var(--neu-inset)' }}>
+        <div style={{
+          height:'100%', width:`${Math.min(100, Math.max(0, score))}%`,
+          background:`linear-gradient(90deg, var(--accent), ${score>75 ? '#0EA66E' : '#F59E0B'})`,
+          borderRadius:4, transition:'width 0.6s ease',
+        }} />
+      </div>
+    </div>
+  )
+
+  /* Grade description */
+  const gradeDesc = (g: string|null) => {
+    if (g==='A') return 'Strong fundamentals — high quality stock'
+    if (g==='B') return 'Good fundamentals — solid holding'
+    if (g==='C') return 'Average — monitor closely'
+    if (g==='D') return 'Weak — consider reviewing position'
+    return 'No grade available'
+  }
+
+  /* RSI interpretation */
+  const rsiLabel = (r: number) => r < 30 ? 'Oversold' : r > 70 ? 'Overbought' : 'Neutral'
+  const rsiColor = (r: number) => r < 30 ? C.green : r > 70 ? C.red : C.amber
+
+  /* Overall score = average of fund + tech if no explicit value */
+  const overallScore = Math.round((node.overall_score > 0
+    ? node.overall_score
+    : (node.fundamental_score + node.technical_score) / 2))
 
   return (
-    <div style={{ width:360, height:'100%', background:C.bg, borderRadius:14, padding:18,
-      display:'flex', flexDirection:'column', gap:0, overflowY:'auto',
-      boxShadow:`-6px 0 20px rgba(0,0,0,0.8),-1px 0 0 ${C.shadowLight},${neu(true)}` }}>
+    <div style={{
+      width:360, height:'100%', background:'var(--bg)', borderRadius:14,
+      display:'flex', flexDirection:'column', overflow:'hidden',
+      boxShadow:`-4px 0 16px rgba(0,0,0,0.12), var(--neu-raised)`,
+    }}>
 
-      {/* HEADER */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-        <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, fontFamily:'Syne,sans-serif' }}>{node.symbol}</div>
-          <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{node.account ?? 'Portfolio'}</div>
+      {/* ═══ HEADER ═══ */}
+      <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
+
+        {/* Symbol row */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:800, color:'var(--accent)' }}>
+              {node.symbol}
+            </span>
+            {node.is_crown && <span style={{ fontSize:14 }}>👑</span>}
+          </div>
+          <button onClick={onClose} style={{
+            background:'var(--bg)', color:'var(--text-dim)', border:'none', borderRadius:6,
+            width:26, height:26, cursor:'pointer', fontSize:14,
+            display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'var(--neu-raised-sm)',
+          }}>×</button>
         </div>
-        <button onClick={onClose}
-          style={{ background:C.bg, color:C.textDim, border:'none', borderRadius:6, width:28, height:28, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:neu(true) }}>×</button>
+
+        {/* Meta row */}
+        <div style={{ fontSize:10, color:'var(--text-mute)', fontFamily:'var(--font-mono)', marginBottom:10 }}>
+          {[node.sector, node.market_cap, node.account].filter(Boolean).join(' · ')}
+        </div>
+
+        {/* P&L hero */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10, flexWrap:'wrap' }}>
+          <span style={{ fontSize:18, fontWeight:700, fontFamily:'var(--font-mono)', color: node.pnl_pct>=0 ? C.green : C.red }}>
+            {node.pnl_pct>=0?'+':''}{node.pnl_pct.toFixed(2)}%
+          </span>
+          <span style={{ fontSize:13, fontWeight:600, fontFamily:'var(--font-mono)', color: node.pnl>=0 ? C.green : C.red }}>
+            {fmtL(node.pnl)}
+          </span>
+          {node.grade && (
+            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', padding:'2px 7px', borderRadius:12,
+              border:`1px solid ${gradeCol(node.grade)}40`, color:gradeCol(node.grade), letterSpacing:1 }}>
+              {node.grade}
+            </span>
+          )}
+          {node.action && (
+            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', padding:'2px 7px', borderRadius:12,
+              border:`1px solid ${actionCol(node.action)}40`, color:actionCol(node.action), letterSpacing:1 }}>
+              {node.action}
+            </span>
+          )}
+        </div>
+
+        {/* Mini-stats row */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+          {[
+            { label:'LTP', value:`₹${node.ltp.toLocaleString('en-IN')}` },
+            { label:'AVG', value:`₹${node.avg_price.toLocaleString('en-IN')}` },
+            { label:'WT%', value:`${node.weight.toFixed(1)}%` },
+          ].map(s => (
+            <div key={s.label} style={{ background:'var(--bg-surface)', borderRadius:6, padding:'6px 8px', boxShadow:'var(--neu-inset)' }}>
+              <div style={{ fontSize:8, color:'var(--text-mute)', fontFamily:'var(--font-mono)', letterSpacing:1 }}>{s.label}</div>
+              <div style={{ fontSize:11, color:'var(--text)', fontWeight:700, fontFamily:'var(--font-mono)', marginTop:2 }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Chips */}
-      <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginBottom:10 }}>
-        {node.sector     && <span style={chipSt('#6B7280')}>{node.sector}</span>}
-        {node.market_cap && <span style={chipSt('#4a5568')}>{node.market_cap}</span>}
-        {node.grade      && <span style={chipSt(gradeCol(node.grade))}>Grade {node.grade}</span>}
-        {node.signal     && <span style={chipSt(sigCol(node.signal))}>{node.signal.replace('_',' ')}</span>}
-        {node.action     && <span style={chipSt(actionCol(node.action))}>{node.action}</span>}
-        {node.is_crown   && <span style={chipSt('#F59E0B')}>👑 Crown</span>}
-      </div>
-      {div}
-
-      {/* P&L hero */}
-      <div style={{ background:C.surface2, borderRadius:10, padding:'12px 14px', display:'flex', justifyContent:'space-between', boxShadow:neu(false), margin:'8px 0' }}>
-        <div>
-          <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>P&L</div>
-          <div style={{ fontSize:22, fontWeight:700, color:pnlC(node.pnl_pct) }}>{node.pnl_pct>=0?'+':''}{node.pnl_pct.toFixed(2)}%</div>
-        </div>
-        <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>AMOUNT</div>
-          <div style={{ fontSize:14, color:pnlC(node.pnl), fontWeight:600 }}>{fmtL(node.pnl)}</div>
-        </div>
-      </div>
-
-      {/* Position stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+      {/* ═══ TAB BAR ═══ */}
+      <div style={{ display:'flex', padding:'8px 12px', gap:6, borderBottom:'1px solid var(--border)', background:'var(--bg-surface)', flexShrink:0 }}>
         {([
-          { label:'LTP',   value:`₹${node.ltp.toLocaleString('en-IN')}` },
-          { label:'Avg',   value:`₹${node.avg_price.toLocaleString('en-IN')}` },
-          { label:'Value', value:fmtL(node.current_value) },
-          { label:'Wt',    value:`${node.weight.toFixed(2)}%` },
-        ] as const).map(r=>(
-          <div key={r.label} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
-            <div style={{ fontSize:9, color:C.textDim }}>{r.label}</div>
-            <div style={{ fontSize:12, color:C.text, fontWeight:600, marginTop:2 }}>{r.value}</div>
-          </div>
-        ))}
-      </div>
-      {div}
-
-      {/* Fundamentals */}
-      <div style={{ marginTop:6 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>FUNDAMENTALS</div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
-          {([
-            { label:'PE', value: node.pe ? node.pe.toFixed(1) : '—' },
-            { label:'PB', value: node.pb ? node.pb.toFixed(1) : '—' },
-          ] as const).map(r=>(
-            <div key={r.label} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
-              <div style={{ fontSize:9, color:C.textDim }}>{r.label}</div>
-              <div style={{ fontSize:12, color:C.text, fontWeight:600, marginTop:2 }}>{r.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {div}
-
-      {/* Technical */}
-      <div style={{ marginTop:6, marginBottom:8 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>TECHNICAL</div>
-        {node.rsi != null && (
-          <div style={{ marginBottom:8 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-              <span style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>RSI</span>
-              <span style={{ fontSize:10, color:C.text }}>{node.rsi.toFixed(1)}</span>
-            </div>
-            <div style={{ height:6, background:C.surface2, borderRadius:3, overflow:'hidden', boxShadow:neu(false) }}>
-              <div style={{ height:'100%', width:`${node.rsi}%`, background:C.lime, borderRadius:3, transition:'width 0.4s' }} />
-            </div>
-          </div>
-        )}
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-          {node.above_50dma  != null && <span style={chipSt(node.above_50dma  ? C.green : C.red)}>{node.above_50dma  ? '↑' : '↓'} 50 DMA</span>}
-          {node.above_200dma != null && <span style={chipSt(node.above_200dma ? C.green : C.red)}>{node.above_200dma ? '↑' : '↓'} 200 DMA</span>}
-        </div>
-      </div>
-      {div}
-
-      {/* Conviction */}
-      <div style={{ marginTop:6, marginBottom:8 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>CONVICTION</div>
-        <div style={{ display:'flex', gap:6 }}>
-          {[1,2,3,4,5].map(v=>(
-            <button key={v} onClick={()=>setConv(node.id, v)}
-              style={{ width:28, height:28, borderRadius:'50%', border:'none', background:C.bg, cursor:'pointer', fontSize:11, fontWeight:700,
-                color:getConv(node)>=v?C.lime:C.textMute, boxShadow:getConv(node)>=v?neu(false):neu(true), transition:'all 0.15s' }}>
-              {v}
+          { id:'fund',    label:'Fund',    icon: chartIcon3d  },
+          { id:'tech',    label:'Tech',    icon: techIcon3d   },
+          { id:'overall', label:'Overall', icon: targetIcon3d },
+        ] as const).map(({ id, label, icon }, i) => {
+          const btnRef = [fundBtnRef, techBtnRef, overallBtnRef][i]
+          return (
+            <button
+              key={id}
+              ref={btnRef}
+              onClick={() => switchTab(id)}
+              style={{
+                flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+                padding:'6px 4px', borderRadius:8, border:'none', cursor:'pointer',
+                fontSize:10, fontFamily:'var(--font-mono)', letterSpacing:1,
+                background: id === 'fund' ? 'rgba(45,212,191,0.12)' : 'transparent',
+                color: id === 'fund' ? 'var(--accent)' : 'var(--text-dim)',
+                boxShadow: id === 'fund' ? 'var(--neu-inset)' : 'none',
+                transition:'all 0.15s',
+              }}
+            >
+              <img src={icon} width={15} height={15} style={{ objectFit:'contain', flexShrink:0 }} alt="" />
+              <span>{label}</span>
             </button>
-          ))}
-        </div>
+          )
+        })}
       </div>
-      {div}
 
-      {/* SWOT Scorecard */}
-      <div style={{ marginTop:6, marginBottom:8 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>SCORECARD</div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-          {([
-            { key:'s', label:'S — Strength', color:C.green,   items:swot.s },
-            { key:'w', label:'W — Weakness', color:C.red,     items:swot.w },
-            { key:'o', label:'O — Opportunity', color:'#2dd4bf', items:swot.o },
-            { key:'t', label:'T — Threat',    color:C.amber,  items:swot.t },
-          ] as const).map(q=>(
-            <div key={q.key} style={{ background:C.surface2, borderRadius:8, padding:'8px 10px', boxShadow:neu(false) }}>
-              <div style={{ fontSize:8, fontWeight:700, color:q.color, marginBottom:4, letterSpacing:0.5 }}>{q.label}</div>
-              {q.items.length
-                ? q.items.map((it,i)=><div key={i} style={{ fontSize:9, color:C.textDim, lineHeight:1.5 }}>· {it}</div>)
-                : <div style={{ fontSize:9, color:C.textMute }}>—</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-      {div}
+      {/* ═══ TAB CONTENT ═══ */}
+      <div style={{ flex:1, overflowY:'auto', minHeight:0 }}>
 
-      {/* Investment Story */}
-      <div style={{ marginTop:6, marginBottom:8 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>INVESTMENT STORY</div>
-        {notes.story
-          ? <div style={{ fontSize:10, color:C.textDim, fontStyle:'italic', lineHeight:1.6, marginBottom:6 }}>{notes.story}</div>
-          : null}
-        <button onClick={()=>setStoryOpen(v=>!v)}
-          style={{ fontSize:9, color:notes.story?C.textDim:C.lime, background:C.surface2, border:'none',
-            cursor:'pointer', letterSpacing:1, borderRadius:8, padding:'7px 10px',
-            width:'100%', textAlign:'left', boxShadow:neu(false) }}>
-          {storyOpen ? '▲ Collapse' : notes.story ? '▼ Edit story' : '+ Add your story…'}
-        </button>
-        {storyOpen && (
-          <div style={{ marginTop:6, display:'flex', flexDirection:'column', gap:6 }}>
-            <textarea value={notes.story} onChange={e=>setNotes(n=>({...n,story:e.target.value}))}
-              rows={4} placeholder="Why did you buy? What's your thesis?"
-              style={{ background:C.surface2, border:`1px solid rgba(255,255,255,0.08)`, borderRadius:8,
-                padding:8, fontSize:10, color:C.text, resize:'vertical', fontFamily:'var(--font-body)',
-                boxShadow:neu(false), outline:'none', width:'100%' }} />
-            <button onClick={saveStory} disabled={savePending}
-              style={{ background:C.lime, color:'#0d1117', border:'none', borderRadius:8,
-                padding:'6px', fontSize:10, fontWeight:700, cursor:'pointer', letterSpacing:0.5 }}>
-              {savePending ? 'Saving…' : 'Save Story'}
-            </button>
+        {/* ─── TAB 1: FUNDAMENTAL ─── */}
+        <div ref={fundContentRef} style={{ display:'block', padding:'12px 16px' }}>
+
+          <SectionHeader label="Valuation" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 }}>
+            <StatCell label="PE Ratio" value={node.pe ? node.pe.toFixed(1) : '—'} />
+            <StatCell label="PB Ratio" value={node.pb ? node.pb.toFixed(1) : '—'} />
+            <StatCell label="Market Cap" value={node.market_cap ?? '—'} />
+            <StatCell label="Sector" value={node.sector ?? '—'} />
           </div>
-        )}
-      </div>
-      {div}
 
-      {/* AI Analysis */}
-      <div style={{ marginTop:6, paddingBottom:8 }}>
-        <div style={{ fontSize:9, color:C.textDim, letterSpacing:1, marginBottom:6 }}>AI ANALYSIS</div>
-        {analysis
-          ? <div style={{ fontSize:10, color:C.textDim, lineHeight:1.6, background:C.surface2, borderRadius:8, padding:10, boxShadow:neu(false) }}>{analysis}</div>
-          : analysisError
-            ? <div style={{ fontSize:10, color:C.red }}>{analysisError}</div>
-            : <button onClick={runAnalysis} disabled={analysisLoading}
-                style={{ background:C.bg, color:C.lime, border:`1px solid rgba(201,245,59,0.2)`,
-                  borderRadius:8, padding:'8px 14px', fontSize:10, fontWeight:600,
-                  cursor:analysisLoading?'wait':'pointer', boxShadow:neu(true), letterSpacing:0.5, width:'100%' }}>
+          <SectionHeader label="Grade Intelligence" />
+          <div style={{ background:'var(--bg)', borderRadius:10, padding:'10px 12px', boxShadow:'var(--neu-inset)', marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+              {node.grade && (
+                <div style={{
+                  width:40, height:40, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:20, fontWeight:800, fontFamily:'var(--font-display)',
+                  color:gradeCol(node.grade),
+                  background:`${gradeCol(node.grade)}12`,
+                  boxShadow:`inset 0 0 0 1px ${gradeCol(node.grade)}30`,
+                }}>
+                  {node.grade}
+                </div>
+              )}
+              {node.signal && (
+                <span style={{ fontSize:9, fontFamily:'var(--font-mono)', padding:'3px 8px', borderRadius:12,
+                  border:`1px solid ${sigCol(node.signal)}40`, color:sigCol(node.signal), letterSpacing:1 }}>
+                  {node.signal.replace(/_/g,' ')}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize:10, color:'var(--text-dim)', fontFamily:'var(--font-mono)', lineHeight:1.5 }}>
+              {gradeDesc(node.grade)}
+            </div>
+          </div>
+
+          <SectionHeader label="Investment Story" />
+          {notes.story && (
+            <div style={{ fontSize:10, color:'var(--text-dim)', fontStyle:'italic', lineHeight:1.6,
+              marginBottom:8, borderLeft:`2px solid rgba(45,212,191,0.3)`, paddingLeft:10 }}>
+              {notes.story}
+            </div>
+          )}
+          <button onClick={() => setStoryOpen(v => !v)}
+            style={{ fontSize:9, color: notes.story ? 'var(--text-dim)' : 'var(--accent)',
+              background:'var(--bg-surface)', border:'none', cursor:'pointer', letterSpacing:1,
+              borderRadius:8, padding:'7px 10px', width:'100%', textAlign:'left', boxShadow:'var(--neu-inset)' }}>
+            {storyOpen ? '▲ Collapse' : notes.story ? '▼ Edit story' : '+ Document why you bought this'}
+          </button>
+          {storyOpen && (
+            <div style={{ marginTop:6, display:'flex', flexDirection:'column', gap:6 }}>
+              <textarea value={notes.story} onChange={e => setNotes(n => ({...n, story: e.target.value}))}
+                rows={4} placeholder="Why did you buy? What's your thesis?"
+                style={{ background:'var(--bg-surface)', border:`1px solid var(--border)`, borderRadius:8,
+                  padding:8, fontSize:10, color:'var(--text)', resize:'vertical', fontFamily:'var(--font-body)',
+                  boxShadow:'var(--neu-inset)', outline:'none', width:'100%', boxSizing:'border-box' }} />
+              <button onClick={saveStory} disabled={savePending}
+                style={{ background:'var(--accent)', color:'var(--bg)', border:'none', borderRadius:8,
+                  padding:'6px', fontSize:10, fontWeight:700, cursor:'pointer', letterSpacing:0.5 }}>
+                {savePending ? 'Saving…' : 'Save Story'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ─── TAB 2: TECHNICAL ─── */}
+        <div ref={techContentRef} style={{ display:'none', padding:'12px 16px' }}>
+
+          <SectionHeader label="RSI" />
+          {node.rsi != null ? (
+            <div style={{ background:'var(--bg)', borderRadius:10, padding:'10px 12px', boxShadow:'var(--neu-inset)', marginBottom:14 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                <span style={{ fontSize:9, color:'var(--text-dim)', fontFamily:'var(--font-mono)', letterSpacing:1 }}>RSI {node.rsi.toFixed(1)}</span>
+                <span style={{ fontSize:9, fontFamily:'var(--font-mono)', padding:'2px 8px', borderRadius:12,
+                  border:`1px solid ${rsiColor(node.rsi)}40`, color:rsiColor(node.rsi) }}>
+                  {rsiLabel(node.rsi)}
+                </span>
+              </div>
+              <div style={{ height:6, background:'var(--bg-surface)', borderRadius:3, overflow:'hidden', boxShadow:'var(--neu-inset)' }}>
+                <div style={{ height:'100%', width:`${node.rsi}%`,
+                  background: node.rsi < 30 ? C.green : node.rsi > 70 ? C.red : C.amber,
+                  borderRadius:3, transition:'width 0.6s ease' }} />
+              </div>
+              <div style={{ fontSize:9, color:'var(--text-mute)', fontFamily:'var(--font-mono)', marginTop:6 }}>
+                RSI {node.rsi.toFixed(0)} — {rsiLabel(node.rsi)}
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize:10, color:'var(--text-mute)', marginBottom:14 }}>RSI data unavailable</div>
+          )}
+
+          <SectionHeader label="Moving Averages" />
+          <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+            {node.above_50dma != null ? (
+              <div style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg)', borderRadius:8,
+                padding:'8px 12px', boxShadow:'var(--neu-inset)' }}>
+                <span style={{ fontSize:14 }}>{node.above_50dma ? '↑' : '↓'}</span>
+                <span style={{ fontSize:10, color: node.above_50dma ? C.green : C.red,
+                  fontFamily:'var(--font-mono)', fontWeight:700 }}>
+                  {node.above_50dma ? 'Above' : 'Below'} 50 DMA
+                </span>
+              </div>
+            ) : null}
+            {node.above_200dma != null ? (
+              <div style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg)', borderRadius:8,
+                padding:'8px 12px', boxShadow:'var(--neu-inset)' }}>
+                <span style={{ fontSize:14 }}>{node.above_200dma ? '↑' : '↓'}</span>
+                <span style={{ fontSize:10, color: node.above_200dma ? C.green : C.red,
+                  fontFamily:'var(--font-mono)', fontWeight:700 }}>
+                  {node.above_200dma ? 'Above' : 'Below'} 200 DMA
+                </span>
+              </div>
+            ) : null}
+            {node.above_50dma == null && node.above_200dma == null && (
+              <div style={{ fontSize:10, color:'var(--text-mute)', fontFamily:'var(--font-mono)' }}>Data unavailable</div>
+            )}
+          </div>
+
+          <SectionHeader label="Signal" />
+          {node.signal ? (
+            <div style={{ marginBottom:14 }}>
+              <span style={{ display:'block', textAlign:'center', fontSize:10, fontFamily:'var(--font-mono)',
+                padding:'8px', borderRadius:10, border:`1px solid ${sigCol(node.signal)}40`,
+                color:sigCol(node.signal), background:`${sigCol(node.signal)}08`, letterSpacing:1 }}>
+                {node.signal.replace(/_/g,' ')}
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize:10, color:'var(--text-mute)', marginBottom:14 }}>No signal</div>
+          )}
+
+          <SectionHeader label="Action" />
+          {node.action ? (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ textAlign:'center', fontSize:13, fontWeight:800, fontFamily:'var(--font-display)',
+                padding:'10px', borderRadius:10, letterSpacing:2,
+                color: actionCol(node.action),
+                background: node.action==='BUY' ? 'rgba(14,166,110,0.12)' : node.action==='HOLD' ? 'rgba(245,158,11,0.12)' : 'rgba(255,68,68,0.12)',
+                border:`1px solid ${actionCol(node.action)}30`,
+                boxShadow:'var(--neu-inset)',
+              }}>
+                {node.action}
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize:10, color:'var(--text-mute)', marginBottom:14 }}>No action signal</div>
+          )}
+        </div>
+
+        {/* ─── TAB 3: OVERALL ─── */}
+        <div ref={overallContentRef} style={{ display:'none', padding:'12px 16px' }}>
+
+          <SectionHeader label="Scores" />
+          <div style={{ marginBottom:14 }}>
+            <ScoreBar label="FUNDAMENTAL" score={node.fundamental_score} />
+            <ScoreBar label="TECHNICAL"   score={node.technical_score} />
+            <ScoreBar label="OVERALL"     score={overallScore} />
+          </div>
+
+          <SectionHeader label="Conviction" />
+          <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+            {[1,2,3,4,5].map(v => (
+              <button key={v} onClick={() => setConv(node.id, v)}
+                style={{ width:32, height:32, borderRadius:'50%', border:'none', background:'var(--bg)', cursor:'pointer',
+                  fontSize:11, fontWeight:700,
+                  color: getConv(node)>=v ? 'var(--accent)' : 'var(--text-mute)',
+                  boxShadow: getConv(node)>=v ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+                  transition:'all 0.15s' }}>
+                {v}
+              </button>
+            ))}
+          </div>
+
+          <SectionHeader label="SWOT" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:14 }}>
+            {([
+              { key:'s', label:'S — Strength',    color:C.green,   bg:'rgba(14,166,110,0.08)',        items:swot.s },
+              { key:'w', label:'W — Weakness',    color:C.red,     bg:'rgba(255,68,68,0.08)',          items:swot.w },
+              { key:'o', label:'O — Opportunity', color:C.accent,  bg:'rgba(45,212,191,0.08)',         items:swot.o },
+              { key:'t', label:'T — Threat',      color:C.amber,   bg:'rgba(245,158,11,0.08)',         items:swot.t },
+            ] as const).map(q => (
+              <div key={q.key} style={{ background:q.bg, borderRadius:8, padding:'8px 10px',
+                border:`1px solid ${q.color}20` }}>
+                <div style={{ fontSize:8, fontWeight:700, color:q.color, marginBottom:4, letterSpacing:0.5 }}>{q.label}</div>
+                {q.items.length
+                  ? q.items.map((it, i) => <div key={i} style={{ fontSize:10, color:'var(--text-dim)', lineHeight:1.5 }}>· {it}</div>)
+                  : <div style={{ fontSize:9, color:'var(--text-mute)' }}>—</div>}
+              </div>
+            ))}
+          </div>
+
+          <SectionHeader label="AI Analysis" />
+          <div style={{ paddingBottom:8 }}>
+            {analysis ? (
+              <div style={{ fontSize:10, color:'var(--text-dim)', lineHeight:1.6,
+                background:'var(--bg-surface)', borderRadius:8, padding:10, boxShadow:'var(--neu-inset)' }}>
+                {analysis}
+              </div>
+            ) : analysisError ? (
+              <div style={{ fontSize:10, color:C.red }}>{analysisError}</div>
+            ) : (
+              <button onClick={runAnalysis} disabled={analysisLoading}
+                style={{ background:'var(--bg)', color:'var(--accent)',
+                  border:`1px solid rgba(45,212,191,0.2)`, borderRadius:8,
+                  padding:'8px 14px', fontSize:10, fontWeight:600,
+                  cursor: analysisLoading ? 'wait' : 'pointer',
+                  boxShadow:'var(--neu-raised-sm)', letterSpacing:0.5, width:'100%' }}>
                 {analysisLoading ? '⏳ Analysing…' : '✦ Analyse with AI'}
               </button>
-        }
-      </div>
+            )}
+          </div>
+        </div>
+
+      </div>{/* end tab content wrapper */}
     </div>
   )
 }
@@ -472,6 +696,7 @@ export default function InvexV2Page() {
             action:            e.action ?? null,
             above_50dma:       t.above_50dma ?? null,
             above_200dma:      t.above_200dma ?? null,
+            overall_score:     (h as any).overall_score ?? gradeToScore(sc.grade ?? e.grade ?? null),
           }
         })
 
@@ -616,7 +841,7 @@ export default function InvexV2Page() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 0.85 : 1.15
-    zoomRef.current = Math.max(0.4, Math.min(4, zoomRef.current * delta))
+    zoomRef.current = Math.max(0.75, Math.min(4, zoomRef.current * delta))
     applyTransform()
   }, [applyTransform])
 
@@ -665,8 +890,8 @@ export default function InvexV2Page() {
     <>
     <style>{`
       @keyframes crownPulse {
-        0%,100% { box-shadow: 2px 2px 8px rgba(0,0,0,0.8),-1px -1px 4px rgba(255,255,255,0.04),0 0 8px #F59E0B20; }
-        50%      { box-shadow: 2px 2px 8px rgba(0,0,0,0.8),-1px -1px 4px rgba(255,255,255,0.04),0 0 24px #F59E0B60,0 0 48px #F59E0B20; }
+        0%,100% { box-shadow: var(--neu-raised-sm), 0 0 8px #F59E0B20; }
+        50%      { box-shadow: var(--neu-raised-sm), 0 0 24px #F59E0B60, 0 0 48px #F59E0B20; }
       }
       @keyframes sparkleFloat {
         0%,100% { transform: translateY(0) scale(1); }
@@ -675,7 +900,7 @@ export default function InvexV2Page() {
       .matrix-node { transition: box-shadow 0.25s ease, transform 0.2s ease, filter 0.2s ease; }
       .matrix-node:not([data-selected="true"]):hover {
         transform: translate(-50%,-50%) scale(1.08) !important;
-        filter: brightness(1.7) saturate(1.4);
+        filter: brightness(1.25) saturate(1.3);
         z-index: 10 !important;
       }
       .matrix-node[data-selected="true"] {
@@ -684,39 +909,44 @@ export default function InvexV2Page() {
       }
     `}</style>
 
-    {/* Sparkles — fixed, memoized, never re-renders */}
-    <SparkleLayer />
     {/* Pixel burst canvas — DOM-driven, no React state */}
-    <PixelBurst color={C.lime} />
+    <PixelBurst color="#2dd4bf" />
 
+    {/* ── Page container — fills Layout's <main> ── */}
     <div style={{
-      position: 'fixed', top:0, left:0, width:'100vw', height:'100vh',
-      background:`radial-gradient(ellipse 70% 50% at 15% 25%, rgba(201,245,59,0.08) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 85% 75%, rgba(14,166,110,0.06) 0%, transparent 55%), ${C.bg}`,
-      display:'flex', flexDirection:'column', overflow:'hidden',
-      fontFamily:'JetBrains Mono, monospace', color:C.text,
-      zIndex: 2,
+      flex: 1, display:'flex', flexDirection:'column', overflow:'hidden',
+      background: 'var(--bg)',
+      fontFamily: 'var(--font-mono)', color: 'var(--text)',
+      position: 'relative', minHeight: 0,
     }}>
 
-      {/* HEADER */}
+      {/* Sparkles — contained within page area */}
+      <SparkleLayer />
+
+      {/* Subtle ambient teal glow */}
       <div style={{
-        padding:'16px 24px 0',
-        display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10,
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+        background: 'radial-gradient(ellipse 70% 50% at 15% 25%, rgba(45,212,191,0.05) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 85% 75%, rgba(45,212,191,0.03) 0%, transparent 55%)',
+      }} />
+
+      {/* KPI STRIP */}
+      <div style={{
+        padding: '16px 0 0',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 10, position: 'relative', zIndex: 1,
       }}>
-        <span style={{ fontFamily:'Syne, sans-serif', fontSize:22, fontWeight:700, letterSpacing:3, color:C.lime }}>
-          MATRIX VIEW
-        </span>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {[
             { label:'Portfolio P&L', value:`${kpi.pnl_pct>=0?'+':''}${kpi.pnl_pct.toFixed(2)}%`, color:pnlColor(kpi.pnl_pct) },
             { label:'Day P&L',       value:fmtL(kpi.day_pnl),                                      color:pnlColor(kpi.day_pnl) },
-            { label:'Holdings',      value:`${kpi.count}`,                                          color:C.text },
-            { label:'Equity',        value:fmtL(kpi.equity),                                        color:C.text },
+            { label:'Holdings',      value:`${kpi.count}`,                                          color:'var(--text)' },
+            { label:'Equity',        value:fmtL(kpi.equity),                                        color:'var(--text)' },
           ].map(k=>(
             <div key={k.label} style={{
-              background:C.bg, borderRadius:10, padding:'6px 14px',
-              display:'flex', flexDirection:'column', gap:2, boxShadow:neu(true),
+              background: 'var(--bg)', borderRadius: 10, padding: '6px 14px',
+              display: 'flex', flexDirection: 'column', gap: 2, boxShadow: 'var(--neu-raised-sm)',
             }}>
-              <span style={{ fontSize:9, color:C.textDim, letterSpacing:1 }}>{k.label}</span>
+              <span style={{ fontSize:9, color:'var(--text-dim)', letterSpacing:1 }}>{k.label}</span>
               <span style={{ fontSize:13, color:k.color, fontWeight:600 }}>{k.value}</span>
             </div>
           ))}
@@ -725,32 +955,34 @@ export default function InvexV2Page() {
 
       {/* TICKER */}
       <div style={{
-        margin:'10px 24px 0', height:30,
-        background:'rgba(201,245,59,0.04)',
-        boxShadow:`inset 0 1px 0 rgba(201,245,59,0.08),inset 0 -1px 0 rgba(201,245,59,0.08)`,
-        borderLeft:`3px solid rgba(201,245,59,0.5)`,
-        borderRadius:'0 6px 6px 0',
-        display:'flex', alignItems:'center', paddingLeft:12, overflow:'hidden',
+        margin: '10px 0 0', height: 30,
+        background: 'rgba(45,212,191,0.04)',
+        boxShadow: `inset 0 1px 0 rgba(45,212,191,0.08), inset 0 -1px 0 rgba(45,212,191,0.08)`,
+        borderLeft: `3px solid rgba(45,212,191,0.5)`,
+        borderRadius: '0 6px 6px 0',
+        display: 'flex', alignItems: 'center', paddingLeft: 12, overflow: 'hidden',
+        position: 'relative', zIndex: 1,
       }}>
-        <div ref={tickerRef} style={{ fontSize:10, color:C.textDim, letterSpacing:0.5 }}>
+        <div ref={tickerRef} style={{ fontSize:10, color:'var(--text-dim)', letterSpacing:0.5 }}>
           ◆ Loading portfolio data…
         </div>
       </div>
 
       {/* MODE SWITCHER */}
-      <div style={{ display:'flex', gap:6, padding:'10px 24px 0' }}>
+      <div style={{ display:'flex', gap:6, paddingTop:10, position:'relative', zIndex:1 }}>
         {MODES.map((m,i)=>(
           <button key={m.id} onClick={()=>setModeIdx(i)}
             style={{
-              background:C.bg, color:i===modeIdx?C.lime:C.textDim,
-              border:i===modeIdx?`1px solid rgba(201,245,59,0.2)`:'1px solid transparent',
-              borderRadius:20, padding:'5px 13px',
-              fontSize:10, cursor:'pointer',
-              fontFamily:'Syne, sans-serif', fontWeight:600, letterSpacing:0.5,
-              transition:'all 0.2s',
-              boxShadow:i===modeIdx
-                ?`inset 2px 2px 6px ${C.shadowDark},inset -1px -1px 3px ${C.shadowLight},0 0 10px rgba(201,245,59,0.10)`
-                :neu(true),
+              background: 'var(--bg)',
+              color: i===modeIdx ? 'var(--accent)' : 'var(--text-dim)',
+              border: i===modeIdx ? `1px solid rgba(45,212,191,0.2)` : '1px solid transparent',
+              borderRadius: 20, padding: '5px 13px',
+              fontSize: 10, cursor: 'pointer',
+              fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: 0.5,
+              transition: 'all 0.2s',
+              boxShadow: i===modeIdx
+                ? `var(--neu-inset), 0 0 10px rgba(45,212,191,0.12)`
+                : 'var(--neu-raised-sm)',
             }}>
             {m.label}
           </button>
@@ -758,34 +990,34 @@ export default function InvexV2Page() {
       </div>
 
       {/* FILTER BAR */}
-      <div style={{ display:'flex', gap:6, padding:'8px 24px 0', flexWrap:'wrap' }}>
+      <div style={{ display:'flex', gap:6, paddingTop:8, flexWrap:'wrap', position:'relative', zIndex:1 }}>
         {FILTERS.map(f=>(
           <button key={f} onClick={()=>setFilter(f)}
             style={{
-              background:C.bg,
-              border:f===filter?`1px solid rgba(201,245,59,0.18)`:'1px solid transparent',
-              color:f===filter?C.lime:C.textDim,
-              borderRadius:14, padding:'4px 11px', fontSize:10,
-              cursor:'pointer', fontFamily:'JetBrains Mono, monospace', letterSpacing:0.5,
-              transition:'all 0.2s',
-              boxShadow:f===filter
-                ?`inset 2px 2px 5px ${C.shadowDark},inset -1px -1px 3px ${C.shadowLight}`
-                :`2px 2px 6px ${C.shadowDark},-1px -1px 3px ${C.shadowLight}`,
+              background: 'var(--bg)',
+              border: f===filter ? `1px solid rgba(45,212,191,0.18)` : '1px solid transparent',
+              color: f===filter ? 'var(--accent)' : 'var(--text-dim)',
+              borderRadius: 14, padding: '4px 11px', fontSize: 10,
+              cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
+              transition: 'all 0.2s',
+              boxShadow: f===filter
+                ? `var(--neu-inset), 0 0 8px rgba(45,212,191,0.10)`
+                : 'var(--neu-raised-sm)',
             }}>
             {f}
           </button>
         ))}
       </div>
 
-      {/* MAIN ROW */}
-      <div style={{ flex:1, display:'flex', gap:10, padding:'10px 0 14px', overflow:'hidden', minHeight:0, maxHeight:'calc(75vh - 132px)' }}>
+      {/* MAIN ROW — canvas + detail panel (75% of remaining viewport) */}
+      <div style={{ flex:'0 0 auto', height:'calc((100vh - 260px) * 0.75)', display:'flex', gap:10, paddingTop:10, paddingBottom:14, overflow:'hidden', minHeight:0, position:'relative', zIndex:1 }}>
 
         {/* CANVAS */}
         <div ref={canvasRef}
           style={{
             flex:1, minWidth:0, position:'relative', minHeight:0, overflow:'hidden',
-            background:'rgba(0,0,0,0.28)', borderRadius:14, cursor:'grab',
-            boxShadow:`inset 4px 4px 20px rgba(0,0,0,0.85),inset -2px -2px 10px rgba(255,255,255,0.02)`,
+            background: 'var(--bg-surface)', borderRadius:14, cursor:'grab',
+            boxShadow: 'var(--neu-inset)',
           }}
           onMouseMove={handleCanvasMouseMove}
           onMouseDown={handleCanvasMouseDown}
@@ -795,34 +1027,34 @@ export default function InvexV2Page() {
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
         >
-          {/* Grid — FIX 4: 96×32px (20% shorter cells) */}
+          {/* Grid */}
           <div style={{
             position:'absolute', inset:0, pointerEvents:'none',
-            backgroundImage:`linear-gradient(rgba(201,245,59,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(201,245,59,0.022) 1px,transparent 1px)`,
+            backgroundImage:`linear-gradient(rgba(45,212,191,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,0.04) 1px,transparent 1px)`,
             backgroundSize:'96px 32px',
           }} />
 
           {/* Ambient glow */}
           <div style={{
             position:'absolute', inset:0, pointerEvents:'none',
-            background:'radial-gradient(ellipse 60% 50% at 50% 50%,rgba(201,245,59,0.025) 0%,transparent 70%)',
+            background:'radial-gradient(ellipse 60% 50% at 50% 50%,rgba(45,212,191,0.03) 0%,transparent 70%)',
           }} />
 
           {/* Mouse glow */}
           <div ref={glowRef} style={{
             position:'absolute', width:360, height:360, borderRadius:'50%',
-            background:'radial-gradient(circle,rgba(201,245,59,0.06) 0%,transparent 70%)',
+            background:'radial-gradient(circle,rgba(45,212,191,0.07) 0%,transparent 70%)',
             transform:'translate(-50%,-50%)',
             pointerEvents:'none', left:0, top:0, opacity:0,
           }} />
 
           {/* Axis labels */}
-          <span style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', fontSize:9, color:C.textDim, letterSpacing:1 }}>{mode.x.label} →</span>
-          <span style={{ position:'absolute', top:'50%', left:6, transform:'rotate(-90deg) translateX(50%)', fontSize:9, color:C.textDim, letterSpacing:1 }}>{mode.y.label} →</span>
+          <span style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', fontSize:9, color:'var(--text-mute)', letterSpacing:1 }}>{mode.x.label} →</span>
+          <span style={{ position:'absolute', top:'50%', left:6, transform:'rotate(-90deg) translateX(50%)', fontSize:9, color:'var(--text-mute)', letterSpacing:1 }}>{mode.y.label} →</span>
 
           {/* Quadrant lines */}
-          <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, borderLeft:`1px dashed rgba(201,245,59,0.10)` }} />
-          <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, borderTop:`1px dashed rgba(201,245,59,0.10)` }} />
+          <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:1, borderLeft:`1px dashed rgba(45,212,191,0.12)` }} />
+          <div style={{ position:'absolute', top:'50%', left:0, right:0, height:1, borderTop:`1px dashed rgba(45,212,191,0.12)` }} />
 
           {/* Quadrant labels */}
           {([
@@ -831,18 +1063,18 @@ export default function InvexV2Page() {
             { label:mode.q.bl, s:{ bottom:16, left:14 } },
             { label:mode.q.br, s:{ bottom:16, right:14 } },
           ] as const).map(ql=>(
-            <span key={ql.label} style={{ position:'absolute', ...ql.s, fontSize:9, color:'rgba(201,245,59,0.10)', fontFamily:'Syne,sans-serif', fontWeight:600, letterSpacing:0.5, pointerEvents:'none' }}>{ql.label}</span>
+            <span key={ql.label} style={{ position:'absolute', ...ql.s, fontSize:9, color:'rgba(45,212,191,0.14)', fontFamily:'var(--font-display)', fontWeight:600, letterSpacing:0.5, pointerEvents:'none' }}>{ql.label}</span>
           ))}
 
           {/* Loading */}
           {loading && (
-            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:C.textDim, fontSize:12 }}>
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-mute)', fontSize:12 }}>
               Loading nodes…
             </div>
           )}
 
           {/* Zoom hint */}
-          <div style={{ position:'absolute', bottom:8, right:12, fontSize:8, fontFamily:'JetBrains Mono,monospace', color:'rgba(201,245,59,0.18)', letterSpacing:1, pointerEvents:'none', userSelect:'none' }}>
+          <div style={{ position:'absolute', bottom:8, right:12, fontSize:8, fontFamily:'var(--font-mono)', color:'rgba(45,212,191,0.22)', letterSpacing:1, pointerEvents:'none', userSelect:'none' }}>
             SCROLL ZOOM · DRAG PAN · DBL-CLICK RESET
           </div>
 
@@ -871,12 +1103,11 @@ export default function InvexV2Page() {
                     transform:'translate(-50%,-50%) scale(1)',
                     cursor:'pointer',
                     zIndex:isSelected?20:1,
-                    /* DESIGN UPDATE: transparent neumorphic */
                     background:'transparent',
                     border:`1px solid ${glowColor}${isSelected?'50':'22'}`,
                     boxShadow: isSelected
-                      ? `inset 2px 2px 8px rgba(0,0,0,0.9),inset -1px -1px 4px rgba(255,255,255,0.05),0 0 20px ${glowColor}50,0 0 40px ${glowColor}20`
-                      : `2px 2px 8px rgba(0,0,0,0.7),-1px -1px 4px rgba(255,255,255,0.04),0 0 6px ${glowColor}15`,
+                      ? `var(--neu-inset), 0 0 20px ${glowColor}50, 0 0 40px ${glowColor}20`
+                      : `var(--neu-raised-sm), 0 0 6px ${glowColor}18`,
                     animation:n.is_crown?'crownPulse 2.5s ease-in-out infinite':'none',
                     display:'flex', flexDirection:'column',
                     alignItems:'center', justifyContent:'center',
@@ -886,10 +1117,10 @@ export default function InvexV2Page() {
                   <div style={{
                     position:'absolute', top:'12%', left:'18%',
                     width:'32%', height:'32%', borderRadius:'50%',
-                    background:'radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 70%)',
+                    background:'radial-gradient(circle,rgba(255,255,255,0.10) 0%,transparent 70%)',
                     pointerEvents:'none',
                   }} />
-                  <span style={{ fontSize:9, color:'#e2e8f0', fontFamily:'JetBrains Mono,monospace', fontWeight:700, textAlign:'center', lineHeight:1.1, pointerEvents:'none', textShadow:`0 0 8px ${glowColor}50`, position:'relative' }}>
+                  <span style={{ fontSize:9, color:'var(--text)', fontFamily:'var(--font-mono)', fontWeight:700, textAlign:'center', lineHeight:1.1, pointerEvents:'none', textShadow:`0 0 8px ${glowColor}50`, position:'relative' }}>
                     {n.symbol.length>6?n.symbol.slice(0,5)+'…':n.symbol}
                   </span>
                   <span style={{ fontSize:8, pointerEvents:'none', color:n.pnl_pct>=0?'#34d399':'#FF4444', lineHeight:1.1, position:'relative' }}>

@@ -98,6 +98,14 @@ async def load_zerodha_holdings(db: AsyncSession, api_key: str) -> dict:
     invex_acc = invex_result.scalar_one_or_none()
     if invex_acc:
         account_id = str(invex_acc.id)
+        # Persist the access token into invex_accounts so the UI can show token health
+        await db.execute(text("""
+            UPDATE invex_accounts
+            SET jwt_token = :token
+            WHERE id = :account_id
+        """), {"token": token, "account_id": account_id})
+        await db.commit()
+        logger.info(f"[ZERODHA] Saved access token to invex_accounts for {client_id}")
     else:
         # Fallback to STAAX UUID (shouldn't happen if bootstrap ran)
         account_id = account_info["staax_account_id"]

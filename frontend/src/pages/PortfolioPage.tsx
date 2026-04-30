@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { ArrowsClockwise, X, ChartLine, ArrowRight, Crown, UploadSimple } from "@phosphor-icons/react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 import { portfolioAPI } from "../services/api"
 import { apiFetch } from "../lib/api"
 import { useAuth } from "../contexts/AuthContext"
@@ -812,6 +813,19 @@ export default function PortfolioPage() {
     apiFetch('/api/v1/portfolio/refresh', { method: 'POST' })
       .then(r => r.json())
       .then(d => {
+        const angelErr = d.results?.angel?.error
+        const angelTotal = d.results?.angel?.total ?? -1
+
+        if (angelErr && angelTotal === 0) {
+          // Show toast warning — don't skip loading, use whatever is cached
+          toast.warning('Angel One token expired — showing cached data. Refresh token in Accounts.', {
+            duration: 6000,
+          })
+          load()
+          return
+        }
+
+        // Normal success path
         const total = (d.results?.zerodha?.equity || 0) + (d.results?.angel?.total || 0)
         if (total > 0) load()
       })

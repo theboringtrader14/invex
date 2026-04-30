@@ -182,9 +182,31 @@ async def refresh_holdings(
     except Exception as e:
         results["snapshot"] = {"error": str(e)}
 
+    # Detect whether Angel returned a JWT/auth error with 0 holdings.
+    # In that case we deliberately keep the existing Redis cache so the UI
+    # continues to show the last good data instead of flashing 0 holdings.
+    angel_result = results.get("angel", {})
+    angel_total = angel_result.get("total", None) if isinstance(angel_result, dict) else None
+    angel_accounts = angel_result.get("accounts", {}) if isinstance(angel_result, dict) else {}
+    angel_auth_error = (
+        isinstance(angel_result, dict)
+        and angel_total == 0
+        and any(
+            isinstance(v, dict) and str(v.get("error", "")).startswith("JWT_EXPIRED")
+            for v in angel_accounts.values()
+        )
+    )
+
     cache_key = f"invex:holdings:{current_user.id}"
-    await redis_client.delete(cache_key)
-    await redis_client.delete(HOLDINGS_CACHE_KEY)  # legacy key
+    if angel_auth_error:
+        logger.warning(
+            "[PORTFOLIO] Angel JWT expired and 0 holdings returned — "
+            "preserving existing Redis cache to avoid showing empty portfolio"
+        )
+        results["cache"] = "preserved (angel JWT expired)"
+    else:
+        await redis_client.delete(cache_key)
+        await redis_client.delete(HOLDINGS_CACHE_KEY)  # legacy key
 
     try:
         from app.adapters.market_data_adapter import market_data

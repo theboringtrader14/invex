@@ -68,6 +68,8 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
   const [saved,       setSaved]       = useState<Record<string, string>>({})
   const [refreshing,  setRefreshing]  = useState<Record<string, boolean>>({})
   const [refreshMsg,  setRefreshMsg]  = useState<Record<string, { text: string; ok: boolean }>>({})
+  const [totpPending, setTotpPending] = useState<string | null>(null)
+  const [totpInput,   setTotpInput]   = useState<Record<string, string>>({})
   const panelRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -146,6 +148,41 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
     }
   }
 
+  const submitTotp = async (accountId: string) => {
+    const code = (totpInput[accountId] || '').trim()
+    if (!code || code.length !== 6) {
+      toast.error('Enter a valid 6-digit TOTP code')
+      return
+    }
+    setRefreshing(r => ({ ...r, [accountId]: true }))
+    const toastId = toast.loading('Refreshing token…')
+    try {
+      const res  = await apiFetch(`/api/v1/accounts/${accountId}/refresh-token`, {
+        method: 'POST',
+        body: JSON.stringify({ totp: code }),
+      })
+      const data = await res.json()
+      toast.dismiss(toastId)
+      if (res.ok) {
+        const count = data.holdings_loaded ?? 0
+        toast.success(`Token refreshed — ${count} holdings loaded`)
+        setRefreshMsg(m => ({ ...m, [accountId]: { text: `Refreshed · ${count} holdings`, ok: true } }))
+        setTotpPending(null)
+        setTotpInput(v => { const n = { ...v }; delete n[accountId]; return n })
+        load()
+      } else {
+        toast.error(data.detail ?? 'Token refresh failed')
+        setRefreshMsg(m => ({ ...m, [accountId]: { text: data.detail ?? 'Error', ok: false } }))
+      }
+    } catch {
+      toast.dismiss(toastId)
+      toast.error('Network error')
+      setRefreshMsg(m => ({ ...m, [accountId]: { text: 'Network error', ok: false } }))
+    } finally {
+      setRefreshing(r => ({ ...r, [accountId]: false }))
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('invex_token')
     window.location.href = '/login'
@@ -208,18 +245,25 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
         {/* Row 2: action buttons */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
-            onClick={() => refreshToken(acc)}
+            onClick={() => {
+              if (acc.broker === 'angelone') {
+                setTotpPending(p => p === acc.id ? null : acc.id)
+              } else {
+                refreshToken(acc)
+              }
+            }}
             disabled={refreshing[acc.id]}
             style={{
               height: 28, padding: '0 12px', borderRadius: 100,
               fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
-              color: connected ? 'var(--accent)' : 'var(--accent)',
+              background: 'var(--bg)',
+              boxShadow: totpPending === acc.id ? 'var(--neu-inset)' : 'var(--neu-raised-sm)',
+              color: 'var(--accent)',
               opacity: refreshing[acc.id] ? 0.6 : 1,
             }}
-            onMouseDown={e => { e.currentTarget.style.boxShadow = 'var(--neu-inset)' }}
-            onMouseUp={e   => { e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
+            onMouseDown={e => { if (acc.broker !== 'angelone') e.currentTarget.style.boxShadow = 'var(--neu-inset)' }}
+            onMouseUp={e   => { if (acc.broker !== 'angelone') e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
+            onMouseLeave={e => { if (acc.broker !== 'angelone') e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
           >
             {refreshing[acc.id] ? '…' : connected ? 'Refresh Token' : 'Login'}
           </button>
@@ -238,6 +282,63 @@ export default function InvexAccountsDrawer({ onClose }: { onClose: () => void }
             API Keys
           </button>
         </div>
+
+        {/* TOTP inline input (Angel One only) */}
+        {totpPending === acc.id && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              autoFocus
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="6-digit TOTP"
+              value={totpInput[acc.id] || ''}
+              onChange={e => {
+                const val = e.target.value.replace(/\D/g, '')
+                setTotpInput(v => ({ ...v, [acc.id]: val }))
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') submitTotp(acc.id)
+                if (e.key === 'Escape') { setTotpPending(null); setTotpInput(v => { const n = {...v}; delete n[acc.id]; return n }) }
+              }}
+              style={{
+                ...inp,
+                width: 130,
+                height: 30,
+                fontSize: 14,
+                letterSpacing: '0.2em',
+                fontFamily: 'var(--font-mono)',
+              }}
+            />
+            <button
+              onClick={() => submitTotp(acc.id)}
+              disabled={refreshing[acc.id] || (totpInput[acc.id] || '').length !== 6}
+              style={{
+                height: 30, padding: '0 12px', borderRadius: 100,
+                fontSize: 11, fontWeight: 700, border: 'none',
+                cursor: (totpInput[acc.id] || '').length === 6 ? 'pointer' : 'not-allowed',
+                background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                color: 'var(--accent)',
+                opacity: (totpInput[acc.id] || '').length === 6 ? 1 : 0.45,
+              }}
+              onMouseDown={e => { e.currentTarget.style.boxShadow = 'var(--neu-inset)' }}
+              onMouseUp={e   => { e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-raised-sm)' }}
+            >
+              {refreshing[acc.id] ? '…' : 'Submit'}
+            </button>
+            <button
+              onClick={() => { setTotpPending(null); setTotpInput(v => { const n = {...v}; delete n[acc.id]; return n }) }}
+              style={{
+                height: 30, width: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: 'var(--bg)', boxShadow: 'var(--neu-raised-sm)',
+                color: 'var(--text-mute)', fontSize: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              title="Cancel"
+            >✕</button>
+          </div>
+        )}
 
         {/* Feedback rows */}
         {msg?.text && (

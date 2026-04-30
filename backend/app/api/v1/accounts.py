@@ -138,17 +138,24 @@ async def update_account(
     return _to_response(account)
 
 
+class RefreshTokenBody(BaseModel):
+    totp: Optional[str] = None
+
+
 @router.post("/{account_id}/refresh-token")
 async def refresh_token(
     account_id: str,
+    body: RefreshTokenBody = RefreshTokenBody(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Re-authenticate with broker and store fresh JWT.
 
-    Angel One: re-runs TOTP login if totp_secret + api_key + password available.
-               Falls back to pulling latest token from STAAX DB (accounts.access_token).
+    Angel One: if a 6-digit TOTP code is supplied in the request body it is used
+               directly (user copied it from their authenticator app).
+               Otherwise falls back to auto-generating TOTP from stored totp_secret,
+               then to pulling the latest token from STAAX DB.
     Zerodha:   Returns the Kite Connect OAuth URL (manual browser flow required).
     """
     result = await db.execute(
@@ -159,7 +166,40 @@ async def refresh_token(
         raise HTTPException(status_code=404, detail="Account not found")
 
     if account.broker == "angelone":
-        # ── Try TOTP auto-login if credentials available ──────────────────────
+        # ── Path 1: user-supplied 6-digit TOTP code ───────────────────────────
+        user_totp = (body.totp or "").strip()
+        if user_totp:
+            if not account.api_key or not account.password:
+                raise HTTPException(
+                    status_code=400,
+                    detail="api_key and password must be saved before using TOTP refresh"
+                )
+            try:
+                from app.data_ingestion.angel_loader import angel_login_with_totp
+                new_jwt = await angel_login_with_totp(
+                    client_id=account.client_id,
+                    password=account.password,
+                    api_key=account.api_key,
+                    totp_code=user_totp,
+                )
+                account.jwt_token = new_jwt
+                account.sync_error = None
+                await db.commit()
+                logger.info(f"[ACCOUNTS] Refreshed JWT for {account.nickname} via user-supplied TOTP")
+                # Trigger holdings sync and return count
+                try:
+                    from app.data_ingestion.angel_loader import load_angel_holdings
+                    sync_result = await load_angel_holdings(db)
+                    holdings_loaded = sync_result.get("total", 0)
+                except Exception as sync_err:
+                    logger.warning(f"[ACCOUNTS] Holdings sync after TOTP refresh failed: {sync_err}")
+                    holdings_loaded = 0
+                return {"success": True, "holdings_loaded": holdings_loaded, "nickname": account.nickname}
+            except Exception as e:
+                logger.warning(f"[ACCOUNTS] User-TOTP login failed for {account.nickname}: {e}")
+                raise HTTPException(status_code=400, detail=str(e))
+
+        # ── Path 2: auto-generate TOTP from stored secret ─────────────────────
         if account.api_key and account.password and account.totp_secret:
             try:
                 from app.data_ingestion.angel_loader import angel_login
