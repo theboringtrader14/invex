@@ -365,7 +365,7 @@ function IntelligencePanel({ node, getConv, setConv, onClose }: PanelProps) {
                 transition:'all 0.15s',
               }}
             >
-              <img src={icon} width={15} height={15} style={{ objectFit:'contain', flexShrink:0 }} alt="" />
+              <img src={icon} width={15} height={15} style={{ objectFit:'contain', mixBlendMode:'screen', borderRadius:4, flexShrink:0 }} alt="" />
               <span>{label}</span>
             </button>
           )
@@ -650,12 +650,13 @@ export default function InvexV2Page() {
 
         const totalValue = holdings.reduce((a:number,h:any)=>a+(h.current_value??0),0) || 1
 
-        const eMap  = new Map(enriched.map((e:any)=>[`${e.symbol}|${e.account_id}`, e]))
-        const tMap  = new Map(techs.map((t:any)=>[`${t.symbol}|${t.account_id}`, t]))
-        const scMap = new Map(scores.map((s:any)=>[`${s.symbol}|${s.account_id}`, s]))
+        const stripSym = (sym: string) => (sym || '').replace(/-(EQ|BE)$/, '').trim()
+        const eMap  = new Map(enriched.map((e:any)=>[`${stripSym(e.symbol)}|${e.account_id}`, e]))
+        const tMap  = new Map(techs.map((t:any)=>[`${stripSym(t.symbol)}|${t.account_id}`, t]))
+        const scMap = new Map(scores.map((s:any)=>[`${stripSym(s.symbol)}|${s.account_id}`, s]))
 
         const raw: Node[] = holdings.map((h:any, index:number) => {
-          const key  = `${h.symbol}|${h.account_id}`
+          const key  = `${stripSym(h.symbol)}|${h.account_id}`
           const e    = eMap.get(key) ?? {}
           const t    = tMap.get(key) ?? {}
           const sc   = scMap.get(key) ?? {}
